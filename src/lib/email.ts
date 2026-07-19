@@ -7,7 +7,7 @@ function getResend() {
   return resend;
 }
 
-const FROM = "FloreaHub <noreply@floriahub.com>";
+const FROM = "FloreaHub <onboarding@resend.dev>";
 
 // ── Welcome email ─────────────────────────────────────────────────────────────
 
