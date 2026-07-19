@@ -4,10 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { ShoppingCart, Heart, Zap, Star, SlidersHorizontal, ChevronDown, Gem, Gift, Building2, Feather, Sun, Palette, Search, Megaphone } from "lucide-react";
+import { ShoppingCart, Heart, Zap, Star, SlidersHorizontal, ChevronDown, Gem, Gift, Building2, Feather, Sun, Palette, Search, Megaphone, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CATEGORIES, AI_PRODUCTS } from "@/lib/data";
+import { CATEGORIES } from "@/lib/data";
 import { stagger, scaleIn } from "@/lib/animations";
 import { addToCart as saveToCart, getCart } from "@/lib/cart";
 import { getActiveAds } from "@/lib/ads";
@@ -17,7 +17,10 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   corporate: Building2, sympathy: Feather, daily: Sun,
 };
 
-const ALL_PRODUCTS = AI_PRODUCTS;
+type Product = {
+  id: string; name: string; florist: string; price: number; originalPrice: number | null;
+  image: string; category: string; rating: number; reviews: number; sameDay: boolean; badge: string;
+};
 
 const BADGE_STYLES: Record<string, string> = {
   Bestseller: "bg-amber-50 text-amber-700",
@@ -27,10 +30,29 @@ const BADGE_STYLES: Record<string, string> = {
   New: "bg-emerald-50 text-emerald-700",
 };
 
+function dbToProduct(p: Record<string, unknown>): Product {
+  const f = p.florists as Record<string, unknown> | null;
+  return {
+    id: String(p.id),
+    name: String(p.name || ""),
+    florist: String(f?.name || ""),
+    price: Number(p.price) || 0,
+    originalPrice: p.original_price ? Number(p.original_price) : null,
+    image: String(p.image_url || `https://image.pollinations.ai/prompt/flower+arrangement+malaysia?width=400&height=400&nologo=true&seed=${p.id}`),
+    category: String(p.category || "daily"),
+    rating: Number(p.rating) || 0,
+    reviews: Number(p.review_count) || 0,
+    sameDay: Boolean(p.same_day),
+    badge: String(p.badge || ""),
+  };
+}
+
 function ShopContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const qParam = searchParams.get("q") ?? "";
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState("popular");
   const [maxPrice, setMaxPrice] = useState(400);
@@ -40,6 +62,14 @@ function ShopContent() {
   const [addedId, setAddedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(qParam);
   const [sponsoredAds, setSponsoredAds] = useState<ReturnType<typeof getActiveAds>>([]);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((d) => setAllProducts((d.products ?? []).map(dbToProduct)))
+      .catch(() => setAllProducts([]))
+      .finally(() => setLoadingProducts(false));
+  }, []);
 
   useEffect(() => { setSearchQuery(qParam); }, [qParam]);
   useEffect(() => { setSponsoredAds(getActiveAds("product_boost").slice(0, 2)); }, []);
@@ -54,14 +84,14 @@ function ShopContent() {
   const toggleWishlist = (id: string) =>
     setWishlist((p) => p.includes(id) ? p.filter((w) => w !== id) : [...p, id]);
 
-  const handleAddToCart = (p: typeof ALL_PRODUCTS[0]) => {
+  const handleAddToCart = (p: Product) => {
     saveToCart({ id: p.id, name: p.name, price: p.price, image: p.image, florist: p.florist });
     setAddedId(p.id);
     setTimeout(() => setAddedId(null), 1200);
   };
 
   const filtered = useMemo(() => {
-    let list = [...ALL_PRODUCTS];
+    let list = [...allProducts];
     if (activeCategory !== "all") list = list.filter((p) => p.category === activeCategory);
     if (sameDay) list = list.filter((p) => p.sameDay);
     list = list.filter((p) => p.price <= maxPrice);
@@ -89,7 +119,7 @@ function ShopContent() {
                 Flower Shop
               </motion.h1>
               <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="text-gray-500">
-                Fresh arrangements from Malaysia's finest florists
+                {loadingProducts ? "Loading..." : `${allProducts.length} arrangements from Malaysia's finest florists`}
               </motion.p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -153,7 +183,7 @@ function ShopContent() {
             Same-Day Only
           </button>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-gray-400">{filtered.length} results</span>
+            <span className="text-sm text-gray-400">{loadingProducts ? "..." : `${filtered.length} results`}</span>
             <div className="relative">
               <select value={sort} onChange={(e) => setSort(e.target.value)}
                 className="appearance-none text-sm border border-gray-200 rounded-lg pl-3 pr-8 py-2 outline-none bg-white text-gray-700 focus:border-gray-400">
@@ -194,7 +224,11 @@ function ShopContent() {
 
         {/* Grid */}
         <AnimatePresence mode="wait">
-          {filtered.length > 0 ? (
+          {loadingProducts ? (
+            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center py-28">
+              <Loader2 size={28} className="animate-spin text-gray-300" />
+            </motion.div>
+          ) : filtered.length > 0 ? (
             <motion.div key={`${activeCategory}-${sameDay}-${maxPrice}`} variants={stagger} initial="hidden" animate="show"
               className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"
             >

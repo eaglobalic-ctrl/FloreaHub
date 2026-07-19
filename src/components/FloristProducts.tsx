@@ -1,55 +1,104 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { ShoppingCart, Star } from "lucide-react";
+import { ShoppingCart, Star, Loader2 } from "lucide-react";
 import { addToCart } from "@/lib/cart";
 
-const AI = "https://image.pollinations.ai/prompt";
-
-const PRODUCTS = [
-  { id: "p1", name: "Classic Red Rose Bouquet",       price: 120, image: `${AI}/classic+red+rose+bouquet+luxury+professional+photography+white+background?width=400&height=400&nologo=true&seed=1001`, badge: "Bestseller", rating: 4.9 },
-  { id: "p2", name: "White Lily Elegance",             price: 95,  image: `${AI}/white+lily+elegant+bouquet+premium+arrangement+soft+background?width=400&height=400&nologo=true&seed=1002`, badge: "New",        rating: 4.7 },
-  { id: "p3", name: "Mixed Pastel Bouquet",            price: 110, image: `${AI}/pastel+mixed+flower+arrangement+modern+romantic+aesthetic?width=400&height=400&nologo=true&seed=1006`,          badge: "",           rating: 4.8 },
-  { id: "p4", name: "Sunflower Delight",               price: 80,  image: `${AI}/sunflower+birthday+bouquet+colorful+cheerful+gift+box?width=400&height=400&nologo=true&seed=1003`,             badge: "",           rating: 4.6 },
-  { id: "p5", name: "Bridal Premium Arrangement",      price: 280, image: `${AI}/bridal+wedding+bouquet+white+roses+peonies+luxury+premium?width=400&height=400&nologo=true&seed=1004`,          badge: "Premium",    rating: 5.0 },
-  { id: "p6", name: "Birthday Bloom Box",              price: 150, image: `${AI}/birthday+flower+box+mixed+pink+purple+festive+celebration?width=400&height=400&nologo=true&seed=1005`,          badge: "",           rating: 4.8 },
-];
+type Product = {
+  id: string;
+  name: string;
+  price: number;
+  original_price?: number;
+  image_url?: string;
+  badge?: string;
+  rating: number;
+  same_day?: boolean;
+};
 
 const BADGE_STYLES: Record<string, string> = {
   Bestseller: "bg-amber-50 text-amber-700 border border-amber-200",
   Premium:    "bg-purple-50 text-purple-700 border border-purple-200",
   New:        "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  Popular:    "bg-blue-50 text-blue-700 border border-blue-200",
+  Luxury:     "bg-pink-50 text-pink-700 border border-pink-200",
 };
 
-export default function FloristProducts({ floristName }: { floristName: string }) {
-  const router = useRouter();
+export default function FloristProducts({
+  floristId,
+  floristName,
+}: {
+  floristId?: string;
+  floristName: string;
+}) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [addedId, setAddedId] = useState<string | null>(null);
 
-  const handleAdd = (p: typeof PRODUCTS[0]) => {
-    addToCart({ id: p.id, name: p.name, price: p.price, image: p.image, florist: floristName });
+  useEffect(() => {
+    const url = floristId ? `/api/products?floristId=${floristId}` : "/api/products";
+    fetch(url)
+      .then((r) => r.json())
+      .then((d) => setProducts(d.products ?? []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  }, [floristId]);
+
+  const handleAdd = (p: Product) => {
+    addToCart({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      image: p.image_url || "",
+      florist: floristName,
+    });
     setAddedId(p.id);
     setTimeout(() => setAddedId(null), 1200);
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 size={24} className="animate-spin text-gray-300" />
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-400 text-sm">No products available yet.</div>
+    );
+  }
+
   return (
     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-      {PRODUCTS.map((p) => (
+      {products.map((p) => (
         <div key={p.id} className="card-premium overflow-hidden group cursor-pointer bg-white">
           <div className="relative h-44 bg-gray-100 overflow-hidden">
-            <Image src={p.image} alt={p.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+            {p.image_url ? (
+              <Image src={p.image_url} alt={p.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
+            ) : (
+              <div className="w-full h-full bg-gray-100" />
+            )}
             {p.badge && (
-              <span className={`absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE_STYLES[p.badge] ?? ""}`}>{p.badge}</span>
+              <span className={`absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-md border ${BADGE_STYLES[p.badge] ?? "bg-gray-50 text-gray-600 border-gray-200"}`}>{p.badge}</span>
+            )}
+            {p.same_day && (
+              <span className="absolute top-2 right-2 text-xs font-semibold bg-white/90 text-amber-600 px-2 py-0.5 rounded-md border border-amber-200">Same-Day</span>
             )}
           </div>
           <div className="p-3.5">
             <h3 className="font-medium text-gray-800 text-sm mb-2 line-clamp-2">{p.name}</h3>
             <div className="flex items-center justify-between mb-3">
-              <span className="font-bold text-base" style={{ color: "var(--primary)" }}>RM{p.price}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-base" style={{ color: "var(--primary)" }}>RM{p.price}</span>
+                {p.original_price && p.original_price > p.price && (
+                  <span className="text-xs text-gray-400 line-through">RM{p.original_price}</span>
+                )}
+              </div>
               <div className="flex items-center gap-1">
                 <Star size={11} className="text-amber-400" fill="currentColor" />
-                <span className="text-xs text-gray-500">{p.rating}</span>
+                <span className="text-xs text-gray-500">{Number(p.rating || 0).toFixed(1)}</span>
               </div>
             </div>
             <motion.button

@@ -1,19 +1,36 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Flower2, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Flower2, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPass, setShowPass] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => setLoading(false), 1500);
+    setError("");
+    try {
+      const res = await fetch(`/api/users?email=${encodeURIComponent(form.email)}`);
+      const data = await res.json();
+      if (!data.user) {
+        setError("No account found with this email. Please register first.");
+        return;
+      }
+      localStorage.setItem("floreahub_user", JSON.stringify(data.user));
+      router.push("/");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -113,6 +130,12 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
+                  <AlertCircle size={14} className="flex-shrink-0" />
+                  {error}
+                </div>
+              )}
               <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base">
                 {loading
                   ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

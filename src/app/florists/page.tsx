@@ -1,67 +1,93 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Search, SlidersHorizontal, X, MapPin, Star, Zap, Tag, ChevronDown } from "lucide-react";
+import { Search, SlidersHorizontal, X, MapPin, Star, Zap, ChevronDown, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristCard from "@/components/FloristCard";
-import { FLORISTS } from "@/lib/data";
-import { stagger, scaleIn, fadeUp } from "@/lib/animations";
+import { stagger, scaleIn } from "@/lib/animations";
 
-const LOCATIONS = ["All", "Kuala Lumpur", "Selangor", "Penang", "Johor", "Melaka"];
 const SORT_OPTIONS = [
   { value: "rating", label: "Top Rated" },
   { value: "reviews", label: "Most Reviewed" },
   { value: "minOrder_asc", label: "Lowest Minimum Order" },
 ];
-const ALL_TAGS = Array.from(new Set(FLORISTS.flatMap((f) => f.tags)));
+
+function dbToCard(f: Record<string, unknown>) {
+  const plan = String(f.plan || "free");
+  return {
+    id: String(f.id),
+    name: String(f.name || ""),
+    location: String(f.state || f.city || "Malaysia"),
+    area: String(f.city || ""),
+    rating: Number(f.rating) || 0,
+    reviews: Number(f.review_count) || 0,
+    badge: plan === "elite" ? "Top Seller" : plan === "pro" ? "Verified" : "New",
+    deliveryTime: String(f.delivery_time || "2–4 hrs"),
+    minOrder: Number(f.min_order) || 50,
+    tags: Array.isArray(f.tags) ? f.tags as string[] : [],
+    image: String(f.cover_image || `https://image.pollinations.ai/prompt/flower+shop+malaysia+florist?width=600&height=400&nologo=true&seed=${f.id}`),
+    products: Number(f.product_count) || 0,
+    freshGuarantee: Boolean(f.is_verified),
+    sameDay: Boolean(f.same_day_delivery),
+  };
+}
 
 export default function FloristsPage() {
+  const [florists, setFlorists] = useState<ReturnType<typeof dbToCard>[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("All");
   const [minRating, setMinRating] = useState(0);
   const [sameDay, setSameDay] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sort, setSort] = useState("rating");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const toggleTag = (tag: string) =>
-    setSelectedTags((p) => p.includes(tag) ? p.filter((t) => t !== tag) : [...p, tag]);
+  useEffect(() => {
+    fetch("/api/florists")
+      .then((r) => r.json())
+      .then((d) => setFlorists((d.florists ?? []).map(dbToCard)))
+      .catch(() => setFlorists([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const locations = useMemo(() => {
+    const cities = Array.from(new Set(florists.map((f) => f.location).filter(Boolean)));
+    return ["All", ...cities];
+  }, [florists]);
 
   const filtered = useMemo(() => {
-    let list = [...FLORISTS];
+    let list = [...florists];
     if (search) list = list.filter((f) =>
       f.name.toLowerCase().includes(search.toLowerCase()) ||
-      f.area.toLowerCase().includes(search.toLowerCase())
+      f.area.toLowerCase().includes(search.toLowerCase()) ||
+      f.location.toLowerCase().includes(search.toLowerCase())
     );
     if (location !== "All") list = list.filter((f) => f.location === location);
     if (minRating > 0) list = list.filter((f) => f.rating >= minRating);
     if (sameDay) list = list.filter((f) => f.sameDay);
-    if (selectedTags.length > 0) list = list.filter((f) => selectedTags.some((t) => f.tags.includes(t)));
     if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
     else if (sort === "reviews") list.sort((a, b) => b.reviews - a.reviews);
     else if (sort === "minOrder_asc") list.sort((a, b) => a.minOrder - b.minOrder);
     return list;
-  }, [search, location, minRating, sameDay, selectedTags, sort]);
+  }, [florists, search, location, minRating, sameDay, sort]);
 
-  const activeCount = (location !== "All" ? 1 : 0) + (minRating > 0 ? 1 : 0) + (sameDay ? 1 : 0) + selectedTags.length;
-  const clearAll = () => { setLocation("All"); setMinRating(0); setSameDay(false); setSelectedTags([]); setSearch(""); };
+  const activeCount = (location !== "All" ? 1 : 0) + (minRating > 0 ? 1 : 0) + (sameDay ? 1 : 0);
+  const clearAll = () => { setLocation("All"); setMinRating(0); setSameDay(false); setSearch(""); };
 
   return (
     <div className="flex flex-col min-h-full" style={{ background: "var(--surface)" }}>
       <Navbar />
 
-      {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-heading text-gray-900 mb-2">
             Find a Florist
           </motion.h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="text-gray-500 mb-6">
-            {FLORISTS.length}+ verified florists across Malaysia
+            {loading ? "Loading..." : `${florists.length}+ verified florists across Malaysia`}
           </motion.p>
 
-          {/* Search */}
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex gap-3 max-w-xl">
             <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 focus-within:border-gray-400 transition-colors">
               <Search size={16} className="text-gray-400 flex-shrink-0" />
@@ -99,9 +125,8 @@ export default function FloristsPage() {
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex gap-7">
 
-          {/* Filter Sidebar */}
           <AnimatePresence>
-            {(sidebarOpen || typeof window !== "undefined") && (
+            {(sidebarOpen) && (
               <motion.aside
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -120,13 +145,12 @@ export default function FloristsPage() {
                     </AnimatePresence>
                   </div>
 
-                  {/* Location */}
                   <div className="mb-6">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                       <MapPin size={11} /> Location
                     </div>
                     <div className="space-y-1">
-                      {LOCATIONS.map((loc) => (
+                      {locations.map((loc) => (
                         <button key={loc} onClick={() => setLocation(loc)}
                           className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-all ${location === loc ? "text-white font-medium" : "text-gray-600 hover:bg-gray-50"}`}
                           style={location === loc ? { background: "var(--primary)" } : {}}
@@ -135,7 +159,6 @@ export default function FloristsPage() {
                     </div>
                   </div>
 
-                  {/* Rating */}
                   <div className="mb-6">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                       <Star size={11} /> Min. Rating
@@ -150,7 +173,6 @@ export default function FloristsPage() {
                     </div>
                   </div>
 
-                  {/* Same-day */}
                   <div className="mb-6">
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                       <Zap size={11} /> Delivery
@@ -164,32 +186,15 @@ export default function FloristsPage() {
                       </div>
                     </button>
                   </div>
-
-                  {/* Tags */}
-                  <div>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                      <Tag size={11} /> Specialty
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {ALL_TAGS.map((tag) => (
-                        <button key={tag} onClick={() => toggleTag(tag)}
-                          className={`text-xs px-2.5 py-1 rounded-lg font-medium border transition-all ${selectedTags.includes(tag) ? "text-white border-transparent" : "border-gray-200 text-gray-600 hover:border-gray-300"}`}
-                          style={selectedTags.includes(tag) ? { background: "var(--primary)" } : {}}
-                        >{tag}</button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
               </motion.aside>
             )}
           </AnimatePresence>
 
-          {/* Results */}
           <div className="flex-1 min-w-0">
-            {/* Toolbar */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="flex items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-gray-500">{filtered.length} florists found</span>
+                <span className="text-sm text-gray-500">{loading ? "Loading..." : `${filtered.length} florists found`}</span>
                 <AnimatePresence>
                   {location !== "All" && (
                     <motion.span initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
@@ -219,9 +224,12 @@ export default function FloristsPage() {
               </div>
             </motion.div>
 
-            {/* Grid */}
             <AnimatePresence mode="wait">
-              {filtered.length > 0 ? (
+              {loading ? (
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center justify-center py-28">
+                  <Loader2 size={28} className="animate-spin text-gray-300" />
+                </motion.div>
+              ) : filtered.length > 0 ? (
                 <motion.div key="grid" variants={stagger} initial="hidden" animate="show" className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
                   {filtered.map((f) => (
                     <motion.div key={f.id} variants={scaleIn} layout>
