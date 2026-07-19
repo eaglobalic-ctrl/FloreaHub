@@ -10,7 +10,7 @@ type FloristUser = {
   role: string; status: string; shop_city?: string; created_at: string;
 };
 
-const ADMIN_EMAILS = ["afdhalhisham94@gmail.com", "eaglobalic@gmail.com", "pretty.dalisya@gmail.com"];
+const ADMIN_EMAILS = ["pretty.dalisya@gmail.com"];
 
 export default function AdminPage() {
   const [users, setUsers] = useState<FloristUser[]>([]);
