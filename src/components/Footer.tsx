@@ -13,6 +13,7 @@ export default function Footer() {
     Florists: [
       { href: "/register/florist", label: "List Your Shop" },
       { href: "/pricing", label: "Pricing Plans" },
+      { href: "/dashboard/ads", label: "Advertise" },
       { href: "/seller-guide", label: "Seller Guide" },
       { href: "/dashboard", label: "Dashboard" },
     ],

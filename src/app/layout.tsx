@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Playfair_Display } from "next/font/google";
+import ToastProvider from "@/components/Toast";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,6 +25,8 @@ export const metadata: Metadata = {
     description: "Fresh flowers, top florists, delivered to your door.",
     type: "website",
   },
+  manifest: "/manifest.json",
+  themeColor: "#b5294e",
 };
 
 export default function RootLayout({
@@ -33,7 +36,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${playfair.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-white text-gray-900">{children}</body>
+      <body className="min-h-full flex flex-col bg-white text-gray-900">
+        {children}
+        <ToastProvider />
+      </body>
     </html>
   );
 }

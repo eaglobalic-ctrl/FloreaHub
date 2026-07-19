@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, ChevronDown, Bell, LogOut, Menu, X
+  ChevronUp, ChevronDown, Bell, LogOut, Menu, X, Megaphone
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 
@@ -43,6 +43,7 @@ const NAV = [
   { icon: ShoppingBag, label: "Orders", id: "orders" },
   { icon: Package, label: "Products", id: "products" },
   { icon: Star, label: "Reviews", id: "reviews" },
+  { icon: Megaphone, label: "Ads", id: "ads", href: "/dashboard/ads" },
   { icon: Settings, label: "Settings", id: "settings" },
 ];
 
@@ -74,16 +75,27 @@ export default function DashboardPage() {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          {NAV.map(({ icon: Icon, label, id }) => (
-            <button
-              key={id}
-              onClick={() => { setTab(id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === id ? "text-white" : "text-gray-600 hover:bg-gray-50"}`}
-              style={tab === id ? { background: "var(--primary)" } : {}}
-            >
-              <Icon size={17} />
-              {label}
-            </button>
+          {NAV.map(({ icon: Icon, label, id, href }) => (
+            href ? (
+              <Link
+                key={id}
+                href={href}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-gray-600 hover:bg-gray-50"
+              >
+                <Icon size={17} />
+                {label}
+              </Link>
+            ) : (
+              <button
+                key={id}
+                onClick={() => { setTab(id); setSidebarOpen(false); }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === id ? "text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                style={tab === id ? { background: "var(--primary)" } : {}}
+              >
+                <Icon size={17} />
+                {label}
+              </button>
+            )
           ))}
         </nav>
 

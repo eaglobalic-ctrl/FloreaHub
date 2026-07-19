@@ -1,7 +1,8 @@
 "use client";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, useInView } from "motion/react";
 import {
   Search, MapPin, ArrowRight, Star, Zap, Leaf, Camera, Bell,
@@ -11,6 +12,8 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristCard from "@/components/FloristCard";
+import SponsoredBanner from "@/components/SponsoredBanner";
+import SponsoredFlorists from "@/components/SponsoredFlorists";
 import { FLORISTS, CATEGORIES, WOW_FEATURES, STATS, TESTIMONIALS } from "@/lib/data";
 import { fadeUp, stagger, scaleIn, popIn, floatAnim } from "@/lib/animations";
 
@@ -36,9 +39,19 @@ function InViewSection({ children, className = "" }: { children: React.ReactNode
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [heroQuery, setHeroQuery] = useState("");
+
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = heroQuery.trim();
+    router.push(q ? `/shop?q=${encodeURIComponent(q)}` : "/florists");
+  };
+
   return (
     <div className="flex flex-col min-h-full">
       <Navbar />
+      <SponsoredBanner />
 
       {/* ── HERO ── */}
       <section className="relative overflow-hidden bg-white">
@@ -74,27 +87,26 @@ export default function Home() {
 
               {/* Search — Primary CTA */}
               <motion.div variants={fadeUp} className="mb-8">
-                <div className="flex flex-col sm:flex-row gap-2 p-2 bg-white border border-gray-200 rounded-xl shadow-lg shadow-gray-100/50 max-w-lg">
+                <form onSubmit={handleHeroSearch} className="flex flex-col sm:flex-row gap-2 p-2 bg-white border border-gray-200 rounded-xl shadow-lg shadow-gray-100/50 max-w-lg">
                   <div className="flex items-center gap-2 flex-1 px-3">
                     <MapPin size={16} className="text-gray-400 flex-shrink-0" />
                     <input
                       type="text"
-                      placeholder="Enter your area..."
+                      value={heroQuery}
+                      onChange={e => setHeroQuery(e.target.value)}
+                      placeholder="Search flowers or florists..."
                       className="flex-1 py-2 text-sm outline-none text-gray-700 placeholder-gray-400 bg-transparent"
                     />
                   </div>
-                  <Link
-                    href="/florists"
-                    className="btn-primary gap-2 text-sm whitespace-nowrap"
-                  >
+                  <button type="submit" className="btn-primary gap-2 text-sm whitespace-nowrap">
                     <Search size={15} />
                     Find Florists
-                  </Link>
-                </div>
+                  </button>
+                </form>
                 <div className="flex items-center gap-2 mt-3 text-xs text-gray-400">
                   <span>Popular:</span>
-                  {["Mont Kiara", "Bangsar", "Subang Jaya", "Petaling Jaya"].map((loc) => (
-                    <button key={loc} className="hover:text-gray-700 transition-colors underline underline-offset-2">{loc}</button>
+                  {["Roses", "Wedding Bouquet", "Birthday", "Sunflowers"].map((term) => (
+                    <button key={term} onClick={() => { setHeroQuery(term); router.push(`/shop?q=${encodeURIComponent(term)}`); }} className="hover:text-gray-700 transition-colors underline underline-offset-2">{term}</button>
                   ))}
                 </div>
               </motion.div>
@@ -281,6 +293,9 @@ export default function Home() {
           </motion.div>
         </InViewSection>
       </section>
+
+      {/* ── SPONSORED FLORISTS ── */}
+      <SponsoredFlorists />
 
       {/* ── WHY FLORIAHUB ── */}
       <section className="py-24 bg-white">

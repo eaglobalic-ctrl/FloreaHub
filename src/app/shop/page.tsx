@@ -1,15 +1,16 @@
 "use client";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { ShoppingCart, Heart, Zap, Star, SlidersHorizontal, ChevronDown, Gem, Gift, Building2, Feather, Sun, Palette } from "lucide-react";
+import { ShoppingCart, Heart, Zap, Star, SlidersHorizontal, ChevronDown, Gem, Gift, Building2, Feather, Sun, Palette, Search, Megaphone } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CATEGORIES, AI_PRODUCTS } from "@/lib/data";
 import { stagger, scaleIn } from "@/lib/animations";
 import { addToCart as saveToCart, getCart } from "@/lib/cart";
+import { getActiveAds } from "@/lib/ads";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   wedding: Gem, birthday: Gift, anniversary: Heart,
@@ -26,8 +27,10 @@ const BADGE_STYLES: Record<string, string> = {
   New: "bg-emerald-50 text-emerald-700",
 };
 
-export default function ShopPage() {
+function ShopContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const qParam = searchParams.get("q") ?? "";
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState("popular");
   const [maxPrice, setMaxPrice] = useState(400);
@@ -35,6 +38,11 @@ export default function ShopPage() {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [cartCount, setCartCount] = useState(0);
   const [addedId, setAddedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState(qParam);
+  const [sponsoredAds, setSponsoredAds] = useState<ReturnType<typeof getActiveAds>>([]);
+
+  useEffect(() => { setSearchQuery(qParam); }, [qParam]);
+  useEffect(() => { setSponsoredAds(getActiveAds("product_boost").slice(0, 2)); }, []);
 
   useEffect(() => {
     const sync = () => setCartCount(getCart().reduce((n, i) => n + i.quantity, 0));
@@ -57,12 +65,16 @@ export default function ShopPage() {
     if (activeCategory !== "all") list = list.filter((p) => p.category === activeCategory);
     if (sameDay) list = list.filter((p) => p.sameDay);
     list = list.filter((p) => p.price <= maxPrice);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((p) => p.name.toLowerCase().includes(q) || p.florist.toLowerCase().includes(q));
+    }
     if (sort === "popular") list.sort((a, b) => b.reviews - a.reviews);
     else if (sort === "price_asc") list.sort((a, b) => a.price - b.price);
     else if (sort === "price_desc") list.sort((a, b) => b.price - a.price);
     else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [activeCategory, sort, maxPrice, sameDay]);
+  }, [activeCategory, sort, maxPrice, sameDay, searchQuery]);
 
   return (
     <div className="flex flex-col min-h-full bg-gray-50">
@@ -80,12 +92,16 @@ export default function ShopPage() {
                 Fresh arrangements from Malaysia's finest florists
               </motion.p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2">
+                <Search size={14} className="text-gray-400 flex-shrink-0" />
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search flowers..." className="text-sm outline-none bg-transparent w-36 text-gray-700 placeholder-gray-400" />
+              </div>
               {cartCount > 0 && (
-                <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => router.push("/checkout")} className="relative cursor-pointer p-1">
-                  <ShoppingCart size={22} className="text-gray-700" />
+                <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => router.push("/checkout")} className="relative cursor-pointer p-2 bg-white border border-gray-200 rounded-lg">
+                  <ShoppingCart size={18} className="text-gray-700" />
                   <motion.span key={cartCount} initial={{ scale: 1.5 }} animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
                     {cartCount}
                   </motion.span>
                 </motion.button>
@@ -150,6 +166,31 @@ export default function ShopPage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Sponsored strip */}
+        {sponsoredAds.length > 0 && (
+          <div className="mb-5">
+            <p className="text-xs text-gray-400 mb-2 flex items-center gap-1.5"><Megaphone size={11} /> Sponsored</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {sponsoredAds.map(ad => (
+                <div key={ad.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100 shadow-sm">
+                  <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={ad.imageUrl} alt={ad.headline} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-900 truncate">{ad.headline}</p>
+                    <p className="text-xs text-gray-500 truncate">{ad.tagline}</p>
+                    <p className="text-[10px] text-amber-600 font-medium mt-0.5">{ad.floristName}</p>
+                  </div>
+                  <Link href={`/florists/${ad.floristId}`} className="text-xs font-semibold text-white px-2.5 py-1.5 rounded-lg flex-shrink-0" style={{ background: "var(--primary)" }}>
+                    Visit
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Grid */}
         <AnimatePresence mode="wait">
@@ -220,5 +261,13 @@ export default function ShopPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="w-8 h-8 border-2 border-rose-200 border-t-rose-600 rounded-full animate-spin" /></div>}>
+      <ShopContent />
+    </Suspense>
   );
 }
