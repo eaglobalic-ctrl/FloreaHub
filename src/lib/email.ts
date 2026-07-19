@@ -1,35 +1,32 @@
-// Email via Brevo (Sendinblue) — no custom domain needed, verify sender email only
+import nodemailer from "nodemailer";
 
-const BREVO_API = "https://api.brevo.com/v3/smtp/email";
+let transporter: nodemailer.Transporter | null = null;
 
-function getApiKey() {
-  return process.env.BREVO_API_KEY ?? "";
+function getTransporter() {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
+  }
+  return transporter;
 }
 
-const SENDER = {
-  name: "FloreaHub",
-  email: process.env.BREVO_SENDER_EMAIL ?? "eaglobalic@gmail.com",
-};
+const SENDER_EMAIL = process.env.GMAIL_USER ?? "pretty.dalisya@gmail.com";
+const SENDER_NAME = "FloreaHub";
 
 async function send(to: string, subject: string, html: string) {
-  const key = getApiKey();
-  if (!key) return;
+  if (!process.env.GMAIL_APP_PASSWORD) return;
   try {
-    const res = await fetch(BREVO_API, {
-      method: "POST",
-      headers: {
-        "api-key": key,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        sender: SENDER,
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-      }),
+    await getTransporter().sendMail({
+      from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
+      to,
+      subject,
+      html,
     });
-    if (!res.ok) console.error("Brevo error:", await res.text());
   } catch (err) {
     console.error("Email send error (non-blocking):", err);
   }
@@ -72,7 +69,7 @@ export async function sendWelcomeEmail({ name, email, role }: { name: string; em
         <ul style="margin:0;padding-left:18px;color:#be185d;font-size:14px;line-height:2;">
           <li>🌹 Bunga segar dari florist tempatan yang verified</li>
           <li>📸 Real-photo bouquet sebelum hantar</li>
-          <li>⏰ Peringatan untuk birthday & anniversary</li>
+          <li>⏰ Peringatan untuk birthday &amp; anniversary</li>
           <li>🚚 Same-day delivery di bandar utama</li>
         </ul>
       </div>
@@ -119,7 +116,7 @@ export async function sendOrderConfirmationEmail({
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
     <div style="background:linear-gradient(135deg,#2d6a4f,#1b4332);padding:32px;text-align:center;">
-      <div style="width:56px;height:56px;background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:24px;">✓</div>
+      <div style="width:56px;height:56px;background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:26px;">✓</div>
       <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Order Confirmed!</h1>
       <p style="margin:6px 0 0;color:rgba(255,255,255,.7);font-size:13px;">${orderId}</p>
     </div>
