@@ -23,11 +23,9 @@ export async function POST(req: NextRequest) {
       console.log("Order paid:", orderId);
 
       // Fetch order and send confirmation email (non-blocking)
-      db.from("orders")
-        .select("*, order_items(*)")
-        .eq("id", orderId)
-        .single()
-        .then(({ data: order }) => {
+      (async () => {
+        try {
+          const { data: order } = await db.from("orders").select("*, order_items(*)").eq("id", orderId).single();
           if (!order?.buyer_email) return;
           sendOrderConfirmationEmail({
             email: order.buyer_email,
@@ -40,8 +38,10 @@ export async function POST(req: NextRequest) {
             deliveryAddress: order.delivery_address ?? undefined,
             recipientName: order.recipient_name ?? undefined,
           });
-        })
-        .catch(err => console.error("Email fetch error:", err));
+        } catch (err) {
+          console.error("Email fetch error:", err);
+        }
+      })();
 
     } else if (statusId === "3" && orderId) {
       await db.from("orders").update({ payment_status: "failed" }).eq("id", orderId);
