@@ -18,6 +18,33 @@ function getTransporter() {
 const SENDER_EMAIL = process.env.GMAIL_USER ?? "pretty.dalisya@gmail.com";
 const SENDER_NAME = "FloreaHub";
 
+// Inline SVG logo — works in all email clients without external image loading
+const LOGO_SVG = `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 4px;">
+  <tr>
+    <td style="background:#b5294e;border-radius:10px;width:40px;height:40px;text-align:center;vertical-align:middle;padding:0;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:9px auto 0;">
+        <path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V13m4.5-1a4.5 4.5 0 1 1-4.5 4.5M16.5 12A4.5 4.5 0 1 0 12 16.5M12 13v4.5"/>
+      </svg>
+    </td>
+    <td style="padding-left:10px;vertical-align:middle;">
+      <span style="color:#ffffff;font-size:20px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.3px;">Florea<span style="color:rgba(255,255,255,0.75);">Hub</span></span>
+    </td>
+  </tr>
+</table>`;
+
+const LOGO_SVG_GREEN = `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 4px;">
+  <tr>
+    <td style="background:#2d6a4f;border-radius:10px;width:40px;height:40px;text-align:center;vertical-align:middle;padding:0;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:9px auto 0;">
+        <path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V13m4.5-1a4.5 4.5 0 1 1-4.5 4.5M16.5 12A4.5 4.5 0 1 0 12 16.5M12 13v4.5"/>
+      </svg>
+    </td>
+    <td style="padding-left:10px;vertical-align:middle;">
+      <span style="color:#ffffff;font-size:20px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.3px;">Florea<span style="color:rgba(255,255,255,0.75);">Hub</span></span>
+    </td>
+  </tr>
+</table>`;
+
 async function send(to: string, subject: string, html: string) {
   if (!process.env.GMAIL_APP_PASSWORD) return;
   try {
@@ -42,9 +69,8 @@ export async function sendWelcomeEmail({ name, email, role }: { name: string; em
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
-    <div style="background:linear-gradient(135deg,${isSeller ? "#2d6a4f,#1b4332" : "#b5294e,#7c1d35"});padding:40px 32px;text-align:center;">
-      <span style="font-size:36px;">🌸</span>
-      <h1 style="margin:12px 0 0;color:#fff;font-size:22px;font-weight:700;">FloreaHub</h1>
+    <div style="background:linear-gradient(135deg,${isSeller ? "#2d6a4f,#1b4332" : "#b5294e,#7c1d35"});padding:36px 32px;text-align:center;">
+      ${isSeller ? LOGO_SVG_GREEN : LOGO_SVG}
     </div>
     <div style="padding:36px 32px;">
       <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">Welcome, ${name.split(" ")[0]}! 👋</h2>
@@ -67,10 +93,10 @@ export async function sendWelcomeEmail({ name, email, role }: { name: string; em
       <div style="background:#fff5f7;border:1px solid #fecdd3;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0 0 10px;font-weight:600;color:#9f1239;font-size:14px;">Apa yang kamu dapat:</p>
         <ul style="margin:0;padding-left:18px;color:#be185d;font-size:14px;line-height:2;">
-          <li>🌹 Bunga segar dari florist tempatan yang verified</li>
-          <li>📸 Real-photo bouquet sebelum hantar</li>
-          <li>⏰ Peringatan untuk birthday &amp; anniversary</li>
-          <li>🚚 Same-day delivery di bandar utama</li>
+          <li>Bunga segar dari florist tempatan yang verified</li>
+          <li>Real-photo bouquet sebelum hantar</li>
+          <li>Peringatan untuk birthday &amp; anniversary</li>
+          <li>Same-day delivery di bandar utama</li>
         </ul>
       </div>
       <a href="https://floriahub.vercel.app/shop" style="display:block;background:#b5294e;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">Browse Flowers →</a>
@@ -84,7 +110,7 @@ export async function sendWelcomeEmail({ name, email, role }: { name: string; em
 </body>
 </html>`;
 
-  await send(email, isSeller ? "Welcome to FloreaHub — akaun florist kamu dah siap 🌿" : "Welcome to FloreaHub 🌸", html);
+  await send(email, isSeller ? "Welcome to FloreaHub — akaun florist kamu dah siap" : "Welcome to FloreaHub", html);
 }
 
 // ── Order confirmation email ───────────────────────────────────────────────────
@@ -116,7 +142,8 @@ export async function sendOrderConfirmationEmail({
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
     <div style="background:linear-gradient(135deg,#2d6a4f,#1b4332);padding:32px;text-align:center;">
-      <div style="width:56px;height:56px;background:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;font-size:26px;">✓</div>
+      ${LOGO_SVG_GREEN}
+      <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:inline-block;line-height:44px;text-align:center;margin:16px auto 10px;font-size:22px;color:#fff;font-weight:700;">&#10003;</div>
       <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Order Confirmed!</h1>
       <p style="margin:6px 0 0;color:rgba(255,255,255,.7);font-size:13px;">${orderId}</p>
     </div>
@@ -164,5 +191,5 @@ export async function sendOrderConfirmationEmail({
 </body>
 </html>`;
 
-  await send(email, `Pesanan disahkan — ${orderId} 🌸`, html);
+  await send(email, `Pesanan disahkan — ${orderId}`, html);
 }
