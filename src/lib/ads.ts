@@ -109,31 +109,37 @@ export function trackClick(id: string): void {
 }
 
 const AI = "https://image.pollinations.ai/prompt";
-const in7 = () => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString(); };
-const now = () => new Date().toISOString();
 
-export const DEMO_ADS: AdCampaign[] = [
-  {
-    id: "demo-ad-1", floristId: "1", floristName: "Bloom & Co",
-    type: "shop_spotlight", productId: "1", productName: "Classic Rose Bouquet",
-    imageUrl: `${AI}/romantic+red+roses+bouquet+arrangement+white+background?width=600&height=400&nologo=true&seed=5001`,
-    headline: "Malaysia's #1 Romantic Bouquet", tagline: "Fresh roses, same-day delivery across KL",
-    budget: 80, startDate: now(), endDate: in7(), status: "active",
-    clicks: 124, impressions: 3421, createdAt: now(),
-  },
-  {
-    id: "demo-ad-2", floristId: "2", floristName: "Petal Paradise",
-    type: "product_boost", productId: "3", productName: "Wedding White Collection",
-    imageUrl: `${AI}/elegant+white+wedding+flowers+arrangement+luxury?width=600&height=400&nologo=true&seed=5002`,
-    headline: "Dream Wedding Florals", tagline: "Bespoke wedding arrangements by Petal Paradise",
-    budget: 30, startDate: now(), endDate: in7(), status: "active",
-    clicks: 87, impressions: 1893, createdAt: now(),
-  },
-  {
-    id: "demo-ad-3", floristId: "3", floristName: "Garden Dreams",
-    type: "premium_banner", imageUrl: `${AI}/tropical+colorful+flowers+malaysia+banner+premium?width=1200&height=300&nologo=true&seed=5003`,
-    headline: "Fresh From the Garden — Every Day", tagline: "Order before 2PM for guaranteed same-day delivery",
-    budget: 200, startDate: now(), endDate: in7(), status: "active",
-    clicks: 213, impressions: 8432, createdAt: now(),
-  },
-];
+function makeDemoAds(): AdCampaign[] {
+  const now = new Date().toISOString();
+  const end = new Date();
+  end.setDate(end.getDate() + 7);
+  const in7 = end.toISOString();
+  return [
+    {
+      id: "demo-ad-1", floristId: "1", floristName: "Bloom & Co",
+      type: "shop_spotlight", productId: "1", productName: "Classic Rose Bouquet",
+      imageUrl: `${AI}/romantic+red+roses+bouquet+arrangement+white+background?width=600&height=400&nologo=true&seed=5001`,
+      headline: "Malaysia's #1 Romantic Bouquet", tagline: "Fresh roses, same-day delivery across KL",
+      budget: 80, startDate: now, endDate: in7, status: "active",
+      clicks: 124, impressions: 3421, createdAt: now,
+    },
+    {
+      id: "demo-ad-2", floristId: "2", floristName: "Petal Paradise",
+      type: "product_boost", productId: "3", productName: "Wedding White Collection",
+      imageUrl: `${AI}/elegant+white+wedding+flowers+arrangement+luxury?width=600&height=400&nologo=true&seed=5002`,
+      headline: "Dream Wedding Florals", tagline: "Bespoke wedding arrangements by Petal Paradise",
+      budget: 30, startDate: now, endDate: in7, status: "active",
+      clicks: 87, impressions: 1893, createdAt: now,
+    },
+    {
+      id: "demo-ad-3", floristId: "3", floristName: "Garden Dreams",
+      type: "premium_banner", imageUrl: `${AI}/tropical+colorful+flowers+malaysia+banner+premium?width=1200&height=300&nologo=true&seed=5003`,
+      headline: "Fresh From the Garden — Every Day", tagline: "Order before 2PM for guaranteed same-day delivery",
+      budget: 200, startDate: now, endDate: in7, status: "active",
+      clicks: 213, impressions: 8432, createdAt: now,
+    },
+  ];
+}
+
+export const DEMO_ADS: AdCampaign[] = typeof window !== "undefined" ? makeDemoAds() : [];
