@@ -1,13 +1,15 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { ShoppingCart, Heart, Zap, Star, SlidersHorizontal, ChevronDown, Gem, Gift, Building2, Feather, Sun, Palette } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CATEGORIES, AI_PRODUCTS } from "@/lib/data";
-import { stagger, scaleIn, fadeUp } from "@/lib/animations";
+import { stagger, scaleIn } from "@/lib/animations";
+import { addToCart as saveToCart, getCart } from "@/lib/cart";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   wedding: Gem, birthday: Gift, anniversary: Heart,
@@ -25,6 +27,7 @@ const BADGE_STYLES: Record<string, string> = {
 };
 
 export default function ShopPage() {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState("all");
   const [sort, setSort] = useState("popular");
   const [maxPrice, setMaxPrice] = useState(400);
@@ -33,12 +36,19 @@ export default function ShopPage() {
   const [cartCount, setCartCount] = useState(0);
   const [addedId, setAddedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const sync = () => setCartCount(getCart().reduce((n, i) => n + i.quantity, 0));
+    sync();
+    window.addEventListener("cart-updated", sync);
+    return () => window.removeEventListener("cart-updated", sync);
+  }, []);
+
   const toggleWishlist = (id: string) =>
     setWishlist((p) => p.includes(id) ? p.filter((w) => w !== id) : [...p, id]);
 
-  const addToCart = (id: string) => {
-    setCartCount((c) => c + 1);
-    setAddedId(id);
+  const handleAddToCart = (p: typeof ALL_PRODUCTS[0]) => {
+    saveToCart({ id: p.id, name: p.name, price: p.price, image: p.image, florist: p.florist });
+    setAddedId(p.id);
     setTimeout(() => setAddedId(null), 1200);
   };
 
@@ -72,13 +82,13 @@ export default function ShopPage() {
             </div>
             <div className="flex items-center gap-3">
               {cartCount > 0 && (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative cursor-pointer">
+                <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} onClick={() => router.push("/checkout")} className="relative cursor-pointer p-1">
                   <ShoppingCart size={22} className="text-gray-700" />
                   <motion.span key={cartCount} initial={{ scale: 1.5 }} animate={{ scale: 1 }}
                     className="absolute -top-2 -right-2 w-5 h-5 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
                     {cartCount}
                   </motion.span>
-                </motion.div>
+                </motion.button>
               )}
               <Link href="/builder" className="btn-secondary text-sm gap-2">
                 <Palette size={14} /> Design Your Own
@@ -180,7 +190,7 @@ export default function ShopPage() {
                         {p.originalPrice && <span className="text-xs text-gray-400 line-through">RM{p.originalPrice}</span>}
                       </div>
                     </div>
-                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => addToCart(p.id)}
+                    <motion.button whileTap={{ scale: 0.97 }} onClick={() => handleAddToCart(p)}
                       className="btn-primary w-full text-xs py-2 justify-center relative overflow-hidden">
                       <AnimatePresence mode="wait">
                         {addedId === p.id ? (
