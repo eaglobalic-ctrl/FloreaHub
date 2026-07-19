@@ -24,9 +24,17 @@ export default function LoginPage() {
         setError("No account found with this email. Please register first.");
         return;
       }
+      const isSeller = data.user.role === "florist" || data.user.role === "seller";
+      if (isSeller && data.user.status === "pending") {
+        setError("Your application is under review. We will notify you via email once approved.");
+        return;
+      }
+      if (isSeller && data.user.status === "rejected") {
+        setError("Your florist application was not approved. Please contact us for more information.");
+        return;
+      }
       localStorage.setItem("floreahub_user", JSON.stringify(data.user));
       window.dispatchEvent(new Event("user-updated"));
-      const isSeller = data.user.role === "florist" || data.user.role === "seller";
       router.push(isSeller ? "/dashboard" : "/");
     } catch {
       setError("Something went wrong. Please try again.");

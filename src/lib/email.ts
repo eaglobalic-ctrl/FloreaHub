@@ -61,8 +61,9 @@ async function send(to: string, subject: string, html: string) {
 
 // ── Welcome email ─────────────────────────────────────────────────────────────
 
-export async function sendWelcomeEmail({ name, email, role }: { name: string; email: string; role: string }) {
+export async function sendWelcomeEmail({ name, email, role, status }: { name: string; email: string; role: string; status?: string }) {
   const isSeller = role === "florist" || role === "seller";
+  const isPending = status === "pending";
 
   const html = `<!DOCTYPE html>
 <html>
@@ -79,7 +80,24 @@ export async function sendWelcomeEmail({ name, email, role }: { name: string; em
           ? "Akaun florist FloreaHub kamu dah siap. Mula setup kedai dan capai ribuan pelanggan di seluruh Malaysia."
           : "Akaun FloreaHub kamu dah siap. Discover bunga-bunga segar dari florist terbaik seluruh Malaysia."}
       </p>
-      ${isSeller ? `
+      ${isSeller ? (isPending ? `
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="margin:0 0 8px;font-weight:700;color:#92400e;font-size:14px;">Permohonan sedang dalam semakan</p>
+        <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;">Team FloreaHub akan semak maklumat kedai kamu dan maklumkan dalam masa <strong>1-2 hari bekerja</strong>. Semak email ini untuk updates.</p>
+      </div>
+      <div style="background:#f9fafb;border-radius:10px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0 0 10px;font-weight:600;color:#374151;font-size:13px;">Apa berlaku seterusnya:</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${["Team semak permohonan dan maklumat kedai kamu", "Kamu akan dapat email approval atau request for info", "Selepas approved, login dan setup produk pertama kamu", "Mula terima pesanan dari pelanggan seluruh Malaysia"].map((s, i) => `
+          <div style="display:flex;gap:10px;align-items:flex-start;">
+            <div style="width:20px;height:20px;min-width:20px;background:#d97706;border-radius:50%;text-align:center;line-height:20px;">
+              <span style="color:#fff;font-size:11px;font-weight:700;">${i + 1}</span>
+            </div>
+            <p style="margin:1px 0 0;font-size:13px;color:#6b7280;">${s}</p>
+          </div>`).join("")}
+        </div>
+      </div>
+      ` : `
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0 0 10px;font-weight:600;color:#166534;font-size:14px;">Langkah seterusnya:</p>
         <ul style="margin:0;padding-left:18px;color:#15803d;font-size:14px;line-height:2;">
@@ -89,7 +107,7 @@ export async function sendWelcomeEmail({ name, email, role }: { name: string; em
         </ul>
       </div>
       <a href="https://floriahub.vercel.app/dashboard" style="display:block;background:#2d6a4f;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:24px;">Buka Dashboard →</a>
-      ` : `
+      `) : `
       <div style="background:#fff5f7;border:1px solid #fecdd3;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0 0 10px;font-weight:600;color:#9f1239;font-size:14px;">Apa yang kamu dapat:</p>
         <ul style="margin:0;padding-left:18px;color:#be185d;font-size:14px;line-height:2;">
@@ -192,4 +210,115 @@ export async function sendOrderConfirmationEmail({
 </html>`;
 
   await send(email, `Pesanan disahkan — ${orderId}`, html);
+}
+
+// ── Admin: new florist notification ──────────────────────────────────────────
+
+export async function sendAdminFloristNotification({ name, email, shopCity, shopPhone }: {
+  name: string; email: string; shopCity?: string; shopPhone?: string;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL ?? process.env.GMAIL_USER ?? "";
+  if (!adminEmail) return;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#1e40af,#1e3a8a);padding:28px 32px;">
+      ${LOGO_SVG}
+      <p style="margin:12px 0 0;color:rgba(255,255,255,.8);font-size:13px;">Admin Notification</p>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">Permohonan Florist Baru</h2>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Seorang florist baru telah mendaftar dan menunggu semakan.</p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;font-size:13px;color:#6b7280;width:120px;">Nama</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#111827;">${name}</td></tr>
+          <tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">Email</td><td style="padding:6px 0;font-size:14px;color:#111827;">${email}</td></tr>
+          ${shopCity ? `<tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">Bandar</td><td style="padding:6px 0;font-size:14px;color:#111827;">${shopCity}</td></tr>` : ""}
+          ${shopPhone ? `<tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">Telefon</td><td style="padding:6px 0;font-size:14px;color:#111827;">${shopPhone}</td></tr>` : ""}
+        </table>
+      </div>
+      <a href="https://floriahub.vercel.app/admin" style="display:block;background:#1e40af;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Semak &amp; Approve Sekarang</a>
+    </div>
+    <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">FloreaHub Admin · floriahub.vercel.app/admin</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(adminEmail, `[FloreaHub] Florist baru menunggu approval — ${name}`, html);
+}
+
+// ── Florist approved ──────────────────────────────────────────────────────────
+
+export async function sendFloristApprovedEmail({ name, email }: { name: string; email: string }) {
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#2d6a4f,#1b4332);padding:36px 32px;text-align:center;">
+      ${LOGO_SVG_GREEN}
+      <div style="width:52px;height:52px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.5);border-radius:50%;display:inline-block;line-height:48px;text-align:center;margin:16px auto 8px;font-size:22px;color:#fff;font-weight:700;">&#10003;</div>
+      <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">Tahniah! Akaun Diluluskan</h1>
+    </div>
+    <div style="padding:32px;">
+      <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, permohonan florist kamu untuk FloreaHub telah <strong style="color:#2d6a4f;">diluluskan</strong>. Kamu boleh mula setup kedai dan jual bunga sekarang!
+      </p>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="margin:0 0 10px;font-weight:600;color:#166534;font-size:14px;">Mula sekarang:</p>
+        <ul style="margin:0;padding-left:18px;color:#15803d;font-size:14px;line-height:2.2;">
+          <li>Login ke akaun kamu di <a href="https://floriahub.vercel.app/login" style="color:#2d6a4f;font-weight:600;">floriahub.vercel.app</a></li>
+          <li>Upload produk pertama kamu dalam Dashboard</li>
+          <li>Set harga, gambar, dan butiran delivery</li>
+          <li>Pilih plan subscription untuk tingkatkan visibility</li>
+        </ul>
+      </div>
+      <a href="https://floriahub.vercel.app/login" style="display:block;background:#2d6a4f;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Login &amp; Mula Jual</a>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, "Akaun florist kamu telah diluluskan — FloreaHub", html);
+}
+
+// ── Florist rejected ──────────────────────────────────────────────────────────
+
+export async function sendFloristRejectedEmail({ name, email }: { name: string; email: string }) {
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#7f1d1d,#991b1b);padding:36px 32px;text-align:center;">
+      ${LOGO_SVG}
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111827;">Permohonan Tidak Berjaya</h2>
+      <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, selepas semakan, permohonan florist kamu tidak dapat diluluskan pada masa ini.
+      </p>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="margin:0;color:#7f1d1d;font-size:14px;line-height:1.6;">
+          Ini mungkin disebabkan maklumat yang tidak lengkap atau kedai tidak memenuhi kriteria semasa. Kamu boleh hubungi kami untuk maklumat lanjut atau mendaftar semula dengan maklumat yang dikemaskini.
+        </p>
+      </div>
+      <a href="mailto:${process.env.GMAIL_USER ?? ""}" style="display:block;background:#991b1b;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Hubungi Kami</a>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, "Update permohonan florist — FloreaHub", html);
 }

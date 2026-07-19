@@ -28,8 +28,11 @@ export default function RegisterPage() {
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
       if (data.existed) { setError("This email is already registered. Please sign in instead."); return; }
-      localStorage.setItem("floreahub_user", JSON.stringify(data.user));
-      window.dispatchEvent(new Event("user-updated"));
+      // Only save to localStorage if approved (buyers) — pending florists can't login yet
+      if (data.user.status !== "pending") {
+        localStorage.setItem("floreahub_user", JSON.stringify(data.user));
+        window.dispatchEvent(new Event("user-updated"));
+      }
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -92,22 +95,36 @@ export default function RegisterPage() {
           <AnimatePresence mode="wait">
             {done ? (
               <motion.div key="done" variants={fadeUp} initial="hidden" animate="show" className="card-premium p-10 text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
-                  <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Account created!</h2>
-                <p className="text-gray-500 mb-8">
-                  Welcome to FloreaHub, {form.name.split(" ")[0]}.{" "}
-                  {role === "florist" ? "Set up your shop to start selling." : "Start exploring flowers."}
-                </p>
                 {role === "florist" ? (
-                  <Link href="/dashboard" className="btn-primary w-full flex items-center justify-center gap-2">
-                    Go to Dashboard <ArrowRight size={16} />
-                  </Link>
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-6">
+                      <Check size={28} className="text-amber-600" strokeWidth={2.5} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Permohonan diterima!</h2>
+                    <p className="text-gray-500 mb-4">Terima kasih, {form.name.split(" ")[0]}. Permohonan florist kamu sedang dalam semakan.</p>
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
+                      <p className="text-sm font-semibold text-amber-800 mb-2">Apa berlaku seterusnya:</p>
+                      <ul className="text-sm text-amber-700 space-y-1.5 list-disc list-inside">
+                        <li>Team kami akan semak dalam 1-2 hari bekerja</li>
+                        <li>Kamu akan dapat email bila approved</li>
+                        <li>Selepas approved, login dan setup kedai kamu</li>
+                      </ul>
+                    </div>
+                    <Link href="/" className="btn-secondary w-full flex items-center justify-center gap-2">
+                      Kembali ke Laman Utama
+                    </Link>
+                  </>
                 ) : (
-                  <Link href="/shop" className="btn-primary w-full flex items-center justify-center gap-2">
-                    Browse Flowers <ArrowRight size={16} />
-                  </Link>
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
+                      <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Account created!</h2>
+                    <p className="text-gray-500 mb-8">Welcome to FloreaHub, {form.name.split(" ")[0]}. Start exploring flowers.</p>
+                    <Link href="/shop" className="btn-primary w-full flex items-center justify-center gap-2">
+                      Browse Flowers <ArrowRight size={16} />
+                    </Link>
+                  </>
                 )}
               </motion.div>
             ) : (
