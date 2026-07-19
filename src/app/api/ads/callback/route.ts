@@ -20,8 +20,8 @@ export async function POST(req: NextRequest) {
         .from("ads")
         .update({
           status: "active",
-          start_date: startDate,
-          end_date: endDate,
+          starts_at: startDate,
+          ends_at: endDate,
         })
         .eq("id", adId);
 

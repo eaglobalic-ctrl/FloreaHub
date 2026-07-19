@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     let query = supabaseAdmin.from("ads").select("*");
 
     if (!all) {
-      query = query.eq("status", "active").gt("end_date", new Date().toISOString());
+      query = query.eq("status", "active").gt("ends_at", new Date().toISOString());
     }
     if (type) query = query.eq("type", type);
     if (floristId) query = query.eq("florist_id", floristId);
