@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import {
@@ -99,7 +99,7 @@ function AdForm({ plan, onClose, onSuccess }: { plan: typeof AD_PLANS[0]; onClos
   );
 }
 
-export default function AdsPage() {
+function AdsContent() {
   const searchParams = useSearchParams();
   const success = searchParams.get("success");
   const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
@@ -287,5 +287,13 @@ export default function AdsPage() {
         <AdForm plan={selectedPlan} onClose={() => setSelectedPlan(null)} onSuccess={() => setSelectedPlan(null)} />
       )}
     </div>
+  );
+}
+
+export default function AdsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><div className="w-8 h-8 border-2 border-rose-200 border-t-rose-600 rounded-full animate-spin" /></div>}>
+      <AdsContent />
+    </Suspense>
   );
 }
