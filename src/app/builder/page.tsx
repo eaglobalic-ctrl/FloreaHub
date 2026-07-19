@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Minus, Plus, Check, ChevronRight, ShoppingBag } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { stagger, scaleIn } from "@/lib/animations";
+import { addToCart } from "@/lib/cart";
 
 const FLOWERS = [
   { id: "rose-red", name: "Red Rose", variety: "Rosa", price: 8 },
@@ -38,6 +40,7 @@ const STEPS = ["Select Blooms", "Wrapping", "Message", "Review"];
 type Sel = { id: string; qty: number };
 
 export default function BuilderPage() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [selections, setSelections] = useState<Sel[]>([]);
   const [wrap, setWrap] = useState("kraft");
@@ -214,8 +217,21 @@ export default function BuilderPage() {
           </div>
         </div>
 
-        <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-          className="btn-primary w-full py-4 justify-center text-sm gap-2">
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => {
+            addToCart({
+              id: `builder-${Date.now()}`,
+              name: `Custom Bouquet (${totalFlowers} stems, ${WRAPS.find(w => w.id === wrap)?.name})`,
+              price: grandTotal,
+              image: "",
+              florist: "FloreaHub Builder",
+            });
+            router.push("/checkout");
+          }}
+          className="btn-primary w-full py-4 justify-center text-sm gap-2"
+        >
           <ShoppingBag size={15} /> Place Order — RM{grandTotal}
         </motion.button>
       </div>

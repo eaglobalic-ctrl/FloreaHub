@@ -1,19 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Star, Clock, Zap, Leaf, Camera, ChevronRight, ShoppingCart, Package } from "lucide-react";
+import { MapPin, Star, Clock, Zap, Leaf, Camera, ChevronRight, Package } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import FloristProducts from "@/components/FloristProducts";
 import { FLORISTS } from "@/lib/data";
-
-const PRODUCTS = [
-  { id: "p1", name: "Classic Red Rose Bouquet", price: 120, image: "https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=400&h=400&fit=crop", badge: "Bestseller", rating: 4.9 },
-  { id: "p2", name: "White Lily Elegance", price: 95, image: "https://images.unsplash.com/photo-1487530811015-780780169dc1?w=400&h=400&fit=crop", badge: "New", rating: 4.7 },
-  { id: "p3", name: "Mixed Pastel Bouquet", price: 110, image: "https://images.unsplash.com/photo-1490750967868-88df5691166b?w=400&h=400&fit=crop", badge: "", rating: 4.8 },
-  { id: "p4", name: "Sunflower Delight", price: 80, image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=400&fit=crop", badge: "", rating: 4.6 },
-  { id: "p5", name: "Bridal Premium Arrangement", price: 280, image: "https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?w=400&h=400&fit=crop", badge: "Premium", rating: 5.0 },
-  { id: "p6", name: "Birthday Bloom Box", price: 150, image: "https://images.unsplash.com/photo-1562690868-60bbe7293e94?w=400&h=400&fit=crop", badge: "", rating: 4.8 },
-];
 
 const REVIEWS = [
   { name: "Nurul Ain", rating: 5, date: "2 days ago", comment: "Absolutely stunning bouquet. The florist sent a real photo before delivery and it looked even better in person. Highly recommend!" },
@@ -21,11 +13,6 @@ const REVIEWS = [
   { name: "Siti Hajar", rating: 4, date: "2 weeks ago", comment: "Beautiful arrangement and great packaging. Slightly delayed but still within the promised window. Will order again." },
 ];
 
-const BADGE_STYLES: Record<string, string> = {
-  Bestseller: "bg-amber-50 text-amber-700 border border-amber-200",
-  Premium: "bg-purple-50 text-purple-700 border border-purple-200",
-  New: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-};
 
 export default async function FloristDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -140,32 +127,8 @@ export default async function FloristDetailPage({ params }: { params: Promise<{ 
 
             {/* Products */}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-5">Products ({PRODUCTS.length})</h2>
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {PRODUCTS.map((p) => (
-                  <div key={p.id} className="card-premium overflow-hidden group cursor-pointer bg-white">
-                    <div className="relative h-44 bg-gray-100 overflow-hidden">
-                      <Image src={p.image} alt={p.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
-                      {p.badge && (
-                        <span className={`absolute top-2 left-2 text-xs font-semibold px-2 py-0.5 rounded-md ${BADGE_STYLES[p.badge] ?? ""}`}>{p.badge}</span>
-                      )}
-                    </div>
-                    <div className="p-3.5">
-                      <h3 className="font-medium text-gray-800 text-sm mb-2 line-clamp-2">{p.name}</h3>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-bold text-base" style={{ color: "var(--primary)" }}>RM{p.price}</span>
-                        <div className="flex items-center gap-1">
-                          <Star size={11} className="text-amber-400" fill="currentColor" />
-                          <span className="text-xs text-gray-500">{p.rating}</span>
-                        </div>
-                      </div>
-                      <button className="btn-primary w-full text-xs py-2 justify-center">
-                        <ShoppingCart size={12} /> Add to Cart
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-5">Products (6)</h2>
+              <FloristProducts floristName={florist.name} />
             </div>
 
             {/* Reviews */}
