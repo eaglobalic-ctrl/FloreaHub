@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       billEmail: email,
       billPhone: phone.replace(/[^0-9]/g, ""),
       billPaymentChannel: "2",
+      billChargeToCustomer: "1",
     });
 
     const res = await fetch(`${BASE_URL}/index.php/api/createBill`, {
