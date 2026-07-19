@@ -33,7 +33,7 @@ export default function Navbar() {
               <Flower2 size={16} color="white" strokeWidth={1.8} />
             </div>
             <span className="text-[1.1rem] font-semibold tracking-tight text-gray-900">
-              Floria<span style={{ color: "var(--primary)" }}>Hub</span>
+              Florea<span style={{ color: "var(--primary)" }}>Hub</span>
             </span>
           </Link>
 

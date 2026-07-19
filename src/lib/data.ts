@@ -120,14 +120,14 @@ export const TESTIMONIALS = [
     role: "Bride",
     avatar: "S",
     rating: 5,
-    text: "FloriaHub made finding my wedding florist effortless. The real-photo promise gave me total confidence — what I saw was exactly what arrived at the ceremony.",
+    text: "FloreaHub made finding my wedding florist effortless. The real-photo promise gave me total confidence — what I saw was exactly what arrived at the ceremony.",
   },
   {
     name: "Ahmad Razif",
     role: "Corporate Client",
     avatar: "A",
     rating: 5,
-    text: "We use FloriaHub for all our office events. Reliable, beautiful arrangements every single time. The same-day delivery has saved us more than once.",
+    text: "We use FloreaHub for all our office events. Reliable, beautiful arrangements every single time. The same-day delivery has saved us more than once.",
   },
   {
     name: "Priya Nair",

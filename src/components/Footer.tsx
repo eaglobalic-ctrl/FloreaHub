@@ -36,7 +36,7 @@ export default function Footer() {
                 <Flower2 size={16} color="white" strokeWidth={1.8} />
               </div>
               <span className="text-[1.1rem] font-semibold tracking-tight text-white">
-                Floria<span style={{ color: "#e87fa8" }}>Hub</span>
+                Florea<span style={{ color: "#e87fa8" }}>Hub</span>
               </span>
             </Link>
             <p className="text-sm text-gray-500 leading-relaxed mb-6 max-w-xs">
@@ -82,7 +82,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <p>© {new Date().getFullYear()} FloriaHub Sdn. Bhd. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} FloreaHub Sdn. Bhd. All rights reserved.</p>
           <p>Crafted with care for Malaysia's florist community.</p>
         </div>
       </div>

@@ -286,7 +286,7 @@ export default function Home() {
       <section className="py-24 bg-white">
         <InViewSection className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="max-w-2xl mb-16">
-            <h2 className="text-heading text-gray-900 mb-4">Why choose FloriaHub?</h2>
+            <h2 className="text-heading text-gray-900 mb-4">Why choose FloreaHub?</h2>
             <p className="text-subheading text-gray-500">
               We've solved the problems that make buying flowers online frustrating —
               uncertainty, wilting, missed occasions, and generic arrangements.
@@ -388,7 +388,7 @@ export default function Home() {
             </motion.div>
             <motion.h2 variants={fadeUp} className="text-heading text-white mb-4">Are you a florist?</motion.h2>
             <motion.p variants={fadeUp} className="text-gray-400 text-lg mb-10 max-w-xl mx-auto leading-relaxed">
-              Join 500+ verified florists on FloriaHub. Free to list, easy to set up,
+              Join 500+ verified florists on FloreaHub. Free to list, easy to set up,
               and start receiving orders today.
             </motion.p>
             <motion.div variants={stagger} className="flex flex-col sm:flex-row gap-3 justify-center mb-14">

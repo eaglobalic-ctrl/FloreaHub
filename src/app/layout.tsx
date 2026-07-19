@@ -16,11 +16,11 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "FloriaHub — Malaysia's Premier Florist Marketplace",
+  title: "FloreaHub — Malaysia's Premier Florist Marketplace",
   description: "Discover the finest florists across Malaysia. Order fresh bouquets, custom arrangements, and same-day flower delivery with a freshness guarantee.",
   keywords: "florist malaysia, flower delivery, bouquet, fresh flowers, wedding flowers, same day delivery",
   openGraph: {
-    title: "FloriaHub — Malaysia's Premier Florist Marketplace",
+    title: "FloreaHub — Malaysia's Premier Florist Marketplace",
     description: "Fresh flowers, top florists, delivered to your door.",
     type: "website",
   },
