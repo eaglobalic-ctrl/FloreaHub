@@ -1,18 +1,25 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Menu, X, Flower2, ShoppingCart, Search } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
+import { Menu, X, Flower2, ShoppingCart, Search, User, LayoutDashboard, ShoppingBag, LogOut, ChevronDown } from "lucide-react";
 import { getCart } from "@/lib/cart";
+
+type StoredUser = { id: string; email: string; name: string; role: string };
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [user, setUser] = useState<StoredUser | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -28,8 +35,34 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
+    const syncUser = () => {
+      try {
+        const stored = localStorage.getItem("floreahub_user");
+        setUser(stored ? JSON.parse(stored) : null);
+      } catch { setUser(null); }
+    };
+    syncUser();
+    window.addEventListener("user-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+    return () => {
+      window.removeEventListener("user-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
     if (searchOpen) setTimeout(() => searchRef.current?.focus(), 100);
   }, [searchOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +72,17 @@ export default function Navbar() {
       setQuery("");
     }
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem("floreahub_user");
+    setUser(null);
+    setUserMenuOpen(false);
+    window.dispatchEvent(new Event("user-updated"));
+    router.push("/");
+  };
+
+  const isSeller = user?.role === "florist" || user?.role === "seller";
+  const initials = user?.name ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm" : "bg-white border-b border-gray-100"}`}>
@@ -84,33 +128,101 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Cart */}
-            <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
-              <ShoppingCart size={18} />
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
-                  {cartCount > 9 ? "9+" : cartCount}
-                </span>
-              )}
-            </Link>
+            {/* Cart (buyers only / not logged in) */}
+            {!isSeller && (
+              <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+                <ShoppingCart size={18} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                    {cartCount > 9 ? "9+" : cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
-            <Link href="/login" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Sign In</Link>
-            <Link href="/register" className="btn-primary text-sm py-2 px-4">Get Started</Link>
+            {/* Auth */}
+            {user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 transition-all"
+                >
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: isSeller ? "var(--accent)" : "var(--primary)" }}>
+                    {initials}
+                  </div>
+                  <div className="text-left hidden lg:block">
+                    <p className="text-xs font-semibold text-gray-900 leading-none">{user.name.split(" ")[0]}</p>
+                    <p className="text-[10px] text-gray-400 capitalize leading-none mt-0.5">{isSeller ? "Florist" : "Buyer"}</p>
+                  </div>
+                  <ChevronDown size={13} className={`text-gray-400 transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
+                    >
+                      <div className="px-4 py-2.5 border-b border-gray-50">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                      </div>
+
+                      {isSeller ? (
+                        <>
+                          <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                            <LayoutDashboard size={14} className="text-gray-400" /> Dashboard
+                          </Link>
+                          <Link href="/dashboard/products" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                            <ShoppingBag size={14} className="text-gray-400" /> My Products
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                            <ShoppingBag size={14} className="text-gray-400" /> My Orders
+                          </Link>
+                          <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                            <User size={14} className="text-gray-400" /> Profile
+                          </Link>
+                        </>
+                      )}
+
+                      <div className="border-t border-gray-50 mt-1 pt-1">
+                        <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
+                          <LogOut size={14} /> Sign Out
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <>
+                <Link href="/login" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Sign In</Link>
+                <Link href="/register" className="btn-primary text-sm py-2 px-4">Get Started</Link>
+              </>
+            )}
           </div>
 
-          {/* Mobile */}
+          {/* Mobile icons */}
           <div className="md:hidden flex items-center gap-1">
             <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 text-gray-600 hover:text-gray-900">
               <Search size={20} />
             </button>
-            <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900">
-              <ShoppingCart size={20} />
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
-                  {cartCount > 9 ? "9+" : cartCount}
-                </span>
-              )}
-            </Link>
+            {!isSeller && (
+              <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900">
+                <ShoppingCart size={20} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                    {cartCount > 9 ? "9+" : cartCount}
+                  </span>
+                )}
+              </Link>
+            )}
             <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -136,15 +248,34 @@ export default function Navbar() {
             { href: "/shop", label: "Shop" },
             { href: "/pricing", label: "For Florists" },
             { href: "/subscription", label: "Subscribe" },
-            { href: "/builder", label: "Bouquet Builder" },
           ].map((item) => (
             <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors">
               {item.label}
             </Link>
           ))}
           <div className="pt-3 border-t border-gray-100 space-y-2">
-            <Link href="/login" className="block px-3 py-2.5 text-sm font-medium text-gray-600">Sign In</Link>
-            <Link href="/register" className="block btn-primary text-center text-sm">Get Started</Link>
+            {user ? (
+              <>
+                <div className="px-3 py-2 text-sm font-semibold text-gray-900">{user.name}</div>
+                {isSeller ? (
+                  <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700">
+                    <LayoutDashboard size={14} /> Dashboard
+                  </Link>
+                ) : (
+                  <Link href="/orders" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 text-sm text-gray-700">
+                    <ShoppingBag size={14} /> My Orders
+                  </Link>
+                )}
+                <button onClick={handleLogout} className="w-full text-left flex items-center gap-2 px-3 py-2.5 text-sm text-red-500">
+                  <LogOut size={14} /> Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 text-sm font-medium text-gray-600">Sign In</Link>
+                <Link href="/register" onClick={() => setMenuOpen(false)} className="block btn-primary text-center text-sm">Get Started</Link>
+              </>
+            )}
           </div>
         </div>
       )}

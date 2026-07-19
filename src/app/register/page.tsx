@@ -1,12 +1,15 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "motion/react";
-import { Flower2, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, AlertCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
+import { Flower2, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, AlertCircle, Store, ShoppingBag } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPass, setShowPass] = useState(false);
+  const [role, setRole] = useState<"buyer" | "florist">("buyer");
   const [form, setForm] = useState({ name: "", email: "", password: "", agree: false });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -20,12 +23,13 @@ export default function RegisterPage() {
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, role: "buyer" }),
+        body: JSON.stringify({ name: form.name, email: form.email, role }),
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
       if (data.existed) { setError("This email is already registered. Please sign in instead."); return; }
       localStorage.setItem("floreahub_user", JSON.stringify(data.user));
+      window.dispatchEvent(new Event("user-updated"));
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
@@ -34,7 +38,9 @@ export default function RegisterPage() {
     }
   };
 
-  const strength = form.password.length >= 8 ? (form.password.match(/[A-Z]/) && form.password.match(/[0-9]/) ? "strong" : "medium") : form.password.length > 0 ? "weak" : "";
+  const strength = form.password.length >= 8
+    ? (form.password.match(/[A-Z]/) && form.password.match(/[0-9]/) ? "strong" : "medium")
+    : form.password.length > 0 ? "weak" : "";
 
   return (
     <div className="min-h-screen flex">
@@ -83,93 +89,124 @@ export default function RegisterPage() {
             </Link>
           </motion.div>
 
-          {done ? (
-            <motion.div variants={fadeUp} className="card-premium p-10 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
-                <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Account created!</h2>
-              <p className="text-gray-500 mb-8">Welcome to FloreaHub, {form.name.split(" ")[0]}. Start exploring.</p>
-              <Link href="/" className="btn-primary w-full flex items-center justify-center gap-2">
-                Browse Flowers <ArrowRight size={16} />
-              </Link>
-            </motion.div>
-          ) : (
-            <>
-              <motion.div variants={fadeUp} className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your account</h1>
-                <p className="text-gray-500">Join thousands of flower lovers across Malaysia</p>
+          <AnimatePresence mode="wait">
+            {done ? (
+              <motion.div key="done" variants={fadeUp} initial="hidden" animate="show" className="card-premium p-10 text-center">
+                <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
+                  <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Account created!</h2>
+                <p className="text-gray-500 mb-8">
+                  Welcome to FloreaHub, {form.name.split(" ")[0]}.{" "}
+                  {role === "florist" ? "Set up your shop to start selling." : "Start exploring flowers."}
+                </p>
+                {role === "florist" ? (
+                  <Link href="/dashboard" className="btn-primary w-full flex items-center justify-center gap-2">
+                    Go to Dashboard <ArrowRight size={16} />
+                  </Link>
+                ) : (
+                  <Link href="/shop" className="btn-primary w-full flex items-center justify-center gap-2">
+                    Browse Flowers <ArrowRight size={16} />
+                  </Link>
+                )}
               </motion.div>
+            ) : (
+              <motion.div key="form">
+                <motion.div variants={fadeUp} className="mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your account</h1>
+                  <p className="text-gray-500">Join thousands of flower lovers across Malaysia</p>
+                </motion.div>
 
-              <motion.div variants={fadeUp} className="card-premium p-8">
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name</label>
-                    <div className="relative">
-                      <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <input type="text" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ahmad Razif" className="input-premium w-full pl-10" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
-                    <div className="relative">
-                      <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@example.com" className="input-premium w-full pl-10" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <input type={showPass ? "text" : "password"} required minLength={8} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min. 8 characters" className="input-premium w-full pl-10 pr-11" />
-                      <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                <motion.div variants={fadeUp} className="card-premium p-8">
+                  {/* Role selector */}
+                  <div className="mb-6">
+                    <p className="text-sm font-medium text-gray-700 mb-3">I want to...</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setRole("buyer")}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-sm font-medium ${role === "buyer" ? "border-rose-400 bg-rose-50 text-rose-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                      >
+                        <ShoppingBag size={20} className={role === "buyer" ? "text-rose-500" : "text-gray-400"} />
+                        Buy Flowers
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setRole("florist")}
+                        className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all text-sm font-medium ${role === "florist" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-gray-200 text-gray-500 hover:border-gray-300"}`}
+                      >
+                        <Store size={20} className={role === "florist" ? "text-emerald-600" : "text-gray-400"} />
+                        Sell as Florist
                       </button>
                     </div>
-                    {strength && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <div className="flex gap-1 flex-1">
-                          {["weak", "medium", "strong"].map((lvl, i) => (
-                            <div key={lvl} className="h-1 flex-1 rounded-full transition-colors" style={{ background: ["weak","medium","strong"].indexOf(strength) >= i ? (strength === "strong" ? "#2d6a4f" : strength === "medium" ? "#f59e0b" : "#ef4444") : "#e5e7eb" }} />
-                          ))}
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        {role === "florist" ? "Shop / Business name" : "Full name"}
+                      </label>
+                      <div className="relative">
+                        <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input type="text" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={role === "florist" ? "Petal Paradise" : "Ahmad Razif"} className="input-premium w-full pl-10" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+                      <div className="relative">
+                        <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@example.com" className="input-premium w-full pl-10" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                      <div className="relative">
+                        <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input type={showPass ? "text" : "password"} required minLength={8} value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min. 8 characters" className="input-premium w-full pl-10 pr-11" />
+                        <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                      {strength && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="flex gap-1 flex-1">
+                            {["weak", "medium", "strong"].map((lvl, i) => (
+                              <div key={lvl} className="h-1 flex-1 rounded-full transition-colors" style={{ background: ["weak","medium","strong"].indexOf(strength) >= i ? (strength === "strong" ? "#2d6a4f" : strength === "medium" ? "#f59e0b" : "#ef4444") : "#e5e7eb" }} />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500 capitalize">{strength}</span>
                         </div>
-                        <span className="text-xs text-gray-500 capitalize">{strength}</span>
+                      )}
+                    </div>
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input type="checkbox" required checked={form.agree} onChange={e => setForm(f => ({ ...f, agree: e.target.checked }))} className="mt-0.5 rounded" />
+                      <span className="text-sm text-gray-600">
+                        I agree to FloreaHub's{" "}
+                        <Link href="/terms" className="underline" style={{ color: "var(--primary)" }}>Terms</Link>{" "}
+                        and{" "}
+                        <Link href="/privacy" className="underline" style={{ color: "var(--primary)" }}>Privacy Policy</Link>
+                      </span>
+                    </label>
+                    {error && (
+                      <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
+                        <AlertCircle size={14} className="flex-shrink-0" />
+                        {error}
                       </div>
                     )}
-                  </div>
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input type="checkbox" required checked={form.agree} onChange={e => setForm(f => ({ ...f, agree: e.target.checked }))} className="mt-0.5 rounded" />
-                    <span className="text-sm text-gray-600">
-                      I agree to FloreaHub's{" "}
-                      <Link href="/terms" className="underline" style={{ color: "var(--primary)" }}>Terms</Link>{" "}
-                      and{" "}
-                      <Link href="/privacy" className="underline" style={{ color: "var(--primary)" }}>Privacy Policy</Link>
-                    </span>
-                  </label>
-                  {error && (
-                    <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
-                      <AlertCircle size={14} className="flex-shrink-0" />
-                      {error}
-                    </div>
-                  )}
-                  <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base">
-                    {loading
-                      ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      : <><span>Create Account</span><ArrowRight size={16} /></>}
-                  </button>
-                </form>
-                <p className="mt-6 text-center text-sm text-gray-500">
-                  Already have an account?{" "}
-                  <Link href="/login" className="font-semibold hover:underline" style={{ color: "var(--primary)" }}>Sign in</Link>
-                </p>
+                    <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base" style={role === "florist" ? { background: "var(--accent)" } : {}}>
+                      {loading
+                        ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        : <><span>{role === "florist" ? "Create Florist Account" : "Create Account"}</span><ArrowRight size={16} /></>}
+                    </button>
+                  </form>
+                  <p className="mt-6 text-center text-sm text-gray-500">
+                    Already have an account?{" "}
+                    <Link href="/login" className="font-semibold hover:underline" style={{ color: "var(--primary)" }}>Sign in</Link>
+                  </p>
+                </motion.div>
               </motion.div>
-
-              <motion.p variants={fadeUp} className="text-center text-sm text-gray-400 mt-6">
-                Are you a florist?{" "}
-                <Link href="/register/florist" className="underline text-gray-600">Register your shop</Link>
-              </motion.p>
-            </>
-          )}
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
     </div>

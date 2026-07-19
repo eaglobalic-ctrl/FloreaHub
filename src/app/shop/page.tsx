@@ -234,6 +234,7 @@ function ShopContent() {
             >
               {filtered.map((p) => (
                 <motion.article key={p.id} variants={scaleIn} layout whileHover={{ y: -4 }} className="card-premium overflow-hidden bg-white cursor-pointer">
+                  <Link href={`/products/${p.id}`} className="block">
                   <div className="relative overflow-hidden bg-gray-100">
                     <Image src={p.image} alt={p.name} width={400} height={300}
                       className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -251,9 +252,12 @@ function ShopContent() {
                     </motion.button>
                   </div>
 
+                  </Link>
                   <div className="p-3.5">
                     <p className="text-xs text-gray-400 mb-0.5">{p.florist}</p>
-                    <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2 leading-snug">{p.name}</h3>
+                    <Link href={`/products/${p.id}`}>
+                      <h3 className="font-medium text-gray-800 text-sm line-clamp-2 mb-2 leading-snug hover:text-rose-700 transition-colors">{p.name}</h3>
+                    </Link>
                     <div className="flex items-center gap-1 mb-3">
                       <Star size={11} className="text-amber-400" fill="currentColor" />
                       <span className="text-xs font-medium text-gray-700">{p.rating}</span>

@@ -25,7 +25,9 @@ export default function LoginPage() {
         return;
       }
       localStorage.setItem("floreahub_user", JSON.stringify(data.user));
-      router.push("/");
+      window.dispatchEvent(new Event("user-updated"));
+      const isSeller = data.user.role === "florist" || data.user.role === "seller";
+      router.push(isSeller ? "/dashboard" : "/");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

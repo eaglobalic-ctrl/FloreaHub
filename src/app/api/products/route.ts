@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
   const category = searchParams.get("category");
   const floristId = searchParams.get("floristId");
   const q = searchParams.get("q");
@@ -12,7 +13,20 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = getSupabaseAdmin();
-    let query = db.from("products").select("*, florists(name, city)").eq("is_active", true);
+
+    // Single product by ID
+    if (id) {
+      const { data, error } = await db
+        .from("products")
+        .select("*, florists(id, name, city, state, cover_image, rating, review_count, same_day_delivery, phone)")
+        .eq("id", id)
+        .eq("is_active", true)
+        .single();
+      if (error) return NextResponse.json({ product: null });
+      return NextResponse.json({ product: data });
+    }
+
+    let query = db.from("products").select("*, florists(id, name, city)").eq("is_active", true);
 
     if (category && category !== "all") query = query.eq("category", category);
     if (floristId) query = query.eq("florist_id", floristId);
