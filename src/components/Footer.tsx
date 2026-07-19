@@ -82,8 +82,8 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-gray-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
-          <p>© {new Date().getFullYear()} FloreaHub Sdn. Bhd. All rights reserved.</p>
-          <p>Crafted with care for Malaysia's florist community.</p>
+          <p>© {new Date().getFullYear()} Lisya Lane Empire. All rights reserved.</p>
+          <p>FloreaHub is a product of Lisya Lane Empire — crafted for Malaysia's florist community.</p>
         </div>
       </div>
     </footer>
