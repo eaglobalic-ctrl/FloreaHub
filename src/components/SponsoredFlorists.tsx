@@ -2,14 +2,21 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Star, MapPin, Clock } from "lucide-react";
-import { getActiveAds, AdCampaign } from "@/lib/ads";
 import Link from "next/link";
 
+type Ad = {
+  id: string; headline: string; tagline: string;
+  florist_id: string; florist_name: string; image_url: string;
+};
+
 export default function SponsoredFlorists() {
-  const [ads, setAds] = useState<AdCampaign[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
 
   useEffect(() => {
-    setAds(getActiveAds("shop_spotlight").slice(0, 3));
+    fetch("/api/ads?type=shop_spotlight")
+      .then(r => r.json())
+      .then(d => setAds((d.ads ?? []).slice(0, 3)))
+      .catch(() => {});
   }, []);
 
   if (ads.length === 0) return null;
@@ -36,12 +43,12 @@ export default function SponsoredFlorists() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }}
-              className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+              className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5"
             >
-              <Link href={`/florists/${ad.floristId}`} className="block">
+              <Link href={`/florists/${ad.florist_id}`} className="block">
                 <div className="h-44 overflow-hidden relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={ad.imageUrl} alt={ad.headline} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={ad.image_url} alt={ad.headline} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   <div className="absolute top-3 left-3">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-full">Sponsored</span>
@@ -52,7 +59,7 @@ export default function SponsoredFlorists() {
                 </div>
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="font-semibold text-gray-900 text-sm">{ad.floristName}</p>
+                    <p className="font-semibold text-gray-900 text-sm">{ad.florist_name}</p>
                     <div className="flex items-center gap-1 text-amber-400">
                       <Star size={12} fill="currentColor" />
                       <span className="text-xs font-medium text-gray-700">4.8</span>

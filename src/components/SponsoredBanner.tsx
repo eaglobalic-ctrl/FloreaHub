@@ -2,16 +2,19 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ExternalLink, X } from "lucide-react";
-import { getActiveAds, AdCampaign } from "@/lib/ads";
 import Link from "next/link";
 
+type Ad = { id: string; headline: string; tagline: string; florist_id: string };
+
 export default function SponsoredBanner() {
-  const [ad, setAd] = useState<AdCampaign | null>(null);
+  const [ad, setAd] = useState<Ad | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const banners = getActiveAds("premium_banner");
-    if (banners.length > 0) setAd(banners[0]);
+    fetch("/api/ads?type=premium_banner")
+      .then(r => r.json())
+      .then(d => { if (d.ads?.[0]) setAd(d.ads[0]); })
+      .catch(() => {});
   }, []);
 
   if (!ad || dismissed) return null;
@@ -20,7 +23,6 @@ export default function SponsoredBanner() {
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
       className="relative overflow-hidden"
       style={{ background: "linear-gradient(135deg, #1a0a10 0%, #b5294e 50%, #2d6a4f 100%)" }}
     >

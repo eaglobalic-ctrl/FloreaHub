@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { adType, floristName, headline, tagline, price } = body;
+    const { adType, floristId, floristName, headline, tagline, imageUrl, price } = body;
 
     if (!adType || !floristName || !price) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -19,6 +20,8 @@ export async function POST(req: NextRequest) {
       premium_banner: "Premium Banner (7 days)",
     };
 
+    const adId = `ad-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
     const params = new URLSearchParams({
       userSecretKey: process.env.TOYYIBPAY_SECRET_KEY!,
       categoryCode: process.env.TOYYIBPAY_CATEGORY_CODE!,
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
       billAmount: String(Math.round(Number(price) * 100)),
       billReturnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/ads?success=1`,
       billCallbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/ads/callback`,
-      billExternalReferenceNo: `AD-${Date.now()}`,
+      billExternalReferenceNo: adId,
       billTo: floristName,
       billEmail: "noreply@floreahub.com",
       billPhone: "0000000000",
@@ -51,8 +54,36 @@ export async function POST(req: NextRequest) {
     }
 
     const billCode = data[0].BillCode;
+
+    // Save pending campaign to Supabase
+    const startDate = new Date().toISOString();
+    const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const supabaseAdmin = getSupabaseAdmin();
+
+    const { error: dbError } = await supabaseAdmin.from("ads").insert({
+      id: adId,
+      florist_id: floristId ?? "unknown",
+      florist_name: floristName,
+      type: adType,
+      image_url: imageUrl ?? `https://image.pollinations.ai/prompt/${encodeURIComponent(headline + " flowers bouquet")}?width=600&height=400&nologo=true&seed=${Date.now()}`,
+      headline,
+      tagline: tagline ?? "",
+      budget: Number(price),
+      start_date: startDate,
+      end_date: endDate,
+      status: "pending",
+      clicks: 0,
+      impressions: 0,
+      bill_code: billCode,
+    });
+
+    if (dbError) {
+      console.error("DB insert error:", dbError);
+      // Don't block payment even if DB fails
+    }
+
     const paymentUrl = `${baseUrl}/${billCode}`;
-    return NextResponse.json({ billCode, paymentUrl });
+    return NextResponse.json({ billCode, paymentUrl, adId });
   } catch (err) {
     console.error("Ads create error:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });

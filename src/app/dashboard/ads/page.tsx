@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { AD_PLANS, getAds, saveAd, AdCampaign, AdType } from "@/lib/ads";
+import { AD_PLANS, getAds, saveAd, AdCampaign, AdType, AdStatus } from "@/lib/ads";
 import { fadeUp, stagger } from "@/lib/animations";
 
 const PLAN_ICONS = { product_boost: Zap, shop_spotlight: Star, premium_banner: Crown };
@@ -36,21 +36,17 @@ function AdForm({ plan, onClose, onSuccess }: { plan: typeof AD_PLANS[0]; onClos
       const res = await fetch("/api/ads/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adType: plan.id, floristName, headline, tagline, price: plan.price }),
+        body: JSON.stringify({
+          adType: plan.id,
+          floristId: "me",
+          floristName,
+          headline,
+          tagline,
+          price: plan.price,
+        }),
       });
       const data = await res.json();
       if (data.paymentUrl) {
-        const startDate = new Date().toISOString();
-        const end = new Date();
-        end.setDate(end.getDate() + plan.duration);
-        const campaign: AdCampaign = {
-          id: `ad-${Date.now()}`, floristId: "me", floristName, type: plan.id as AdType,
-          imageUrl: `https://image.pollinations.ai/prompt/${encodeURIComponent(headline + " flowers bouquet")}?width=600&height=400&nologo=true&seed=${Date.now()}`,
-          headline, tagline, budget: plan.price,
-          startDate, endDate: end.toISOString(), status: "pending",
-          clicks: 0, impressions: 0, createdAt: startDate,
-        };
-        saveAd(campaign);
         window.location.href = data.paymentUrl;
       } else {
         setError(data.error ?? "Payment failed. Try again.");
@@ -105,13 +101,47 @@ function AdsContent() {
   const [campaigns, setCampaigns] = useState<AdCampaign[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<typeof AD_PLANS[0] | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = () => setCampaigns(getAds().filter(a => a.floristId === "me" || a.floristId === "1"));
+    const load = async () => {
+      setLoading(true);
+      try {
+        // Fetch from Supabase via API route (all ads for dashboard view)
+        const res = await fetch("/api/ads?all=1");
+        const data = await res.json();
+        if (data.ads?.length) {
+          // Map snake_case DB fields to camelCase AdCampaign type
+          const mapped: AdCampaign[] = data.ads.map((a: Record<string, unknown>) => ({
+            id: a.id as string,
+            floristId: a.florist_id as string,
+            floristName: a.florist_name as string,
+            type: a.type as AdType,
+            productId: a.product_id as string | undefined,
+            productName: a.product_name as string | undefined,
+            imageUrl: a.image_url as string,
+            headline: a.headline as string,
+            tagline: a.tagline as string,
+            budget: a.budget as number,
+            startDate: a.start_date as string,
+            endDate: a.end_date as string,
+            status: a.status as AdStatus,
+            clicks: a.clicks as number,
+            impressions: a.impressions as number,
+            createdAt: a.created_at as string,
+          }));
+          setCampaigns(mapped);
+        }
+      } catch {
+        // Fallback to localStorage demo data
+        setCampaigns(getAds());
+      } finally {
+        setLoading(false);
+      }
+    };
     load();
-    window.addEventListener("ads-updated", load);
-    return () => window.removeEventListener("ads-updated", load);
-  }, []);
+    if (success) load(); // reload after payment success
+  }, [success]);
 
   const totalClicks = campaigns.reduce((s, a) => s + a.clicks, 0);
   const totalImpr = campaigns.reduce((s, a) => s + a.impressions, 0);
@@ -148,10 +178,10 @@ function AdsContent() {
           {/* Stats */}
           <motion.div variants={fadeUp} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { label: "Active Campaigns", value: activeCnt, icon: Megaphone, color: "text-rose-600", bg: "bg-rose-50" },
-              { label: "Total Impressions", value: totalImpr.toLocaleString(), icon: Eye, color: "text-blue-600", bg: "bg-blue-50" },
-              { label: "Total Clicks", value: totalClicks.toLocaleString(), icon: MousePointer, color: "text-emerald-600", bg: "bg-emerald-50" },
-              { label: "Total Spend", value: `RM ${totalSpend}`, icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50" },
+              { label: "Active Campaigns", value: loading ? "—" : activeCnt, icon: Megaphone, color: "text-rose-600", bg: "bg-rose-50" },
+              { label: "Total Impressions", value: loading ? "—" : totalImpr.toLocaleString(), icon: Eye, color: "text-blue-600", bg: "bg-blue-50" },
+              { label: "Total Clicks", value: loading ? "—" : totalClicks.toLocaleString(), icon: MousePointer, color: "text-emerald-600", bg: "bg-emerald-50" },
+              { label: "Total Spend", value: loading ? "—" : `RM ${totalSpend}`, icon: TrendingUp, color: "text-purple-600", bg: "bg-purple-50" },
             ].map(({ label, value, icon: Icon, color, bg }) => (
               <div key={label} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${bg}`}>
