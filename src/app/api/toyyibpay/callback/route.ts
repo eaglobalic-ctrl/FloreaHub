@@ -1,28 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
-    const refno = form.get("refno");
-    const status = form.get("status"); // 1=success, 2=pending, 3=fail
-    const billcode = form.get("billcode");
-    const transaction_id = form.get("transaction_id");
-    const amount = form.get("amount");
+    const orderId = form.get("billExternalReferenceNo")?.toString() ?? form.get("refno")?.toString() ?? "";
+    const statusId = form.get("status_id")?.toString() ?? form.get("status")?.toString();
+    const billCode = form.get("billcode")?.toString() ?? "";
 
-    console.log("ToyyibPay callback received:", {
-      refno,
-      status,
-      billcode,
-      transaction_id,
-      amount,
-    });
+    console.log("ToyyibPay callback:", { orderId, statusId, billCode });
 
-    if (status === "1") {
-      // Payment successful
-      // TODO: Look up order by refno, mark as paid, trigger fulfillment
-    } else if (status === "3") {
-      // Payment failed
-      // TODO: Mark order as failed
+    const db = getSupabaseAdmin();
+
+    if (statusId === "1" && orderId) {
+      await db.from("orders").update({
+        payment_status: "paid",
+        status: "processing",
+        bill_code: billCode,
+      }).eq("id", orderId);
+      console.log("Order paid:", orderId);
+    } else if (statusId === "3" && orderId) {
+      await db.from("orders").update({ payment_status: "failed" }).eq("id", orderId);
     }
 
     return NextResponse.json({ received: true });

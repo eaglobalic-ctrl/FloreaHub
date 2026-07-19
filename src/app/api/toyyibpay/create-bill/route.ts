@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
-const BASE_URL =
-  process.env.TOYYIBPAY_SANDBOX === "true"
-    ? "https://dev.toyyibpay.com"
-    : "https://toyyibpay.com";
+const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
+  ? "https://dev.toyyibpay.com"
+  : "https://toyyibpay.com";
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, name, email, phone, description, referenceNo } =
-      await req.json();
+    const { amount, name, email, phone, description, referenceNo, items, deliveryFee, recipientName, recipientPhone, deliveryAddress, notes } = await req.json();
 
     if (!process.env.TOYYIBPAY_SECRET_KEY || !process.env.TOYYIBPAY_CATEGORY_CODE) {
-      return NextResponse.json(
-        { error: "ToyyibPay credentials not configured" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "ToyyibPay credentials not configured" }, { status: 500 });
     }
+
+    const orderId = referenceNo || `FH-${Date.now()}`;
 
     const params = new URLSearchParams({
       userSecretKey: process.env.TOYYIBPAY_SECRET_KEY,
@@ -27,7 +25,7 @@ export async function POST(req: NextRequest) {
       billAmount: String(Math.round(amount * 100)),
       billReturnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success`,
       billCallbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/toyyibpay/callback`,
-      billExternalReferenceNo: referenceNo || `FH-${Date.now()}`,
+      billExternalReferenceNo: orderId,
       billTo: name,
       billEmail: email,
       billPhone: phone.replace(/[^0-9]/g, ""),
@@ -42,16 +40,47 @@ export async function POST(req: NextRequest) {
     });
 
     const data = await res.json();
-
     if (!data?.[0]?.BillCode) {
       return NextResponse.json({ error: "Failed to create bill", raw: data }, { status: 500 });
     }
 
     const billCode = data[0].BillCode;
-    return NextResponse.json({
-      billCode,
-      paymentUrl: `${BASE_URL}/${billCode}`,
-    });
+    const subtotal = amount - (deliveryFee ?? 0);
+
+    // Save order to Supabase
+    try {
+      const db = getSupabaseAdmin();
+      await db.from("orders").insert({
+        id: orderId,
+        subtotal: subtotal > 0 ? subtotal : amount,
+        delivery_fee: deliveryFee ?? 0,
+        total: amount,
+        recipient_name: recipientName ?? name,
+        recipient_phone: recipientPhone ?? phone,
+        delivery_address: deliveryAddress ?? null,
+        notes: notes ?? null,
+        bill_code: billCode,
+        payment_status: "pending",
+        status: "pending",
+      });
+
+      if (items?.length) {
+        await db.from("order_items").insert(
+          items.map((item: { id: string; name: string; image: string; florist: string; price: number; quantity: number }) => ({
+            order_id: orderId,
+            product_name: item.name,
+            product_image: item.image ?? null,
+            florist_name: item.florist,
+            price: item.price,
+            quantity: item.quantity,
+          }))
+        );
+      }
+    } catch (dbErr) {
+      console.error("Order DB save error (non-blocking):", dbErr);
+    }
+
+    return NextResponse.json({ billCode, paymentUrl: `${BASE_URL}/${billCode}`, orderId });
   } catch (err) {
     console.error("ToyyibPay create-bill error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
