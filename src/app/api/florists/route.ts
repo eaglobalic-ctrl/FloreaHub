@@ -20,10 +20,14 @@ export async function GET(req: NextRequest) {
     query = query.order("rating", { ascending: false });
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error("Florists query error:", error);
+      return NextResponse.json({ florists: [], error: error.message });
+    }
     return NextResponse.json({ florists: data ?? [] });
   } catch (err) {
-    console.error("Florists fetch error:", err);
-    return NextResponse.json({ florists: [] });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("Florists fetch error:", msg);
+    return NextResponse.json({ florists: [], error: msg });
   }
 }
