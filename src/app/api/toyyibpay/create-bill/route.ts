@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
         subtotal: subtotal > 0 ? subtotal : amount,
         delivery_fee: deliveryFee ?? 0,
         total: amount,
+        buyer_name: name,
+        buyer_email: email,
         recipient_name: recipientName ?? name,
         recipient_phone: recipientPhone ?? phone,
         delivery_address: deliveryAddress ?? null,

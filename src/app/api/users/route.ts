@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +19,8 @@ export async function POST(req: NextRequest) {
     }).select("id, email, name, role").single();
 
     if (error) throw error;
+    // Non-blocking — don't fail registration if email fails
+    sendWelcomeEmail({ name: user!.name, email: user!.email, role: user!.role });
     return NextResponse.json({ user, existed: false });
   } catch (err) {
     console.error("User create error:", err);

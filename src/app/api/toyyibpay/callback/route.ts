@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,30 @@ export async function POST(req: NextRequest) {
         status: "processing",
         bill_code: billCode,
       }).eq("id", orderId);
+
       console.log("Order paid:", orderId);
+
+      // Fetch order and send confirmation email (non-blocking)
+      db.from("orders")
+        .select("*, order_items(*)")
+        .eq("id", orderId)
+        .single()
+        .then(({ data: order }) => {
+          if (!order?.buyer_email) return;
+          sendOrderConfirmationEmail({
+            email: order.buyer_email,
+            name: order.buyer_name ?? order.recipient_name ?? "Customer",
+            orderId: order.id,
+            items: order.order_items ?? [],
+            subtotal: Number(order.subtotal) || 0,
+            deliveryFee: Number(order.delivery_fee) || 0,
+            total: Number(order.total) || 0,
+            deliveryAddress: order.delivery_address ?? undefined,
+            recipientName: order.recipient_name ?? undefined,
+          });
+        })
+        .catch(err => console.error("Email fetch error:", err));
+
     } else if (statusId === "3" && orderId) {
       await db.from("orders").update({ payment_status: "failed" }).eq("id", orderId);
     }
