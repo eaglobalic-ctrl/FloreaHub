@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ShoppingCart, Heart, Zap, Star, SlidersHorizontal, ChevronDown, Gem, Gift, Building2, Feather, Sun, Palette } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { CATEGORIES } from "@/lib/data";
+import { CATEGORIES, AI_PRODUCTS } from "@/lib/data";
 import { stagger, scaleIn, fadeUp } from "@/lib/animations";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -14,16 +14,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   corporate: Building2, sympathy: Feather, daily: Sun,
 };
 
-const ALL_PRODUCTS = [
-  { id: "1", name: "Classic Red Rose Bouquet", florist: "Bloom & Co.", price: 120, originalPrice: 150, image: "https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=400&h=400&fit=crop", category: "anniversary", rating: 4.9, reviews: 89, sameDay: true, badge: "Bestseller" },
-  { id: "2", name: "White Lily Elegance", florist: "Petal Paradise", price: 95, originalPrice: null, image: "https://images.unsplash.com/photo-1487530811015-780780169dc1?w=400&h=400&fit=crop", category: "wedding", rating: 4.7, reviews: 54, sameDay: true, badge: "" },
-  { id: "3", name: "Sunflower Happiness Box", florist: "Rose Garden MY", price: 80, originalPrice: null, image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&h=400&fit=crop", category: "birthday", rating: 4.8, reviews: 112, sameDay: false, badge: "Popular" },
-  { id: "4", name: "Bridal Premium Bouquet", florist: "Fleur de Lune", price: 280, originalPrice: 320, image: "https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?w=400&h=400&fit=crop", category: "wedding", rating: 5.0, reviews: 67, sameDay: true, badge: "Premium" },
-  { id: "5", name: "Birthday Bloom Box", florist: "Bloom & Co.", price: 150, originalPrice: null, image: "https://images.unsplash.com/photo-1562690868-60bbe7293e94?w=400&h=400&fit=crop", category: "birthday", rating: 4.8, reviews: 78, sameDay: true, badge: "" },
-  { id: "6", name: "Pastel Mix Arrangement", florist: "Petal Paradise", price: 110, originalPrice: null, image: "https://images.unsplash.com/photo-1490750967868-88df5691166b?w=400&h=400&fit=crop", category: "daily", rating: 4.6, reviews: 43, sameDay: false, badge: "New" },
-  { id: "7", name: "Corporate Event Arrangement", florist: "Rose Garden MY", price: 220, originalPrice: 260, image: "https://images.unsplash.com/photo-1487530811015-780780169dc1?w=400&h=400&fit=crop", category: "corporate", rating: 4.7, reviews: 31, sameDay: false, badge: "" },
-  { id: "8", name: "Orchid Luxury Stand", florist: "Fleur de Lune", price: 350, originalPrice: null, image: "https://images.unsplash.com/photo-1548094990-c16ca90f1f0d?w=400&h=400&fit=crop", category: "corporate", rating: 4.9, reviews: 28, sameDay: true, badge: "Luxury" },
-];
+const ALL_PRODUCTS = AI_PRODUCTS;
 
 const BADGE_STYLES: Record<string, string> = {
   Bestseller: "bg-amber-50 text-amber-700",
