@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin, Star, Clock, Zap, Leaf, Camera, ChevronRight, Package, Phone, Mail } from "lucide-react";
+import { MapPin, Star, Clock, Zap, Leaf, Camera, ChevronRight, Package, Phone, Mail, BadgeCheck } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristProducts from "@/components/FloristProducts";
@@ -34,15 +34,43 @@ export default async function FloristDetailPage({ params }: { params: Promise<{ 
     <div className="flex flex-col min-h-full bg-gray-50">
       <Navbar />
 
-      <div className="bg-white border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <nav className="flex items-center gap-2 text-sm text-gray-400">
-            <Link href="/" className="hover:text-gray-600 transition-colors">Home</Link>
-            <ChevronRight size={14} />
-            <Link href="/florists" className="hover:text-gray-600 transition-colors">Florists</Link>
-            <ChevronRight size={14} />
-            <span className="text-gray-700 font-medium">{florist.name}</span>
-          </nav>
+      {/* ── HERO BANNER ── */}
+      <div className="relative h-64 sm:h-80 bg-gray-900 overflow-hidden">
+        {florist.cover_image ? (
+          <Image src={florist.cover_image} alt={florist.name} fill priority className="object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-500">No image</div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/10" />
+
+        <div className="absolute top-4 left-0 right-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav className="flex items-center gap-2 text-sm text-white/70">
+              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <ChevronRight size={14} />
+              <Link href="/florists" className="hover:text-white transition-colors">Florists</Link>
+              <ChevronRight size={14} />
+              <span className="text-white font-medium">{florist.name}</span>
+            </nav>
+          </div>
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2.5 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{florist.name}</h1>
+                {florist.is_verified && <BadgeCheck size={22} className="text-blue-400 flex-shrink-0" fill="#3b82f6" stroke="white" />}
+              </div>
+              <div className="flex items-center gap-4 text-white/85 text-sm flex-wrap">
+                <span className="flex items-center gap-1.5"><MapPin size={13} /> {florist.city}, {florist.state}</span>
+                <span className="flex items-center gap-1.5"><Star size={13} className="text-amber-400" fill="currentColor" /> {Number(florist.rating || 0).toFixed(1)} ({florist.review_count || 0} reviews)</span>
+              </div>
+            </div>
+            <Link href={`/builder?florist=${florist.id}`} className="btn-primary text-sm whitespace-nowrap">
+              Custom Bouquet with This Florist
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -51,22 +79,6 @@ export default async function FloristDetailPage({ params }: { params: Promise<{ 
 
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-xl border border-gray-100 overflow-hidden sticky top-24">
-              <div className="relative h-52 bg-gray-100">
-                {florist.cover_image ? (
-                  <Image src={florist.cover_image} alt={florist.name} fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-300">No image</div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h1 className="text-lg font-semibold text-white leading-tight">{florist.name}</h1>
-                  <div className="flex items-center gap-1.5 text-white/80 text-sm mt-1">
-                    <MapPin size={12} />
-                    <span>{florist.city}, {florist.state}</span>
-                  </div>
-                </div>
-              </div>
-
               <div className="p-5">
                 <div className="grid grid-cols-3 gap-3 mb-5">
                   {[
