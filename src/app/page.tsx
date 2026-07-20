@@ -137,8 +137,8 @@ export default function Home() {
               >
                 <div className="relative w-80 h-80">
                   <Image
-                    src="https://images.unsplash.com/photo-1487530811015-780780169dc1?w=640&h=640&fit=crop"
-                    alt="Beautiful bouquet"
+                    src="https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=640&h=640&fit=crop"
+                    alt="Fresh rose stem"
                     fill
                     className="object-cover rounded-[2rem] shadow-2xl"
                     priority
