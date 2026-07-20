@@ -127,17 +127,15 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Cart (buyers only / not logged in) */}
-            {!isSeller && (
-              <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
-                <ShoppingCart size={18} />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
-                    {cartCount > 9 ? "9+" : cartCount}
-                  </span>
-                )}
-              </Link>
-            )}
+            {/* Cart — every account can shop, sellers included */}
+            <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+              <ShoppingCart size={18} />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </Link>
 
             {/* Auth */}
             {user ? (
@@ -212,16 +210,14 @@ export default function Navbar() {
             <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 text-gray-600 hover:text-gray-900">
               <Search size={20} />
             </button>
-            {!isSeller && (
-              <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900">
-                <ShoppingCart size={20} />
-                {cartCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
-                    {cartCount > 9 ? "9+" : cartCount}
-                  </span>
-                )}
-              </Link>
-            )}
+            <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900">
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </Link>
             <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors">
               {menuOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
