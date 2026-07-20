@@ -49,6 +49,55 @@ export async function GET(req: NextRequest) {
   }
 }
 
+const SELF_EDITABLE_FIELDS = [
+  "name", "description", "address", "city", "state", "phone", "email",
+  "same_day_delivery", "min_order", "delivery_fee",
+] as const;
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const body = await req.json();
+    const { floristId, ...fields } = body;
+    if (!floristId) return NextResponse.json({ error: "Missing floristId" }, { status: 400 });
+
+    const db = getSupabaseAdmin();
+
+    const { data: existing, error: lookupError } = await db
+      .from("florists")
+      .select("user_id")
+      .eq("id", floristId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+    if (!existing || existing.user_id !== session.userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const update: Record<string, unknown> = {};
+    for (const key of SELF_EDITABLE_FIELDS) {
+      if (key in fields) update[key] = fields[key];
+    }
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: "No editable fields provided" }, { status: 400 });
+    }
+
+    const { data: florist, error } = await db
+      .from("florists")
+      .update(update)
+      .eq("id", floristId)
+      .select()
+      .single();
+    if (error) throw error;
+
+    return NextResponse.json({ florist });
+  } catch (err) {
+    console.error("Florist self-update error:", err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   try {
     const session = getSession(req);

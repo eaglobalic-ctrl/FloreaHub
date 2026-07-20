@@ -1,4 +1,5 @@
 "use client";
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "motion/react";
@@ -19,14 +20,32 @@ const BADGE_CONFIG: Record<string, { label: string; className: string; Icon: typ
 
 export default function FloristCard({ florist }: { florist: Florist }) {
   const badge = BADGE_CONFIG[florist.badge];
+  const cardRef = useRef<HTMLElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    cardRef.current!.style.setProperty("--spot-x", `${e.clientX - rect.left}px`);
+    cardRef.current!.style.setProperty("--spot-y", `${e.clientY - rect.top}px`);
+  };
 
   return (
     <Link href={`/florists/${florist.id}`}>
       <motion.article
-        className="card-premium overflow-hidden cursor-pointer bg-white"
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        className="card-premium overflow-hidden cursor-pointer bg-white relative group/card"
         whileHover={{ y: -4 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
       >
+        {/* Cursor-tracking spotlight glow */}
+        <div
+          className="pointer-events-none absolute inset-0 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300"
+          style={{
+            background: "radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 50%), rgba(181,41,78,0.12), transparent 70%)",
+          }}
+        />
+
         {/* Image */}
         <div className="relative h-52 overflow-hidden bg-gray-100">
           <Image

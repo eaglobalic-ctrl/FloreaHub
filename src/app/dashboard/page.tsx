@@ -5,9 +5,10 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X
+  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
+import { toast } from "@/components/Toast";
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -38,7 +39,12 @@ type Product = {
   review_count: number; badge?: string; is_active: boolean;
 };
 
-type Florist = { id: string; name: string; plan: string; status: string };
+type Florist = {
+  id: string; name: string; plan: string; status: string;
+  description?: string | null; address?: string | null; city?: string; state?: string;
+  phone?: string | null; email?: string | null; same_day_delivery?: boolean;
+  min_order?: number; delivery_fee?: number;
+};
 
 type Review = {
   id: string; rating: number; comment?: string; created_at: string;
@@ -58,6 +64,11 @@ export default function DashboardPage() {
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  const [settingsForm, setSettingsForm] = useState({
+    name: "", description: "", address: "", city: "", state: "",
+    phone: "", email: "", same_day_delivery: false, min_order: 0, delivery_fee: 0,
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -110,6 +121,41 @@ export default function DashboardPage() {
       .catch(() => setReviews([]))
       .finally(() => setLoadingReviews(false));
   }, [florist]);
+
+  useEffect(() => {
+    if (!florist) return;
+    setSettingsForm({
+      name: florist.name ?? "",
+      description: florist.description ?? "",
+      address: florist.address ?? "",
+      city: florist.city ?? "",
+      state: florist.state ?? "",
+      phone: florist.phone ?? "",
+      email: florist.email ?? "",
+      same_day_delivery: florist.same_day_delivery ?? false,
+      min_order: florist.min_order ?? 0,
+      delivery_fee: florist.delivery_fee ?? 0,
+    });
+  }, [florist]);
+
+  const handleSaveSettings = async () => {
+    if (!florist?.id) return;
+    setSavingSettings(true);
+    try {
+      const res = await fetch("/api/florists", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ floristId: florist.id, ...settingsForm }),
+      });
+      if (!res.ok) throw new Error();
+      setFlorist(f => f ? { ...f, ...settingsForm } : f);
+      toast.success("Shop settings updated.");
+    } catch {
+      toast.error("Couldn't save settings. Try again.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const paidOrders = orders.filter(o => o.payment_status === "paid");
@@ -458,12 +504,84 @@ export default function DashboardPage() {
           )}
 
           {tab === "settings" && (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center text-gray-400">
-                <p className="text-lg font-medium mb-2 text-gray-600 capitalize">Settings</p>
-                <p className="text-sm">Coming soon — full settings management</p>
-              </div>
-            </div>
+            <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6 max-w-2xl">
+              <motion.div variants={fadeUp} className="card-premium p-6">
+                <h3 className="font-semibold text-gray-900 mb-5">Shop Profile</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Shop Name</label>
+                    <input value={settingsForm.name} onChange={e => setSettingsForm(f => ({ ...f, name: e.target.value }))} className="input-premium w-full" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                    <textarea value={settingsForm.description} onChange={e => setSettingsForm(f => ({ ...f, description: e.target.value }))} rows={3} className="input-premium w-full resize-none" placeholder="Tell customers what makes your shop special..." />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Email</label>
+                      <input type="email" value={settingsForm.email} onChange={e => setSettingsForm(f => ({ ...f, email: e.target.value }))} className="input-premium w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
+                      <input type="tel" value={settingsForm.phone} onChange={e => setSettingsForm(f => ({ ...f, phone: e.target.value }))} className="input-premium w-full" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="card-premium p-6">
+                <h3 className="font-semibold text-gray-900 mb-5">Location</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+                    <input value={settingsForm.address} onChange={e => setSettingsForm(f => ({ ...f, address: e.target.value }))} className="input-premium w-full" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+                      <input value={settingsForm.city} onChange={e => setSettingsForm(f => ({ ...f, city: e.target.value }))} className="input-premium w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
+                      <input value={settingsForm.state} onChange={e => setSettingsForm(f => ({ ...f, state: e.target.value }))} className="input-premium w-full" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="card-premium p-6">
+                <h3 className="font-semibold text-gray-900 mb-5">Delivery</h3>
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <div
+                      onClick={() => setSettingsForm(f => ({ ...f, same_day_delivery: !f.same_day_delivery }))}
+                      className="w-9 h-5 rounded-full relative transition-colors flex-shrink-0"
+                      style={{ background: settingsForm.same_day_delivery ? "var(--primary)" : "#e5e7eb" }}
+                    >
+                      <motion.div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow" animate={{ left: settingsForm.same_day_delivery ? "17px" : "2px" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                    </div>
+                    <span className="text-sm text-gray-700">Offer same-day delivery</span>
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Minimum Order (RM)</label>
+                      <input type="number" min={0} value={settingsForm.min_order} onChange={e => setSettingsForm(f => ({ ...f, min_order: Number(e.target.value) }))} className="input-premium w-full" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Delivery Fee (RM)</label>
+                      <input type="number" min={0} value={settingsForm.delivery_fee} onChange={e => setSettingsForm(f => ({ ...f, delivery_fee: Number(e.target.value) }))} className="input-premium w-full" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="flex justify-end">
+                <button onClick={handleSaveSettings} disabled={savingSettings} className="btn-primary text-sm py-2.5 px-5 flex items-center gap-2 disabled:opacity-60">
+                  {savingSettings ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                  {savingSettings ? "Saving..." : "Save Changes"}
+                </button>
+              </motion.div>
+            </motion.div>
           )}
         </main>
       </div>
