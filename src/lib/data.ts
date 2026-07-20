@@ -138,6 +138,48 @@ export const TESTIMONIALS = [
     rating: 5,
     text: "The Occasion Reminders feature is genius. I never forget my mum's birthday now — and the flowers always arrive looking stunning.",
   },
+  {
+    name: "Wei Ling Tan",
+    role: "Event Planner",
+    avatar: "W",
+    rating: 5,
+    text: "Booking multiple florists for a single event used to be a headache. FloreaHub's marketplace made comparing quotes and reviews so much faster.",
+  },
+  {
+    name: "Farah Aziz",
+    role: "Anniversary Gift",
+    avatar: "F",
+    rating: 5,
+    text: "Ordered last-minute at 1pm and it still arrived same day. The florist even added a handwritten note without me asking. Small touches like that matter.",
+  },
+  {
+    name: "Daniel Goh",
+    role: "First-Time Buyer",
+    avatar: "D",
+    rating: 4,
+    text: "Wasn't sure about ordering flowers online, but the real-photo promise sold me. What arrived matched the listing exactly.",
+  },
+  {
+    name: "Nurul Huda",
+    role: "Wedding Planner",
+    avatar: "N",
+    rating: 5,
+    text: "I've recommended FloreaHub to every couple I work with now. The bouquet builder alone has saved us hours of back-and-forth with florists.",
+  },
+  {
+    name: "Kevin Chong",
+    role: "Sympathy Order",
+    avatar: "K",
+    rating: 5,
+    text: "Needed a sympathy arrangement delivered with care and dignity. The florist understood the tone perfectly — arrived beautifully arranged, right on time.",
+  },
+  {
+    name: "Aisyah Rahman",
+    role: "Monthly Subscriber",
+    avatar: "A",
+    rating: 5,
+    text: "I'm on the flower subscription now and honestly it's the best decision I made this year. Fresh blooms on my desk every fortnight without lifting a finger.",
+  },
 ];
 
 export const AI_PRODUCTS = [

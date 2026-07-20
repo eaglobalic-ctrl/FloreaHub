@@ -7,13 +7,14 @@ import { motion, useInView } from "motion/react";
 import {
   Search, MapPin, ArrowRight, Star, Zap, Leaf, Camera, Bell,
   Palette, RefreshCw, Shield, CheckCircle, ChevronRight,
-  Gem, Gift, Heart, Building2, Feather, Sun, Quote
+  Gem, Gift, Heart, Building2, Feather, Sun
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristCard from "@/components/FloristCard";
 import SponsoredBanner from "@/components/SponsoredBanner";
 import SponsoredFlorists from "@/components/SponsoredFlorists";
+import TestimonialsColumn from "@/components/ui/testimonials-column";
 import { FLORISTS, CATEGORIES, WOW_FEATURES, STATS, TESTIMONIALS } from "@/lib/data";
 import { fadeUp, stagger, scaleIn, popIn, floatAnim } from "@/lib/animations";
 
@@ -360,36 +361,16 @@ export default function Home() {
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white overflow-hidden">
         <InViewSection className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div variants={fadeUp} className="text-center max-w-xl mx-auto mb-14">
             <h2 className="text-heading text-gray-900 mb-3">Loved by customers</h2>
             <p className="text-gray-500">Real experiences from real people across Malaysia.</p>
           </motion.div>
-          <motion.div variants={stagger} className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t) => (
-              <motion.div key={t.name} variants={scaleIn} className="p-6 rounded-xl border border-gray-100 bg-white relative">
-                <Quote size={20} className="text-gray-200 absolute top-5 right-5" />
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <Star key={i} size={13} className="text-amber-400" fill="currentColor" />
-                  ))}
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed mb-5">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"
-                    style={{ background: "var(--primary)" }}
-                  >
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">{t.name}</div>
-                    <div className="text-xs text-gray-400">{t.role}</div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+          <motion.div variants={fadeUp} className="flex justify-center gap-5 max-h-[640px] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)]">
+            <TestimonialsColumn testimonials={TESTIMONIALS.slice(0, 3)} duration={22} className="w-full max-w-xs" />
+            <TestimonialsColumn testimonials={TESTIMONIALS.slice(3, 6)} duration={28} className="hidden md:block w-full max-w-xs" />
+            <TestimonialsColumn testimonials={TESTIMONIALS.slice(6, 9)} duration={24} className="hidden lg:block w-full max-w-xs" />
           </motion.div>
         </InViewSection>
       </section>
