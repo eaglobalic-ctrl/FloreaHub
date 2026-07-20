@@ -30,13 +30,14 @@ function getTransporter() {
 const SENDER_EMAIL = process.env.GMAIL_USER ?? "pretty.dalisya@gmail.com";
 const SENDER_NAME = "FloreaHub";
 
-// Inline SVG logo — works in all email clients without external image loading
+// Text-based flower glyph, not inline <svg> — Outlook/Hotmail's rendering
+// engine (and several other clients) strip inline SVG entirely, which left
+// only the colored badge box with nothing inside it. A Unicode symbol
+// renders everywhere plain text does, which is universal.
 const LOGO_SVG = `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 4px;">
   <tr>
     <td style="background:#b5294e;border-radius:10px;width:40px;height:40px;text-align:center;vertical-align:middle;padding:0;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:9px auto 0;">
-        <path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V13m4.5-1a4.5 4.5 0 1 1-4.5 4.5M16.5 12A4.5 4.5 0 1 0 12 16.5M12 13v4.5"/>
-      </svg>
+      <span style="font-size:22px;line-height:40px;color:#ffffff;">&#10047;</span>
     </td>
     <td style="padding-left:10px;vertical-align:middle;">
       <span style="color:#ffffff;font-size:20px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.3px;">Florea<span style="color:rgba(255,255,255,0.75);">Hub</span></span>
@@ -47,9 +48,7 @@ const LOGO_SVG = `<table cellpadding="0" cellspacing="0" border="0" style="margi
 const LOGO_SVG_GREEN = `<table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 4px;">
   <tr>
     <td style="background:#2d6a4f;border-radius:10px;width:40px;height:40px;text-align:center;vertical-align:middle;padding:0;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:9px auto 0;">
-        <path d="M12 7.5a4.5 4.5 0 1 1 4.5 4.5M12 7.5A4.5 4.5 0 1 0 7.5 12M12 7.5V13m4.5-1a4.5 4.5 0 1 1-4.5 4.5M16.5 12A4.5 4.5 0 1 0 12 16.5M12 13v4.5"/>
-      </svg>
+      <span style="font-size:22px;line-height:40px;color:#ffffff;">&#10047;</span>
     </td>
     <td style="padding-left:10px;vertical-align:middle;">
       <span style="color:#ffffff;font-size:20px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-0.3px;">Florea<span style="color:rgba(255,255,255,0.75);">Hub</span></span>

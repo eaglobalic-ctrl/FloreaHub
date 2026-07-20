@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { ShoppingBag, Clock, CheckCircle, Package, Truck, XCircle, ArrowRight, Flower2, Star } from "lucide-react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { fadeUp, stagger } from "@/lib/animations";
 
 type Order = {
@@ -126,20 +128,24 @@ export default function OrdersPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <ShoppingBag size={48} className="text-gray-200 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Sign in to view orders</h2>
-          <p className="text-gray-500 mb-6">You need to be logged in to see your order history.</p>
-          <Link href="/login" className="btn-primary">Sign In</Link>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <ShoppingBag size={48} className="text-gray-200 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Sign in to view orders</h2>
+            <p className="text-gray-500 mb-6">You need to be logged in to see your order history.</p>
+            <Link href="/login" className="btn-primary">Sign In</Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar />
+      <div className="flex-1 max-w-3xl mx-auto px-4 sm:px-6 py-10 w-full">
         <motion.div variants={stagger} initial="hidden" animate="show">
           <motion.div variants={fadeUp} className="flex items-center gap-3 mb-2">
             <Link href="/" className="flex items-center gap-2">
@@ -239,6 +245,7 @@ export default function OrdersPage() {
           )}
         </motion.div>
       </div>
+      <Footer />
     </div>
   );
 }
