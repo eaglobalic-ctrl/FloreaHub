@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText } from "lucide-react";
+import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText, AlertCircle } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 
 const STEPS = ["Business Info", "Shop Details", "Specialties", "Done"];
@@ -12,6 +12,7 @@ const STATES = ["Kuala Lumpur", "Selangor", "Penang", "Johor", "Perak", "Sabah",
 export default function FloristRegisterPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     shopName: "", ownerName: "", email: "", phone: "",
     state: "", area: "", address: "",
@@ -26,7 +27,29 @@ export default function FloristRegisterPage() {
   const next = async () => {
     if (step < 2) { setStep(s => s + 1); return; }
     setLoading(true);
-    setTimeout(() => { setLoading(false); setStep(3); }, 2000);
+    setError("");
+    try {
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.email,
+          name: form.shopName,
+          phone: form.phone,
+          role: "florist",
+          shopCity: form.area,
+          shopPhone: form.phone,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      if (data.existed) { setError("Email ini sudah didaftarkan. Sila log masuk atau guna email lain."); return; }
+      setStep(3);
+    } catch {
+      setError("Ada masalah menghantar permohonan. Sila cuba lagi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const canNext = [
@@ -172,6 +195,12 @@ export default function FloristRegisterPage() {
                   className="input-premium w-full resize-none"
                 />
               </div>
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mt-4">
+                  <AlertCircle size={14} className="flex-shrink-0" />
+                  {error}
+                </div>
+              )}
             </motion.div>
           )}
 
