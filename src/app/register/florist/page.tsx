@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText, AlertCircle } from "lucide-react";
@@ -13,6 +13,8 @@ export default function FloristRegisterPage() {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [form, setForm] = useState({
     shopName: "", ownerName: "", email: "", phone: "", password: "",
     state: "", area: "", address: "",
@@ -21,32 +23,68 @@ export default function FloristRegisterPage() {
     bio: "",
   });
 
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => r.json())
+      .then(d => {
+        if (d.user) {
+          setSessionEmail(d.user.email);
+          setForm(f => ({ ...f, ownerName: d.user.name, email: d.user.email }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingSession(false));
+  }, []);
+
+  const loggedIn = !!sessionEmail;
+
   const set = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
   const toggleSpecialty = (s: string) => set("specialties", form.specialties.includes(s) ? form.specialties.filter(x => x !== s) : [...form.specialties, s]);
+
+  const submitApplication = async () => {
+    const res = await fetch("/api/florists/apply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        shopName: form.shopName,
+        shopCity: form.area,
+        shopState: form.state,
+        shopPhone: form.phone,
+        bio: form.bio || undefined,
+      }),
+    });
+    const data = await res.json();
+    if (data.error) { setError(data.error); return false; }
+    return true;
+  };
 
   const next = async () => {
     if (step < 2) { setStep(s => s + 1); return; }
     setLoading(true);
     setError("");
     try {
+      if (loggedIn) {
+        if (await submitApplication()) setStep(3);
+        return;
+      }
+
+      // Not signed in — create the account first, then submit the shop application under it
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: form.email,
-          name: form.shopName,
+          name: form.ownerName,
           phone: form.phone,
           password: form.password,
           role: "florist",
-          shopCity: form.area,
-          shopState: form.state,
-          shopPhone: form.phone,
         }),
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
-      if (data.existed) { setError("Email ini sudah didaftarkan. Sila log masuk atau guna email lain."); return; }
-      setStep(3);
+      if (data.existed) { setError("Email ini sudah didaftarkan. Sila log masuk dahulu, kemudian mohon dari akaun sedia ada."); return; }
+
+      if (await submitApplication()) setStep(3);
     } catch {
       setError("Ada masalah menghantar permohonan. Sila cuba lagi.");
     } finally {
@@ -55,7 +93,7 @@ export default function FloristRegisterPage() {
   };
 
   const canNext = [
-    form.shopName && form.ownerName && form.email && form.phone && form.password.length >= 8,
+    loggedIn ? !!form.shopName : (form.shopName && form.ownerName && form.email && form.phone && form.password.length >= 8),
     form.state && form.area && form.address,
     form.specialties.length > 0,
   ][step];
@@ -104,28 +142,40 @@ export default function FloristRegisterPage() {
                 <h2 className="text-lg font-semibold">Business Information</h2>
               </div>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {loggedIn && (
+                  <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5 mb-2">
+                    <Check size={14} className="flex-shrink-0" />
+                    Memohon sebagai <strong>{sessionEmail}</strong> — akaun sedia ada anda akan turut dapat akses seller.
+                  </div>
+                )}
+                <div className={loggedIn ? "" : "grid grid-cols-1 sm:grid-cols-2 gap-4"}>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Shop Name</label>
                     <input value={form.shopName} onChange={e => set("shopName", e.target.value)} placeholder="Bloom & Co." className="input-premium w-full" />
                   </div>
+                  {!loggedIn && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Owner Name</label>
+                      <input value={form.ownerName} onChange={e => set("ownerName", e.target.value)} placeholder="Nurul Aisyah" className="input-premium w-full" />
+                    </div>
+                  )}
+                </div>
+                {!loggedIn && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Owner Name</label>
-                    <input value={form.ownerName} onChange={e => set("ownerName", e.target.value)} placeholder="Nurul Aisyah" className="input-premium w-full" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+                    <input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="shop@example.com" className="input-premium w-full" />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
-                  <input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="shop@example.com" className="input-premium w-full" />
-                </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
                   <input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="01X-XXXXXXX" className="input-premium w-full" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-                  <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full" />
-                </div>
+                {!loggedIn && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                    <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full" />
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

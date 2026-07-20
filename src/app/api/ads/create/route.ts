@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabaseAdmin = getSupabaseAdmin();
-    const { data: florist } = await supabaseAdmin.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).maybeSingle();
+    const { data: florist } = await supabaseAdmin.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).eq("status", "approved").maybeSingle();
     if (!florist) return NextResponse.json({ error: "Florist not found" }, { status: 403 });
 
     const baseUrl = process.env.TOYYIBPAY_SANDBOX === "false"

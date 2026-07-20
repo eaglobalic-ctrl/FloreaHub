@@ -26,14 +26,8 @@ export async function POST(req: NextRequest) {
       if (!valid) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
-    const isSeller = user.role === "florist" || user.role === "seller";
-    if (isSeller && user.status === "pending") {
-      return NextResponse.json({ error: "Your application is under review. We will notify you via email once approved." }, { status: 403 });
-    }
-    if (isSeller && user.status === "rejected") {
-      return NextResponse.json({ error: "Your florist application was not approved. Please contact us for more information." }, { status: 403 });
-    }
-
+    // Login is never gated by seller-application status — that lives on
+    // `florists.status` and doesn't affect this account's ability to sign in.
     const { password_hash: _passwordHash, ...safeUser } = user;
     void _passwordHash;
 

@@ -8,14 +8,21 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = getSupabaseAdmin();
-    const { data, error } = await db
+    const { data: user, error } = await db
       .from("users")
       .select("id, email, name, phone, role, status")
       .eq("id", session.userId)
       .single();
 
-    if (error || !data) return NextResponse.json({ user: null });
-    return NextResponse.json({ user: data });
+    if (error || !user) return NextResponse.json({ user: null });
+
+    const { data: florist } = await db
+      .from("florists")
+      .select("id, name, status, plan")
+      .eq("user_id", session.userId)
+      .maybeSingle();
+
+    return NextResponse.json({ user, florist: florist ?? null });
   } catch {
     return NextResponse.json({ user: null });
   }

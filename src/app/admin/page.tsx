@@ -6,13 +6,13 @@ import Link from "next/link";
 import { fadeUp, stagger } from "@/lib/animations";
 import { isAdminEmail } from "@/lib/admin";
 
-type FloristUser = {
+type FloristApplication = {
   id: string; name: string; email: string; phone?: string;
-  role: string; status: string; shop_city?: string; created_at: string;
+  status: string; city?: string; created_at: string;
 };
 
 export default function AdminPage() {
-  const [users, setUsers] = useState<FloristUser[]>([]);
+  const [florists, setFlorists] = useState<FloristApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
@@ -29,33 +29,33 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isAdmin) return;
-    fetch("/api/admin/users")
+    fetch("/api/admin/florists")
       .then(r => r.json())
-      .then(d => setUsers(d.users ?? []))
+      .then(d => setFlorists(d.florists ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [isAdmin]);
 
-  const handleAction = async (userId: string, status: "approved" | "rejected") => {
-    setActionLoading(userId + status);
+  const handleAction = async (floristId: string, status: "approved" | "rejected") => {
+    setActionLoading(floristId + status);
     try {
-      const res = await fetch("/api/users", {
+      const res = await fetch("/api/florists", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, status }),
+        body: JSON.stringify({ floristId, status }),
       });
       if (res.ok) {
-        setUsers(prev => prev.map(u => u.id === userId ? { ...u, status } : u));
+        setFlorists(prev => prev.map(f => f.id === floristId ? { ...f, status } : f));
       }
     } catch { /* ignore */ }
     setActionLoading(null);
   };
 
-  const filtered = users.filter(u => u.role === "florist" || u.role === "seller").filter(u => filter === "all" || u.status === filter);
+  const filtered = florists.filter(f => filter === "all" || f.status === filter);
   const counts = {
-    pending: users.filter(u => u.status === "pending").length,
-    approved: users.filter(u => u.status === "approved").length,
-    rejected: users.filter(u => u.status === "rejected").length,
+    pending: florists.filter(f => f.status === "pending").length,
+    approved: florists.filter(f => f.status === "approved").length,
+    rejected: florists.filter(f => f.status === "rejected").length,
   };
 
   if (checkingAdmin) {
@@ -126,48 +126,48 @@ export default function AdminPage() {
             </motion.div>
           ) : (
             <motion.div variants={stagger} className="space-y-4">
-              {filtered.map(user => (
-                <motion.div key={user.id} variants={fadeUp} className="card-premium p-5">
+              {filtered.map(florist => (
+                <motion.div key={florist.id} variants={fadeUp} className="card-premium p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{ background: "var(--accent)" }}>
-                        {user.name[0].toUpperCase()}
+                        {florist.name[0].toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <p className="font-semibold text-gray-900 truncate">{user.name}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${user.status === "pending" ? "bg-amber-100 text-amber-700" : user.status === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
-                            {user.status}
+                          <p className="font-semibold text-gray-900 truncate">{florist.name}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${florist.status === "pending" ? "bg-amber-100 text-amber-700" : florist.status === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                            {florist.status}
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                          <span className="flex items-center gap-1"><Mail size={10} />{user.email}</span>
-                          {user.phone && <span className="flex items-center gap-1"><Phone size={10} />{user.phone}</span>}
-                          {user.shop_city && <span className="flex items-center gap-1"><MapPin size={10} />{user.shop_city}</span>}
+                          <span className="flex items-center gap-1"><Mail size={10} />{florist.email}</span>
+                          {florist.phone && <span className="flex items-center gap-1"><Phone size={10} />{florist.phone}</span>}
+                          {florist.city && <span className="flex items-center gap-1"><MapPin size={10} />{florist.city}</span>}
                           <span className="flex items-center gap-1"><Store size={10} />Florist</span>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">Daftar: {new Date(user.created_at).toLocaleDateString("ms-MY", { day: "numeric", month: "short", year: "numeric" })}</p>
+                        <p className="text-xs text-gray-400 mt-1">Daftar: {new Date(florist.created_at).toLocaleDateString("ms-MY", { day: "numeric", month: "short", year: "numeric" })}</p>
                       </div>
                     </div>
 
-                    {user.status === "pending" && (
+                    {florist.status === "pending" && (
                       <div className="flex gap-2 flex-shrink-0">
                         <button
-                          onClick={() => handleAction(user.id, "approved")}
+                          onClick={() => handleAction(florist.id, "approved")}
                           disabled={!!actionLoading}
                           className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
                         >
-                          {actionLoading === user.id + "approved"
+                          {actionLoading === florist.id + "approved"
                             ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             : <Check size={14} />}
                           Approve
                         </button>
                         <button
-                          onClick={() => handleAction(user.id, "rejected")}
+                          onClick={() => handleAction(florist.id, "rejected")}
                           disabled={!!actionLoading}
                           className="flex items-center gap-1.5 px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
                         >
-                          {actionLoading === user.id + "rejected"
+                          {actionLoading === florist.id + "rejected"
                             ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                             : <X size={14} />}
                           Reject
@@ -175,13 +175,13 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {user.status !== "pending" && (
+                    {florist.status !== "pending" && (
                       <button
-                        onClick={() => handleAction(user.id, user.status === "approved" ? "rejected" : "approved")}
+                        onClick={() => handleAction(florist.id, florist.status === "approved" ? "rejected" : "approved")}
                         disabled={!!actionLoading}
                         className="text-xs text-gray-400 hover:text-gray-600 underline flex-shrink-0 disabled:opacity-50"
                       >
-                        {user.status === "approved" ? "Revoke" : "Re-approve"}
+                        {florist.status === "approved" ? "Revoke" : "Re-approve"}
                       </button>
                     )}
                   </div>

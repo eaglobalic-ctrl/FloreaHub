@@ -12,15 +12,14 @@ export async function GET(req: NextRequest) {
   try {
     const db = getSupabaseAdmin();
     const { data, error } = await db
-      .from("users")
-      .select("id, name, email, phone, role, status, shop_city, created_at")
-      .in("role", ["florist", "seller"])
+      .from("florists")
+      .select("id, name, email, phone, city, status, created_at")
       .order("created_at", { ascending: false });
 
     if (error) throw error;
-    return NextResponse.json({ users: data ?? [] });
+    return NextResponse.json({ florists: data ?? [] });
   } catch (err) {
-    console.error("Admin users fetch error:", err);
-    return NextResponse.json({ users: [] });
+    console.error("Admin florists fetch error:", err);
+    return NextResponse.json({ florists: [] });
   }
 }

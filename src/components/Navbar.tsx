@@ -7,6 +7,7 @@ import { Menu, X, Flower2, ShoppingCart, Search, User, LayoutDashboard, Shopping
 import { getCart } from "@/lib/cart";
 
 type StoredUser = { id: string; email: string; name: string; role: string };
+type StoredFlorist = { id: string; name: string; status: string };
 
 export default function Navbar() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [user, setUser] = useState<StoredUser | null>(null);
+  const [florist, setFlorist] = useState<StoredFlorist | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -38,8 +40,8 @@ export default function Navbar() {
     const syncUser = () => {
       fetch("/api/auth/me")
         .then(r => r.json())
-        .then(d => setUser(d.user ?? null))
-        .catch(() => setUser(null));
+        .then(d => { setUser(d.user ?? null); setFlorist(d.florist ?? null); })
+        .catch(() => { setUser(null); setFlorist(null); });
     };
     syncUser();
     window.addEventListener("user-updated", syncUser);
@@ -72,12 +74,13 @@ export default function Navbar() {
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
+    setFlorist(null);
     setUserMenuOpen(false);
     window.dispatchEvent(new Event("user-updated"));
     router.push("/");
   };
 
-  const isSeller = user?.role === "florist" || user?.role === "seller";
+  const isSeller = florist?.status === "approved";
   const initials = user?.name ? user.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?";
 
   return (

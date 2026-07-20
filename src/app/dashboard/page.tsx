@@ -38,7 +38,7 @@ type Product = {
   review_count: number; badge?: string; is_active: boolean;
 };
 
-type Florist = { id: string; name: string; plan: string };
+type Florist = { id: string; name: string; plan: string; status: string };
 
 type Review = {
   id: string; rating: number; comment?: string; created_at: string;
@@ -144,18 +144,53 @@ export default function DashboardPage() {
     );
   }
 
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center card-premium p-12 max-w-sm">
+          <Store size={40} className="text-gray-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Sign In Required</h2>
+          <p className="text-gray-500 text-sm mb-6">Sila log masuk untuk akses dashboard.</p>
+          <Link href="/login" className="btn-primary">Sign In</Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!florist) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center card-premium p-12 max-w-sm">
           <Store size={40} className="text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Shop</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            {userId
-              ? "Kedai anda tidak dijumpai atau belum diluluskan. Jika permohonan masih dalam semakan, sila tunggu email kelulusan."
-              : "Sila log masuk dengan akaun florist untuk akses dashboard."}
-          </p>
-          <Link href={userId ? "/" : "/login"} className="btn-primary">{userId ? "Kembali ke Laman Utama" : "Sign In"}</Link>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Kedai</h2>
+          <p className="text-gray-500 text-sm mb-6">Akaun anda belum mempunyai permohonan kedai florist.</p>
+          <Link href="/register/florist" className="btn-primary">Mohon Buka Kedai</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (florist.status === "pending") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center card-premium p-12 max-w-sm">
+          <Clock size={40} className="text-amber-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Permohonan Dalam Semakan</h2>
+          <p className="text-gray-500 text-sm mb-6">Kedai <strong>{florist.name}</strong> sedang disemak oleh team kami. Kami akan email anda bila keputusan dibuat.</p>
+          <Link href="/" className="btn-secondary">Kembali ke Laman Utama</Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (florist.status === "rejected") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center card-premium p-12 max-w-sm">
+          <X size={40} className="text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Permohonan Tidak Diluluskan</h2>
+          <p className="text-gray-500 text-sm mb-6">Permohonan kedai <strong>{florist.name}</strong> tidak diluluskan pada masa ini.</p>
+          <Link href="/register/florist" className="btn-primary">Mohon Semula</Link>
         </div>
       </div>
     );
