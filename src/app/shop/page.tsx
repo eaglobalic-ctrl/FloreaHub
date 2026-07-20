@@ -97,7 +97,7 @@ function ShopContent() {
     else if (sort === "price_desc") list.sort((a, b) => b.price - a.price);
     else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [activeCategory, sort, maxPrice, sameDay, searchQuery]);
+  }, [allProducts, activeCategory, sort, maxPrice, sameDay, searchQuery]);
 
   return (
     <div className="flex flex-col min-h-full bg-gray-50">

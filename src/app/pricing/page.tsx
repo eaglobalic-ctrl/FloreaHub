@@ -191,7 +191,8 @@ export default function PricingPage() {
               <h2 className="text-center text-xl font-bold text-gray-900 mb-2">Compare every feature</h2>
               <p className="text-center text-sm text-gray-500 mb-10">Everything included in each plan, side by side.</p>
 
-              <div className="card-premium overflow-hidden overflow-x-auto">
+              <div className="card-premium overflow-hidden">
+              <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-gray-100">
@@ -228,6 +229,7 @@ export default function PricingPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
               </div>
             </motion.div>
 
