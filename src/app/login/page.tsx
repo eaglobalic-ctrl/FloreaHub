@@ -18,10 +18,14 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/users?email=${encodeURIComponent(form.email)}`);
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: form.email, password: form.password }),
+      });
       const data = await res.json();
       if (!data.user) {
-        setError("No account found with this email. Please register first.");
+        setError(data.error === "Invalid email or password" ? data.error : "No account found with this email. Please register first.");
         return;
       }
       const isSeller = data.user.role === "florist" || data.user.role === "seller";

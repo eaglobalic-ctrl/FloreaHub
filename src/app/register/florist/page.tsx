@@ -14,7 +14,7 @@ export default function FloristRegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    shopName: "", ownerName: "", email: "", phone: "",
+    shopName: "", ownerName: "", email: "", phone: "", password: "",
     state: "", area: "", address: "",
     sameDay: false, deliveryRadius: "10",
     specialties: [] as string[],
@@ -36,6 +36,7 @@ export default function FloristRegisterPage() {
           email: form.email,
           name: form.shopName,
           phone: form.phone,
+          password: form.password,
           role: "florist",
           shopCity: form.area,
           shopState: form.state,
@@ -54,7 +55,7 @@ export default function FloristRegisterPage() {
   };
 
   const canNext = [
-    form.shopName && form.ownerName && form.email && form.phone,
+    form.shopName && form.ownerName && form.email && form.phone && form.password.length >= 8,
     form.state && form.area && form.address,
     form.specialties.length > 0,
   ][step];
@@ -120,6 +121,10 @@ export default function FloristRegisterPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
                   <input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="01X-XXXXXXX" className="input-premium w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                  <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full" />
                 </div>
               </div>
             </motion.div>

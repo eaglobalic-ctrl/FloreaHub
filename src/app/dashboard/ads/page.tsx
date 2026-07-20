@@ -21,10 +21,10 @@ const STATUS_COLORS: Record<string, string> = {
   paused: "bg-orange-100 text-orange-700",
 };
 
-function AdForm({ plan, onClose, onSuccess }: { plan: typeof AD_PLANS[0]; onClose: () => void; onSuccess: () => void }) {
+function AdForm({ plan, floristId, floristName: defaultFloristName, onClose, onSuccess }: { plan: typeof AD_PLANS[0]; floristId: string; floristName: string; onClose: () => void; onSuccess: () => void }) {
   const [headline, setHeadline] = useState("");
   const [tagline, setTagline] = useState("");
-  const [floristName, setFloristName] = useState("");
+  const [floristName, setFloristName] = useState(defaultFloristName);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,7 +38,7 @@ function AdForm({ plan, onClose, onSuccess }: { plan: typeof AD_PLANS[0]; onClos
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           adType: plan.id,
-          floristId: "me",
+          floristId,
           floristName,
           headline,
           tagline,
@@ -102,13 +102,28 @@ function AdsContent() {
   const [selectedPlan, setSelectedPlan] = useState<typeof AD_PLANS[0] | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [florist, setFlorist] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
+    let userId: string | null = null;
+    try {
+      const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
+      userId = u?.id ?? null;
+    } catch { /* ignore */ }
+    if (!userId) return;
+    fetch(`/api/florists?userId=${userId}`)
+      .then(r => r.json())
+      .then(d => setFlorist(d.florists?.[0] ?? null))
+      .catch(() => setFlorist(null));
+  }, []);
+
+  useEffect(() => {
+    if (!florist?.id) { setLoading(false); return; }
     const load = async () => {
       setLoading(true);
       try {
-        // Fetch from Supabase via API route (all ads for dashboard view)
-        const res = await fetch("/api/ads?all=1");
+        // Fetch this florist's own campaigns only
+        const res = await fetch(`/api/ads?all=1&floristId=${florist.id}`);
         const data = await res.json();
         if (data.ads?.length) {
           // Map snake_case DB fields to camelCase AdCampaign type
@@ -141,7 +156,7 @@ function AdsContent() {
     };
     load();
     if (success) load(); // reload after payment success
-  }, [success]);
+  }, [success, florist]);
 
   const totalClicks = campaigns.reduce((s, a) => s + a.clicks, 0);
   const totalImpr = campaigns.reduce((s, a) => s + a.impressions, 0);
@@ -226,7 +241,7 @@ function AdsContent() {
                       </ul>
                     </div>
                     <div className="px-5 pb-5">
-                      <button onClick={() => setSelectedPlan(plan)} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2" style={{ background: plan.color }}>
+                      <button onClick={() => setSelectedPlan(plan)} disabled={!florist} className="w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: plan.color }}>
                         <Plus size={14} /> Launch Campaign
                       </button>
                     </div>
@@ -313,8 +328,8 @@ function AdsContent() {
       </main>
       <Footer />
 
-      {selectedPlan && (
-        <AdForm plan={selectedPlan} onClose={() => setSelectedPlan(null)} onSuccess={() => setSelectedPlan(null)} />
+      {selectedPlan && florist && (
+        <AdForm plan={selectedPlan} floristId={florist.id} floristName={florist.name} onClose={() => setSelectedPlan(null)} onSuccess={() => setSelectedPlan(null)} />
       )}
     </div>
   );

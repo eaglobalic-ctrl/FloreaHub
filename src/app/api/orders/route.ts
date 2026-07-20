@@ -62,7 +62,9 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get("id");
+  const billCode = searchParams.get("billCode");
   const floristId = searchParams.get("floristId");
+  const buyerEmail = searchParams.get("buyerEmail");
 
   try {
     const db = getSupabaseAdmin();
@@ -71,8 +73,17 @@ export async function GET(req: NextRequest) {
       if (error) throw error;
       return NextResponse.json({ order });
     }
+    if (billCode) {
+      const { data: order, error } = await db.from("orders").select("*, order_items(*)").eq("bill_code", billCode).single();
+      if (error) return NextResponse.json({ order: null });
+      return NextResponse.json({ order });
+    }
+    // A caller must scope by florist or buyer — an unscoped request would leak every order in the marketplace
+    if (!floristId && !buyerEmail) return NextResponse.json({ orders: [] });
+
     let query = db.from("orders").select("*, order_items(*)").order("created_at", { ascending: false }).limit(50);
     if (floristId) query = query.eq("florist_id", floristId);
+    if (buyerEmail) query = query.eq("buyer_email", buyerEmail);
     const { data, error } = await query;
     if (error) throw error;
     return NextResponse.json({ orders: data ?? [] });

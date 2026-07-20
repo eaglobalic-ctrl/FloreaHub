@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { ShoppingBag, Clock, CheckCircle, Package, Truck, XCircle, ArrowRight, Flower2 } from "lucide-react";
+import { ShoppingBag, Clock, CheckCircle, Package, Truck, XCircle, ArrowRight, Flower2, Star } from "lucide-react";
 import Link from "next/link";
 import { fadeUp, stagger } from "@/lib/animations";
 
@@ -12,8 +12,46 @@ type Order = {
   payment_status: string;
   created_at: string;
   delivery_address?: string;
+  florist_id?: string;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number; product_image?: string }[];
 };
+
+function ReviewForm({ onSubmit, onCancel }: { onSubmit: (rating: number, comment: string) => Promise<void>; onCancel: () => void }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    await onSubmit(rating, comment);
+    setSubmitting(false);
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map(n => (
+          <button key={n} type="button" onClick={() => setRating(n)}>
+            <Star size={20} className={n <= rating ? "text-amber-400 fill-amber-400" : "text-gray-200"} />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment}
+        onChange={e => setComment(e.target.value)}
+        rows={2}
+        placeholder="Macam mana pengalaman awak dengan florist ni?"
+        className="input-premium w-full resize-none text-sm"
+      />
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={submitting} className="btn-primary text-xs py-2 px-4 disabled:opacity-50">
+          {submitting ? "Menghantar..." : "Hantar Review"}
+        </button>
+        <button onClick={onCancel} className="text-xs text-gray-500 hover:text-gray-700 px-2">Batal</button>
+      </div>
+    </div>
+  );
+}
 
 const STATUS_ICON: Record<string, React.ReactNode> = {
   pending:    <Clock size={14} className="text-amber-500" />,
@@ -53,20 +91,40 @@ function timeAgo(dateStr: string) {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
+  const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    let email: string | null = null;
     try {
       const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      if (u?.name) setUser(u);
+      if (u?.name) { setUser(u); email = u.email; }
     } catch { /* ignore */ }
 
-    fetch("/api/orders")
+    if (!email) { setLoading(false); return; }
+
+    fetch(`/api/orders?buyerEmail=${encodeURIComponent(email)}`)
       .then(r => r.json())
       .then(d => setOrders(d.orders ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const submitReview = async (order: Order, rating: number, comment: string) => {
+    if (!order.florist_id || !user) return;
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ floristId: order.florist_id, orderId: order.id, userId: user.id, rating, comment }),
+      });
+      if (res.ok) {
+        setReviewedOrderIds(prev => new Set(prev).add(order.id));
+        setReviewingOrderId(null);
+      }
+    } catch { /* ignore */ }
+  };
 
   if (!user) {
     return (
@@ -156,6 +214,27 @@ export default function OrdersPage() {
                       <p className="font-bold text-gray-900" style={{ color: "var(--primary)" }}>RM{Number(order.total).toFixed(2)}</p>
                     </div>
                   </div>
+
+                  {order.status === "delivered" && order.florist_id && (
+                    reviewedOrderIds.has(order.id) ? (
+                      <p className="mt-3 pt-3 border-t border-gray-100 text-xs text-emerald-600 flex items-center gap-1.5">
+                        <Star size={13} className="fill-emerald-600" /> Terima kasih atas review anda!
+                      </p>
+                    ) : reviewingOrderId === order.id ? (
+                      <ReviewForm
+                        onSubmit={(rating, comment) => submitReview(order, rating, comment)}
+                        onCancel={() => setReviewingOrderId(null)}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setReviewingOrderId(order.id)}
+                        className="mt-3 pt-3 border-t border-gray-100 w-full text-left text-xs font-medium flex items-center gap-1.5 hover:opacity-80"
+                        style={{ color: "var(--primary)" }}
+                      >
+                        <Star size={13} /> Leave a Review
+                      </button>
+                    )
+                  )}
                 </motion.div>
               ))}
             </motion.div>

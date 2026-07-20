@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendWelcomeEmail, sendAdminFloristNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, phone, role, shopCity, shopState, shopPhone } = await req.json();
+    const { email, name, phone, role, shopCity, shopState, shopPhone, password } = await req.json();
     if (!email || !name) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!password || password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
 
     const db = getSupabaseAdmin();
 
@@ -14,6 +16,7 @@ export async function POST(req: NextRequest) {
 
     const isSeller = role === "florist" || role === "seller";
     const status = isSeller ? "pending" : "active";
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const { data: user, error } = await db.from("users").insert({
       email, name,
@@ -22,6 +25,7 @@ export async function POST(req: NextRequest) {
       status,
       shop_city: shopCity ?? null,
       shop_state: shopState ?? null,
+      password_hash: passwordHash,
     }).select("id, email, name, role, status").single();
 
     if (error) throw error;

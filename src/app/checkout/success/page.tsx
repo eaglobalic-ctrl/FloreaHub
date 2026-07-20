@@ -42,12 +42,10 @@ function SuccessContent() {
         }
       }
       if (billcode) {
-        // Try finding by bill_code via orders list
-        const res = await fetch(`/api/orders`).catch(() => null);
+        const res = await fetch(`/api/orders?billCode=${billcode}`).catch(() => null);
         if (res?.ok) {
           const d = await res.json();
-          const found = (d.orders || []).find((o: Order) => o.bill_code === billcode);
-          if (found) { setOrder(found); setLoading(false); return; }
+          if (d.order) { setOrder(d.order); setLoading(false); return; }
         }
       }
       setLoading(false);

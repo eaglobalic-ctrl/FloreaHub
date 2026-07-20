@@ -40,6 +40,11 @@ type Product = {
 
 type Florist = { id: string; name: string; plan: string };
 
+type Review = {
+  id: string; rating: number; comment?: string; created_at: string;
+  users?: { name: string; avatar_url?: string } | null;
+};
+
 export default function DashboardPage() {
   const [tab, setTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,6 +56,8 @@ export default function DashboardPage() {
   const [florist, setFlorist] = useState<Florist | null>(null);
   const [floristLoading, setFloristLoading] = useState(true);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     try {
@@ -93,6 +100,15 @@ export default function DashboardPage() {
   useEffect(() => {
     reloadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [florist]);
+
+  useEffect(() => {
+    if (!florist?.id) { setLoadingReviews(false); return; }
+    fetch(`/api/reviews?floristId=${florist.id}`)
+      .then((r) => r.json())
+      .then((d) => setReviews(d.reviews ?? []))
+      .catch(() => setReviews([]))
+      .finally(() => setLoadingReviews(false));
   }, [florist]);
 
   const stats = useMemo(() => {
@@ -378,11 +394,39 @@ export default function DashboardPage() {
             </motion.div>
           )}
 
-          {(tab === "reviews" || tab === "settings") && (
+          {tab === "reviews" && (
+            <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
+              <motion.div variants={fadeUp}>
+                <p className="text-sm text-gray-500">{loadingReviews ? "..." : `${reviews.length} reviews`}</p>
+              </motion.div>
+              {loadingReviews ? (
+                <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
+              ) : reviews.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-12">No reviews yet.</p>
+              ) : (
+                reviews.map(r => (
+                  <motion.div key={r.id} variants={fadeUp} className="card-premium p-5">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="font-semibold text-gray-900 text-sm">{r.users?.name ?? "Anonymous"}</p>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <Star key={n} size={13} className={n <= r.rating ? "text-amber-400 fill-amber-400" : "text-gray-200"} />
+                        ))}
+                      </div>
+                    </div>
+                    {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
+                    <p className="text-xs text-gray-400 mt-2">{new Date(r.created_at).toLocaleDateString("ms-MY", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  </motion.div>
+                ))
+              )}
+            </motion.div>
+          )}
+
+          {tab === "settings" && (
             <div className="flex items-center justify-center h-64">
               <div className="text-center text-gray-400">
-                <p className="text-lg font-medium mb-2 text-gray-600 capitalize">{tab}</p>
-                <p className="text-sm">Coming soon — full {tab} management</p>
+                <p className="text-lg font-medium mb-2 text-gray-600 capitalize">Settings</p>
+                <p className="text-sm">Coming soon — full settings management</p>
               </div>
             </div>
           )}
