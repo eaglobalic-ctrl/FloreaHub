@@ -1,16 +1,28 @@
 import nodemailer from "nodemailer";
+import type SMTPTransport from "nodemailer/lib/smtp-transport";
 
 let transporter: nodemailer.Transporter | null = null;
 
 function getTransporter() {
   if (!transporter) {
-    transporter = nodemailer.createTransport({
-      service: "gmail",
+    const options: SMTPTransport.Options & { family?: number } = {
+      // Explicit host/port instead of the "gmail" shorthand, and family: 4
+      // to force IPv4 — on Vercel, Node resolves smtp.gmail.com to an IPv6
+      // address by default and the outbound IPv6 route hangs until it
+      // times out (ETIMEDOUT at the CONN stage, before TLS/auth even runs).
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      family: 4,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 10_000,
       auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
-    });
+    };
+    transporter = nodemailer.createTransport(options);
   }
   return transporter;
 }
@@ -47,15 +59,20 @@ const LOGO_SVG_GREEN = `<table cellpadding="0" cellspacing="0" border="0" style=
 
 async function send(to: string, subject: string, html: string) {
   if (!process.env.GMAIL_APP_PASSWORD) return;
+  const mail = { from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`, to, subject, html };
+
   try {
-    await getTransporter().sendMail({
-      from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`,
-      to,
-      subject,
-      html,
-    });
+    await getTransporter().sendMail(mail);
   } catch (err) {
-    console.error("Email send error (non-blocking):", err);
+    console.error("Email send error, retrying once:", err);
+    try {
+      // Drop the cached transporter — if the connection was hung/stale, a
+      // fresh one is more likely to succeed than reusing the same socket
+      transporter = null;
+      await getTransporter().sendMail(mail);
+    } catch (retryErr) {
+      console.error("Email send error (retry also failed, non-blocking):", retryErr);
+    }
   }
 }
 
