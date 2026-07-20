@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { motion } from "motion/react";
-import { Check, Zap, Star, Building2, ArrowRight, Flower2 } from "lucide-react";
+import { Check, Zap, Star, Building2, ArrowRight, Flower2, Minus } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -68,6 +68,40 @@ const PLANS = [
     href: "/checkout?plan=premium",
   },
 ];
+
+const COMPARISON = [
+  {
+    group: "Listings & Visibility",
+    rows: [
+      { label: "Product listings", values: ["Up to 5", "Up to 50", "Unlimited"] },
+      { label: "Search placement", values: [false, "Priority", "Featured homepage"] },
+      { label: "Shop banner", values: [false, false, true] },
+      { label: "Verified badge", values: [false, "Real-Photo Promise", "Verified Premium"] },
+      { label: "Same-day delivery badge", values: [false, true, true] },
+    ],
+  },
+  {
+    group: "Growth Tools",
+    rows: [
+      { label: "Analytics dashboard", values: [false, "Standard", "Advanced + reports"] },
+      { label: "Promotional campaigns", values: [false, false, true] },
+      { label: "Subscription delivery support", values: [false, false, true] },
+    ],
+  },
+  {
+    group: "Support",
+    rows: [
+      { label: "Support channel", values: ["Standard", "Email", "WhatsApp priority"] },
+      { label: "Dedicated account manager", values: [false, false, true] },
+    ],
+  },
+];
+
+function ComparisonCell({ value, color }: { value: string | boolean; color: string }) {
+  if (value === true) return <Check size={16} style={{ color }} strokeWidth={2.5} className="mx-auto" />;
+  if (value === false) return <Minus size={14} className="text-gray-300 mx-auto" />;
+  return <span className="text-sm text-gray-700 font-medium">{value}</span>;
+}
 
 export default function PricingPage() {
   const [yearly, setYearly] = useState(false);
@@ -151,6 +185,51 @@ export default function PricingPage() {
                 );
               })}
             </div>
+
+            {/* Full comparison */}
+            <motion.div variants={fadeUp} className="mt-20">
+              <h2 className="text-center text-xl font-bold text-gray-900 mb-2">Compare every feature</h2>
+              <p className="text-center text-sm text-gray-500 mb-10">Everything included in each plan, side by side.</p>
+
+              <div className="card-premium overflow-hidden overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left font-medium text-gray-500 px-6 py-4 sticky left-0 bg-white">Feature</th>
+                      {PLANS.map(plan => (
+                        <th key={plan.id} className="px-6 py-4 text-center">
+                          <span className="flex items-center justify-center gap-1.5 font-bold text-gray-900">
+                            <plan.icon size={14} style={{ color: plan.color }} />
+                            {plan.name}
+                          </span>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARISON.map((group) => (
+                      <Fragment key={group.group}>
+                        <tr className="bg-gray-50/70">
+                          <td colSpan={PLANS.length + 1} className="px-6 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide sticky left-0">
+                            {group.group}
+                          </td>
+                        </tr>
+                        {group.rows.map((row) => (
+                          <tr key={row.label} className="border-b border-gray-50 last:border-0">
+                            <td className="px-6 py-3.5 text-gray-600 sticky left-0 bg-white">{row.label}</td>
+                            {row.values.map((value, i) => (
+                              <td key={PLANS[i].id} className="px-6 py-3.5 text-center">
+                                <ComparisonCell value={value} color={PLANS[i].color} />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
 
             {/* Enterprise */}
             <motion.div variants={fadeUp} className="mt-10 card-premium p-8 flex flex-col sm:flex-row items-center justify-between gap-6">
