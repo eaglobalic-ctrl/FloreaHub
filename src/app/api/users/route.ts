@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    sendWelcomeEmail({ name: user!.name, email: user!.email, role: user!.role, status: "active" });
+    await sendWelcomeEmail({ name: user!.name, email: user!.email, role: user!.role, status: "active" });
 
     const token = createSessionToken({ userId: user!.id, email: user!.email, role: user!.role });
     const res = NextResponse.json({ user, existed: false });

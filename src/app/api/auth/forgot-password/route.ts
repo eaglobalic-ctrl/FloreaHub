@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
 
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://floriahub.vercel.app";
       const resetUrl = `${baseUrl}/reset-password?token=${token}`;
-      sendPasswordResetEmail({ name: user.name, email: user.email, resetUrl });
+      // Awaited deliberately — Vercel can freeze the function the instant the
+      // response is sent, so a fire-and-forget send() here is a coin flip
+      await sendPasswordResetEmail({ name: user.name, email: user.email, resetUrl });
     }
 
     return NextResponse.json({ ok: true });

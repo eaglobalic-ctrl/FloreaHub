@@ -76,9 +76,9 @@ export async function PATCH(req: NextRequest) {
     if (error) throw error;
 
     if (status === "approved") {
-      sendFloristApprovedEmail({ name: florist.name, email: florist.email });
+      await sendFloristApprovedEmail({ name: florist.name, email: florist.email });
     } else {
-      sendFloristRejectedEmail({ name: florist.name, email: florist.email });
+      await sendFloristRejectedEmail({ name: florist.name, email: florist.email });
     }
 
     return NextResponse.json({ florist });

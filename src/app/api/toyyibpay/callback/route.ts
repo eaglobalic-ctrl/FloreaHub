@@ -22,12 +22,12 @@ export async function POST(req: NextRequest) {
 
       console.log("Order paid:", orderId);
 
-      // Fetch order and send confirmation email (non-blocking)
-      (async () => {
-        try {
-          const { data: order } = await db.from("orders").select("*, order_items(*)").eq("id", orderId).single();
-          if (!order?.buyer_email) return;
-          sendOrderConfirmationEmail({
+      // Fetch order and send confirmation email — awaited deliberately, since
+      // Vercel can freeze the function the instant a response is returned
+      try {
+        const { data: order } = await db.from("orders").select("*, order_items(*)").eq("id", orderId).single();
+        if (order?.buyer_email) {
+          await sendOrderConfirmationEmail({
             email: order.buyer_email,
             name: order.buyer_name ?? order.recipient_name ?? "Customer",
             orderId: order.id,
@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
             deliveryAddress: order.delivery_address ?? undefined,
             recipientName: order.recipient_name ?? undefined,
           });
-        } catch (err) {
-          console.error("Email fetch error:", err);
         }
-      })();
+      } catch (err) {
+        console.error("Email fetch error:", err);
+      }
 
     } else if (statusId === "3" && orderId) {
       await db.from("orders").update({ payment_status: "failed" }).eq("id", orderId);

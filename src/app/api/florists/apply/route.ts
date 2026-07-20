@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    sendAdminFloristNotification({ name: shopName, email: user.email, shopCity, shopPhone: shopPhone || user.phone });
+    await sendAdminFloristNotification({ name: shopName, email: user.email, shopCity, shopPhone: shopPhone || user.phone });
 
     return NextResponse.json({ florist });
   } catch (err) {
