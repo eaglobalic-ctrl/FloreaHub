@@ -290,6 +290,35 @@ export async function sendFloristApprovedEmail({ name, email }: { name: string; 
   await send(email, "Akaun florist kamu telah diluluskan — FloreaHub", html);
 }
 
+// ── Password reset ─────────────────────────────────────────────────────────────
+
+export async function sendPasswordResetEmail({ name, email, resetUrl }: { name: string; email: string; resetUrl: string }) {
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#b5294e,#7c1d35);padding:36px 32px;text-align:center;">
+      ${LOGO_SVG}
+    </div>
+    <div style="padding:36px 32px;">
+      <h2 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#111827;">Reset Password</h2>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, kami terima permintaan untuk reset password akaun FloreaHub kamu. Klik butang di bawah untuk set password baru — link ini sah selama <strong>1 jam</strong>.
+      </p>
+      <a href="${resetUrl}" style="display:block;background:#b5294e;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;margin-bottom:20px;">Set Password Baru</a>
+      <p style="margin:0;color:#9ca3af;font-size:13px;line-height:1.6;">Kalau kamu tak minta reset ni, abaikan sahaja email ini — password kamu tidak akan berubah.</p>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, "Reset password akaun FloreaHub anda", html);
+}
+
 // ── Florist rejected ──────────────────────────────────────────────────────────
 
 export async function sendFloristRejectedEmail({ name, email }: { name: string; email: string }) {
