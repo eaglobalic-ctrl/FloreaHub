@@ -50,8 +50,19 @@ export async function POST(req: NextRequest) {
     // Save order to Supabase
     try {
       const db = getSupabaseAdmin();
+
+      // Resolve the florist this order belongs to from the first real product in the cart
+      // (products carry florist_id; the plan-upgrade/custom-builder "items" don't map to a real product)
+      let floristId: string | null = null;
+      const firstProductId = items?.find((item: { id: string }) => item.id)?.id;
+      if (firstProductId) {
+        const { data: product } = await db.from("products").select("florist_id").eq("id", firstProductId).maybeSingle();
+        floristId = product?.florist_id ?? null;
+      }
+
       await db.from("orders").insert({
         id: orderId,
+        florist_id: floristId,
         subtotal: subtotal > 0 ? subtotal : amount,
         delivery_fee: deliveryFee ?? 0,
         total: amount,
@@ -70,6 +81,7 @@ export async function POST(req: NextRequest) {
         await db.from("order_items").insert(
           items.map((item: { id: string; name: string; image: string; florist: string; price: number; quantity: number }) => ({
             order_id: orderId,
+            product_id: item.id ?? null,
             product_name: item.name,
             product_image: item.image ?? null,
             florist_name: item.florist,

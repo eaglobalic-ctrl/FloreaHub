@@ -38,6 +38,7 @@ export default function FloristRegisterPage() {
           phone: form.phone,
           role: "florist",
           shopCity: form.area,
+          shopState: form.state,
           shopPhone: form.phone,
         }),
       });

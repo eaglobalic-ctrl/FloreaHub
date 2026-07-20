@@ -47,3 +47,35 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ products: [] });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const { floristId, name, description, price, category, imageUrl, stock, sameDay } = await req.json();
+    if (!floristId || !name || !price) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    const db = getSupabaseAdmin();
+
+    // Only an approved, active florist can list products
+    const { data: florist } = await db.from("florists").select("id").eq("id", floristId).eq("is_active", true).maybeSingle();
+    if (!florist) return NextResponse.json({ error: "Florist not found or not active" }, { status: 403 });
+
+    const { data: product, error } = await db.from("products").insert({
+      florist_id: floristId,
+      name,
+      description: description ?? null,
+      price,
+      category: category ?? "daily",
+      image_url: imageUrl ?? null,
+      stock: stock ?? 0,
+      same_day: !!sameDay,
+    }).select("*").single();
+
+    if (error) throw error;
+    return NextResponse.json({ product });
+  } catch (err) {
+    console.error("Product create error:", err);
+    return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
+  }
+}

@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2
+  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 
@@ -38,6 +38,8 @@ type Product = {
   review_count: number; badge?: string; is_active: boolean;
 };
 
+type Florist = { id: string; name: string; plan: string };
+
 export default function DashboardPage() {
   const [tab, setTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,33 +47,53 @@ export default function DashboardPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [floristName, setFloristName] = useState("Bloom & Co.");
-  const [floristPlan, setFloristPlan] = useState("pro");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [florist, setFlorist] = useState<Florist | null>(null);
+  const [floristLoading, setFloristLoading] = useState(true);
+  const [showAddProduct, setShowAddProduct] = useState(false);
 
   useEffect(() => {
-    // Try to get florist info from localStorage user
     try {
       const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      if (u?.name) setFloristName(u.name);
-    } catch { /* ignore */ }
+      if (u?.id) setUserId(u.id);
+      else setFloristLoading(false);
+    } catch {
+      setFloristLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    fetch("/api/orders")
+    if (!userId) return;
+    fetch(`/api/florists?userId=${userId}`)
       .then((r) => r.json())
-      .then((d) => setOrders(d.orders ?? []))
-      .catch(() => setOrders([]))
-      .finally(() => setLoadingOrders(false));
-  }, []);
+      .then((d) => setFlorist(d.florists?.[0] ?? null))
+      .catch(() => setFlorist(null))
+      .finally(() => setFloristLoading(false));
+  }, [userId]);
 
-  useEffect(() => {
-    // Fetch products for the first florist (demo: Bloom & Co.)
-    fetch("/api/products")
+  const reloadProducts = () => {
+    if (!florist?.id) return;
+    setLoadingProducts(true);
+    fetch(`/api/products?floristId=${florist.id}`)
       .then((r) => r.json())
       .then((d) => setProducts(d.products ?? []))
       .catch(() => setProducts([]))
       .finally(() => setLoadingProducts(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    if (!florist?.id) { setLoadingOrders(false); return; }
+    fetch(`/api/orders?floristId=${florist.id}`)
+      .then((r) => r.json())
+      .then((d) => setOrders(d.orders ?? []))
+      .catch(() => setOrders([]))
+      .finally(() => setLoadingOrders(false));
+  }, [florist]);
+
+  useEffect(() => {
+    reloadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [florist]);
 
   const stats = useMemo(() => {
     const paidOrders = orders.filter(o => o.payment_status === "paid");
@@ -98,6 +120,31 @@ export default function DashboardPage() {
     return "Just now";
   };
 
+  if (floristLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 size={24} className="animate-spin text-gray-300" />
+      </div>
+    );
+  }
+
+  if (!florist) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center card-premium p-12 max-w-sm">
+          <Store size={40} className="text-gray-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No Active Shop</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            {userId
+              ? "Kedai anda tidak dijumpai atau belum diluluskan. Jika permohonan masih dalam semakan, sila tunggu email kelulusan."
+              : "Sila log masuk dengan akaun florist untuk akses dashboard."}
+          </p>
+          <Link href={userId ? "/" : "/login"} className="btn-primary">{userId ? "Kembali ke Laman Utama" : "Sign In"}</Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -114,11 +161,11 @@ export default function DashboardPage() {
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ background: "var(--primary)" }}>
-              {floristName[0]}
+              {florist.name[0]}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{floristName}</p>
-              <p className="text-xs text-gray-400 capitalize">{floristPlan} Plan</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">{florist.name}</p>
+              <p className="text-xs text-gray-400 capitalize">{florist.plan} Plan</p>
             </div>
           </div>
         </div>
@@ -292,9 +339,14 @@ export default function DashboardPage() {
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-4">
               <motion.div variants={fadeUp} className="flex justify-between items-center">
                 <p className="text-sm text-gray-500">{loadingProducts ? "..." : `${products.length} products`}</p>
-                <Link href="/dashboard/ads" className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5">
-                  <Megaphone size={13} /> Promote Products
-                </Link>
+                <div className="flex gap-2">
+                  <button onClick={() => setShowAddProduct(true)} className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5">
+                    <Plus size={13} /> Add Product
+                  </button>
+                  <Link href="/dashboard/ads" className="btn-secondary text-xs py-2 px-4 flex items-center gap-1.5">
+                    <Megaphone size={13} /> Promote Products
+                  </Link>
+                </div>
               </motion.div>
               {loadingProducts ? (
                 <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
@@ -336,6 +388,100 @@ export default function DashboardPage() {
           )}
         </main>
       </div>
+
+      {showAddProduct && (
+        <AddProductModal
+          floristId={florist.id}
+          onClose={() => setShowAddProduct(false)}
+          onCreated={() => { setShowAddProduct(false); reloadProducts(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddProductModal({ floristId, onClose, onCreated }: { floristId: string; onClose: () => void; onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("daily");
+  const [stock, setStock] = useState("10");
+  const [imageUrl, setImageUrl] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          floristId,
+          name,
+          price: Number(price),
+          category,
+          stock: Number(stock),
+          imageUrl: imageUrl || null,
+          description: description || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      onCreated();
+    } catch {
+      setError("Gagal tambah produk. Sila cuba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-gray-900">Add Product</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Name</label>
+            <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Classic Red Rose Bouquet" className="input-premium w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (RM)</label>
+              <input required type="number" min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="120" className="input-premium w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Stock</label>
+              <input required type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="input-premium w-full" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="input-premium w-full">
+              {["daily", "birthday", "anniversary", "wedding", "corporate", "sympathy"].map(c => (
+                <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL (optional)</label>
+            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." className="input-premium w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (optional)</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="input-premium w-full resize-none" />
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3">
+            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Add Product</span><ArrowRight size={15} /></>}
+          </button>
+        </form>
+      </motion.div>
     </div>
   );
 }

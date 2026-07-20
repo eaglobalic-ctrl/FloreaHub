@@ -4,7 +4,7 @@ import { sendWelcomeEmail, sendAdminFloristNotification } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, phone, role, shopCity, shopPhone } = await req.json();
+    const { email, name, phone, role, shopCity, shopState, shopPhone } = await req.json();
     if (!email || !name) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     const db = getSupabaseAdmin();
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       role: role ?? "buyer",
       status,
       shop_city: shopCity ?? null,
+      shop_state: shopState ?? null,
     }).select("id, email, name, role, status").single();
 
     if (error) throw error;
@@ -66,10 +67,38 @@ export async function PATCH(req: NextRequest) {
       .from("users")
       .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: reviewedBy ?? "admin" })
       .eq("id", userId)
-      .select("id, email, name, role, status")
+      .select("id, email, name, phone, role, status, shop_city, shop_state")
       .single();
 
     if (error) throw error;
+
+    const isSeller = user!.role === "florist" || user!.role === "seller";
+
+    if (isSeller) {
+      if (status === "approved") {
+        // Bridge users -> florists: this is what actually gives the seller a storefront
+        const { data: existingFlorist } = await db.from("florists").select("id").eq("user_id", userId).maybeSingle();
+        if (existingFlorist) {
+          await db.from("florists").update({ is_active: true }).eq("id", existingFlorist.id);
+        } else {
+          const { error: floristError } = await db.from("florists").insert({
+            user_id: userId,
+            name: user!.name,
+            city: user!.shop_city || "Kuala Lumpur",
+            state: user!.shop_state || "Selangor",
+            phone: user!.phone,
+            email: user!.email,
+            is_verified: true,
+            is_active: true,
+            plan: "free",
+          });
+          if (floristError) console.error("Florist create error:", floristError);
+        }
+      } else {
+        // rejected, or revoked via the admin panel's re-approve/revoke toggle
+        await db.from("florists").update({ is_active: false }).eq("user_id", userId);
+      }
+    }
 
     // Send email to florist based on decision
     const { sendFloristApprovedEmail, sendFloristRejectedEmail } = await import("@/lib/email");

@@ -7,9 +7,18 @@ export async function GET(req: NextRequest) {
   const plan = searchParams.get("plan");
   const q = searchParams.get("q");
   const id = searchParams.get("id");
+  const userId = searchParams.get("userId");
 
   try {
     const db = getSupabaseAdmin();
+
+    // Lookup by owning user — used by the seller dashboard to resolve its own florist_id
+    if (userId) {
+      const { data, error } = await db.from("florists").select("*").eq("user_id", userId).maybeSingle();
+      if (error) return NextResponse.json({ florists: [], error: error.message });
+      return NextResponse.json({ florists: data ? [data] : [] });
+    }
+
     let query = db.from("florists").select("*").eq("is_active", true);
 
     if (id) query = query.eq("id", id);
