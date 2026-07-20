@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
     const body = await req.json();
     const { adType, floristId, floristName, headline, tagline, imageUrl, price } = body;
 
-    if (!adType || !floristName || !price) {
+    if (!adType || !floristId || !floristName || !price) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const { data: florist } = await supabaseAdmin.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).maybeSingle();
+    if (!florist) return NextResponse.json({ error: "Florist not found" }, { status: 403 });
 
     const baseUrl = process.env.TOYYIBPAY_SANDBOX === "false"
       ? "https://toyyibpay.com"
@@ -58,7 +66,6 @@ export async function POST(req: NextRequest) {
     // Save pending campaign to Supabase
     const startDate = new Date().toISOString();
     const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const supabaseAdmin = getSupabaseAdmin();
 
     const { error: dbError } = await supabaseAdmin.from("ads").insert({
       id: adId,

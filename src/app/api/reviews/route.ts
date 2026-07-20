@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -24,15 +25,25 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { floristId, productId, orderId, rating, comment, userId } = await req.json();
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+    const { floristId, productId, orderId, rating, comment } = await req.json();
     if (!floristId || !rating) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     const db = getSupabaseAdmin();
+
+    // The order must actually belong to this buyer — otherwise anyone could review any florist
+    if (orderId) {
+      const { data: order } = await db.from("orders").select("id").eq("id", orderId).eq("buyer_email", session.email).maybeSingle();
+      if (!order) return NextResponse.json({ error: "Order not found" }, { status: 403 });
+    }
+
     const { data, error } = await db.from("reviews").insert({
       florist_id: floristId,
       product_id: productId ?? null,
       order_id: orderId ?? null,
-      user_id: userId ?? null,
+      user_id: session.userId,
       rating,
       comment: comment ?? null,
     }).select().single();

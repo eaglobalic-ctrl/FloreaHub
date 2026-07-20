@@ -36,18 +36,14 @@ export default function Navbar() {
 
   useEffect(() => {
     const syncUser = () => {
-      try {
-        const stored = localStorage.getItem("floreahub_user");
-        setUser(stored ? JSON.parse(stored) : null);
-      } catch { setUser(null); }
+      fetch("/api/auth/me")
+        .then(r => r.json())
+        .then(d => setUser(d.user ?? null))
+        .catch(() => setUser(null));
     };
     syncUser();
     window.addEventListener("user-updated", syncUser);
-    window.addEventListener("storage", syncUser);
-    return () => {
-      window.removeEventListener("user-updated", syncUser);
-      window.removeEventListener("storage", syncUser);
-    };
+    return () => window.removeEventListener("user-updated", syncUser);
   }, [pathname]);
 
   useEffect(() => {
@@ -73,8 +69,8 @@ export default function Navbar() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("floreahub_user");
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
     setUserMenuOpen(false);
     window.dispatchEvent(new Event("user-updated"));

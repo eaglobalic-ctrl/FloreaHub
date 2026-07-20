@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,15 @@ export async function GET(req: NextRequest) {
     }
     // A caller must scope by florist or buyer — an unscoped request would leak every order in the marketplace
     if (!floristId && !buyerEmail) return NextResponse.json({ orders: [] });
+
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ orders: [] });
+
+    if (buyerEmail && buyerEmail !== session.email) return NextResponse.json({ orders: [] });
+    if (floristId) {
+      const { data: florist } = await db.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).maybeSingle();
+      if (!florist) return NextResponse.json({ orders: [] });
+    }
 
     let query = db.from("orders").select("*, order_items(*)").order("created_at", { ascending: false }).limit(50);
     if (floristId) query = query.eq("florist_id", floristId);

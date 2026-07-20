@@ -105,15 +105,14 @@ function AdsContent() {
   const [florist, setFlorist] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    let userId: string | null = null;
-    try {
-      const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      userId = u?.id ?? null;
-    } catch { /* ignore */ }
-    if (!userId) return;
-    fetch(`/api/florists?userId=${userId}`)
+    fetch("/api/auth/me")
       .then(r => r.json())
-      .then(d => setFlorist(d.florists?.[0] ?? null))
+      .then(d => {
+        if (!d.user?.id) return null;
+        return fetch(`/api/florists?userId=${d.user.id}`)
+          .then(r => r.json())
+          .then(fd => setFlorist(fd.florists?.[0] ?? null));
+      })
       .catch(() => setFlorist(null));
   }, []);
 

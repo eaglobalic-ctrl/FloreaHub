@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,9 +26,21 @@ export async function POST(req: NextRequest) {
       if (!valid) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
+    const isSeller = user.role === "florist" || user.role === "seller";
+    if (isSeller && user.status === "pending") {
+      return NextResponse.json({ error: "Your application is under review. We will notify you via email once approved." }, { status: 403 });
+    }
+    if (isSeller && user.status === "rejected") {
+      return NextResponse.json({ error: "Your florist application was not approved. Please contact us for more information." }, { status: 403 });
+    }
+
     const { password_hash: _passwordHash, ...safeUser } = user;
     void _passwordHash;
-    return NextResponse.json({ user: safeUser });
+
+    const token = createSessionToken({ userId: user.id, email: user.email, role: user.role });
+    const res = NextResponse.json({ user: safeUser });
+    res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: SESSION_MAX_AGE, path: "/" });
+    return res;
   } catch (err) {
     console.error("Login error:", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });

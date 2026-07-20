@@ -60,13 +60,13 @@ export default function DashboardPage() {
   const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      if (u?.id) setUserId(u.id);
-      else setFloristLoading(false);
-    } catch {
-      setFloristLoading(false);
-    }
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user?.id) setUserId(d.user.id);
+        else setFloristLoading(false);
+      })
+      .catch(() => setFloristLoading(false));
   }, []);
 
   useEffect(() => {

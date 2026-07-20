@@ -28,9 +28,8 @@ export default function RegisterPage() {
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
       if (data.existed) { setError("This email is already registered. Please sign in instead."); return; }
-      // Only save to localStorage if approved (buyers) — pending florists can't login yet
+      // A session cookie is set server-side for non-pending accounts — just refresh the navbar
       if (data.user.status !== "pending") {
-        localStorage.setItem("floreahub_user", JSON.stringify(data.user));
         window.dispatchEvent(new Event("user-updated"));
       }
       setDone(true);

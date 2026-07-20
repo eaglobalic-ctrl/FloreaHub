@@ -34,12 +34,15 @@ function CheckoutContent() {
     const onUpdate = () => setCart(getCart());
     window.addEventListener("cart-updated", onUpdate);
 
-    // Pre-fill from localStorage user
-    try {
-      const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      if (u?.name) setForm(f => ({ ...f, name: u.name, recipientName: u.name }));
-      if (u?.email) setForm(f => ({ ...f, email: u.email }));
-    } catch { /* ignore */ }
+    // Pre-fill from the signed-in session, if any
+    fetch("/api/auth/me")
+      .then(r => r.json())
+      .then(d => {
+        const u = d.user;
+        if (u?.name) setForm(f => ({ ...f, name: u.name, recipientName: u.name }));
+        if (u?.email) setForm(f => ({ ...f, email: u.email }));
+      })
+      .catch(() => {});
 
     return () => window.removeEventListener("cart-updated", onUpdate);
   }, [planDetail]);

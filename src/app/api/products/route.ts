@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -50,6 +51,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
     const { floristId, name, description, price, category, imageUrl, stock, sameDay } = await req.json();
     if (!floristId || !name || !price) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -57,8 +61,8 @@ export async function POST(req: NextRequest) {
 
     const db = getSupabaseAdmin();
 
-    // Only an approved, active florist can list products
-    const { data: florist } = await db.from("florists").select("id").eq("id", floristId).eq("is_active", true).maybeSingle();
+    // Only the florist's own (approved, active) owner can list products for it
+    const { data: florist } = await db.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).eq("is_active", true).maybeSingle();
     if (!florist) return NextResponse.json({ error: "Florist not found or not active" }, { status: 403 });
 
     const { data: product, error } = await db.from("products").insert({

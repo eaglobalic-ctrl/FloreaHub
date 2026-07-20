@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendWelcomeEmail, sendAdminFloristNotification } from "@/lib/email";
+import { createSessionToken, getSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { isAdminEmail } from "@/lib/admin";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,11 +37,16 @@ export async function POST(req: NextRequest) {
       sendAdminFloristNotification({ name, email, shopCity, shopPhone });
       // Send "application received" email to florist
       sendWelcomeEmail({ name: user!.name, email: user!.email, role: user!.role, status: "pending" });
-    } else {
-      sendWelcomeEmail({ name: user!.name, email: user!.email, role: user!.role, status: "active" });
+      // Pending florists can't log in until approved — no session yet
+      return NextResponse.json({ user, existed: false });
     }
 
-    return NextResponse.json({ user, existed: false });
+    sendWelcomeEmail({ name: user!.name, email: user!.email, role: user!.role, status: "active" });
+
+    const token = createSessionToken({ userId: user!.id, email: user!.email, role: user!.role });
+    const res = NextResponse.json({ user, existed: false });
+    res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, secure: true, sameSite: "lax", maxAge: SESSION_MAX_AGE, path: "/" });
+    return res;
   } catch (err) {
     console.error("User create error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
@@ -63,13 +70,18 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { userId, status, reviewedBy } = await req.json();
+    const session = getSession(req);
+    if (!session || !isAdminEmail(session.email)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { userId, status } = await req.json();
     if (!userId || !status) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
     const db = getSupabaseAdmin();
     const { data: user, error } = await db
       .from("users")
-      .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: reviewedBy ?? "admin" })
+      .update({ status, reviewed_at: new Date().toISOString(), reviewed_by: session.email })
       .eq("id", userId)
       .select("id, email, name, phone, role, status, shop_city, shop_state")
       .single();

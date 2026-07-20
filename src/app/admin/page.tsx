@@ -4,13 +4,12 @@ import { motion } from "motion/react";
 import { Check, X, Clock, Users, Store, Mail, MapPin, Phone, ShieldCheck, LogOut } from "lucide-react";
 import Link from "next/link";
 import { fadeUp, stagger } from "@/lib/animations";
+import { isAdminEmail } from "@/lib/admin";
 
 type FloristUser = {
   id: string; name: string; email: string; phone?: string;
   role: string; status: string; shop_city?: string; created_at: string;
 };
-
-const ADMIN_EMAILS = ["pretty.dalisya@gmail.com"];
 
 export default function AdminPage() {
   const [users, setUsers] = useState<FloristUser[]>([]);
@@ -18,12 +17,14 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      if (ADMIN_EMAILS.includes(u?.email)) setIsAdmin(true);
-    } catch { /* ignore */ }
+    fetch("/api/auth/me")
+      .then(r => r.json())
+      .then(d => setIsAdmin(isAdminEmail(d.user?.email)))
+      .catch(() => setIsAdmin(false))
+      .finally(() => setCheckingAdmin(false));
   }, []);
 
   useEffect(() => {
@@ -56,6 +57,10 @@ export default function AdminPage() {
     approved: users.filter(u => u.status === "approved").length,
     rejected: users.filter(u => u.status === "rejected").length,
   };
+
+  if (checkingAdmin) {
+    return <div className="min-h-screen bg-gray-50" />;
+  }
 
   if (!isAdmin) {
     return (

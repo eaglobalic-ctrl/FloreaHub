@@ -96,19 +96,17 @@ export default function OrdersPage() {
   const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    let email: string | null = null;
-    try {
-      const u = JSON.parse(localStorage.getItem("floreahub_user") || "{}");
-      if (u?.name) { setUser(u); email = u.email; }
-    } catch { /* ignore */ }
-
-    if (!email) { setLoading(false); return; }
-
-    fetch(`/api/orders?buyerEmail=${encodeURIComponent(email)}`)
+    fetch("/api/auth/me")
       .then(r => r.json())
-      .then(d => setOrders(d.orders ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(d => {
+        if (!d.user) { setLoading(false); return; }
+        setUser(d.user);
+        return fetch(`/api/orders?buyerEmail=${encodeURIComponent(d.user.email)}`)
+          .then(r => r.json())
+          .then(od => setOrders(od.orders ?? []))
+          .finally(() => setLoading(false));
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   const submitReview = async (order: Order, rating: number, comment: string) => {
@@ -117,7 +115,7 @@ export default function OrdersPage() {
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ floristId: order.florist_id, orderId: order.id, userId: user.id, rating, comment }),
+        body: JSON.stringify({ floristId: order.florist_id, orderId: order.id, rating, comment }),
       });
       if (res.ok) {
         setReviewedOrderIds(prev => new Set(prev).add(order.id));
