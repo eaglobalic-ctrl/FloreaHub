@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
+import { StatCardSkeleton, RowSkeleton } from "@/components/ui/skeleton";
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -318,21 +319,25 @@ export default function DashboardPage() {
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {stats.map(({ label, value, change, up, icon: Icon, color }) => (
-                  <motion.div key={label} variants={fadeUp} className="card-premium p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <p className="text-xs text-gray-500 font-medium">{label}</p>
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}15` }}>
-                        <Icon size={16} style={{ color }} />
+                {loadingOrders && loadingProducts ? (
+                  [...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)
+                ) : (
+                  stats.map(({ label, value, change, up, icon: Icon, color }) => (
+                    <motion.div key={label} variants={fadeUp} className="card-premium p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <p className="text-xs text-gray-500 font-medium">{label}</p>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${color}15` }}>
+                          <Icon size={16} style={{ color }} />
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-2xl font-bold text-gray-900 mb-1">{loadingOrders && loadingProducts ? "..." : value}</p>
-                    <div className="flex items-center gap-1 text-xs">
-                      {up && <ChevronUp size={12} className="text-emerald-500" />}
-                      <span className={up ? "text-emerald-600" : "text-gray-400"}>{change}</span>
-                    </div>
-                  </motion.div>
-                ))}
+                      <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
+                      <div className="flex items-center gap-1 text-xs">
+                        {up && <ChevronUp size={12} className="text-emerald-500" />}
+                        <span className={up ? "text-emerald-600" : "text-gray-400"}>{change}</span>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
               </div>
 
               {/* Recent Orders */}
@@ -344,7 +349,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 {loadingOrders ? (
-                  <div className="flex items-center justify-center py-8"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
+                  <div className="space-y-1">{[...Array(4)].map((_, i) => <RowSkeleton key={i} />)}</div>
                 ) : orders.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-8">No orders yet.</p>
                 ) : (
@@ -392,7 +397,7 @@ export default function DashboardPage() {
                   <span className="text-xs text-gray-500">{loadingOrders ? "..." : `${orders.length} orders`}</span>
                 </div>
                 {loadingOrders ? (
-                  <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
+                  <div className="p-5 space-y-1">{[...Array(6)].map((_, i) => <RowSkeleton key={i} />)}</div>
                 ) : orders.length === 0 ? (
                   <p className="text-sm text-gray-400 text-center py-12">No orders yet. Share your shop link to get started!</p>
                 ) : (
@@ -446,7 +451,7 @@ export default function DashboardPage() {
                 </div>
               </motion.div>
               {loadingProducts ? (
-                <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
+                <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="card-premium p-5"><RowSkeleton /></div>)}</div>
               ) : products.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-12">No products yet.</p>
               ) : (
@@ -481,7 +486,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-500">{loadingReviews ? "..." : `${reviews.length} reviews`}</p>
               </motion.div>
               {loadingReviews ? (
-                <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-gray-300" /></div>
+                <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="card-premium p-5"><RowSkeleton /></div>)}</div>
               ) : reviews.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-12">No reviews yet.</p>
               ) : (

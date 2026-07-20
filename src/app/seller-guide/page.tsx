@@ -3,6 +3,7 @@ import { ArrowRight, Store, Camera, TrendingUp, Star, ShieldCheck, Zap } from "l
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CountUp from "@/components/ui/count-up";
 
 const STEPS = [
   { n: "01", icon: Store, title: "Register Your Shop", desc: "Fill in your business details, location, and specialties. Approval takes 24–48 hours. Free to list.", color: "#b5294e" },
@@ -46,13 +47,15 @@ export default function SellerGuidePage() {
         <section className="py-12 bg-white border-b border-gray-100">
           <div className="max-w-4xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {[
-              { value: "500+", label: "Active Florists" },
-              { value: "5%", label: "Commission Only" },
-              { value: "50K+", label: "Monthly Customers" },
-              { value: "RM0", label: "To Start" },
+              { end: 500, suffix: "+", label: "Active Florists" },
+              { end: 5, suffix: "%", label: "Commission Only" },
+              { end: 50, suffix: "K+", label: "Monthly Customers" },
+              { end: null, display: "RM0", label: "To Start" },
             ].map(s => (
               <div key={s.label}>
-                <p className="text-3xl font-bold text-gray-900 mb-1" style={{ color: "var(--primary)" }}>{s.value}</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1" style={{ color: "var(--primary)" }}>
+                  {s.end !== null ? <CountUp end={s.end} suffix={s.suffix} /> : s.display}
+                </p>
                 <p className="text-sm text-gray-500">{s.label}</p>
               </div>
             ))}

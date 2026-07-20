@@ -6,10 +6,11 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ShoppingCart, Heart, Star, Zap, Leaf, ChevronRight, MapPin,
-  Package, ArrowLeft, Minus, Plus, Check, Share2, Loader2
+  Package, ArrowLeft, Minus, Plus, Check, Share2
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import Skeleton from "@/components/ui/skeleton";
 import { addToCart } from "@/lib/cart";
 
 type Product = {
@@ -95,8 +96,19 @@ export default function ProductDetailPage() {
     return (
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 size={32} className="animate-spin text-gray-300" />
+        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+          <div className="grid lg:grid-cols-2 gap-10">
+            <Skeleton className="aspect-square rounded-2xl" />
+            <div className="space-y-4">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-9 w-3/4" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-10 w-32" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </div>
         </div>
       </div>
     );

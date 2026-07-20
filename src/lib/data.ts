@@ -110,10 +110,10 @@ export const WOW_FEATURES = [
 ];
 
 export const STATS = [
-  { value: "500+", label: "Verified Florists" },
-  { value: "50K+", label: "Happy Customers" },
-  { value: "15+", label: "States Covered" },
-  { value: "98%", label: "On-Time Delivery" },
+  { end: 500, suffix: "+", label: "Verified Florists" },
+  { end: 50, suffix: "K+", label: "Happy Customers" },
+  { end: 15, suffix: "+", label: "States Covered" },
+  { end: 98, suffix: "%", label: "On-Time Delivery" },
 ];
 
 export const TESTIMONIALS = [

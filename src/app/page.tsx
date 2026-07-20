@@ -15,6 +15,8 @@ import FloristCard from "@/components/FloristCard";
 import SponsoredBanner from "@/components/SponsoredBanner";
 import SponsoredFlorists from "@/components/SponsoredFlorists";
 import TestimonialsColumn from "@/components/ui/testimonials-column";
+import CountUp from "@/components/ui/count-up";
+import CategoryTile from "@/components/ui/category-tile";
 import { FLORISTS, CATEGORIES, WOW_FEATURES, STATS, TESTIMONIALS } from "@/lib/data";
 import { fadeUp, stagger, scaleIn, popIn, floatAnim } from "@/lib/animations";
 
@@ -232,7 +234,9 @@ export default function Home() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             {STATS.map((s) => (
               <motion.div key={s.label} variants={fadeUp}>
-                <div className="text-3xl font-bold tracking-tight mb-1" style={{ color: "var(--primary)" }}>{s.value}</div>
+                <div className="text-3xl font-bold tracking-tight mb-1" style={{ color: "var(--primary)" }}>
+                  <CountUp end={s.end} suffix={s.suffix} />
+                </div>
                 <div className="text-sm text-gray-500">{s.label}</div>
               </motion.div>
             ))}
@@ -252,20 +256,7 @@ export default function Home() {
               const Icon = CATEGORY_ICONS[cat.id] ?? Gem;
               return (
                 <motion.div key={cat.id} variants={scaleIn}>
-                  <Link
-                    href={`/shop?category=${cat.id}`}
-                    className="flex flex-col items-center gap-3 p-5 rounded-xl border border-gray-100 bg-white hover:border-current hover:shadow-sm transition-all group"
-                    style={{ "--hover-color": "var(--primary)" } as React.CSSProperties}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center transition-all group-hover:scale-110"
-                      style={{ background: "var(--primary-light)" }}
-                    >
-                      <Icon size={18} style={{ color: "var(--primary)" }} strokeWidth={1.5} />
-                    </div>
-                    <span className="text-xs font-semibold text-gray-700 text-center group-hover:text-gray-900 transition-colors">{cat.label}</span>
-                    <span className="text-xs text-gray-400">{cat.count} items</span>
-                  </Link>
+                  <CategoryTile href={`/shop?category=${cat.id}`} Icon={Icon} label={cat.label} count={cat.count} />
                 </motion.div>
               );
             })}
