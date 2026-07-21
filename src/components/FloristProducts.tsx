@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { ShoppingCart, Star, Loader2 } from "lucide-react";
@@ -44,7 +45,8 @@ export default function FloristProducts({
       .finally(() => setLoading(false));
   }, [floristId]);
 
-  const handleAdd = (p: Product) => {
+  const handleAdd = (p: Product, e: React.MouseEvent) => {
+    e.preventDefault();
     addToCart({
       id: p.id,
       name: p.name,
@@ -73,7 +75,7 @@ export default function FloristProducts({
   return (
     <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {products.map((p) => (
-        <div key={p.id} className="card-premium overflow-hidden group cursor-pointer bg-white">
+        <Link key={p.id} href={`/products/${p.id}`} className="card-premium overflow-hidden group cursor-pointer bg-white block">
           <div className="relative h-44 bg-gray-100 overflow-hidden">
             {p.image_url ? (
               <Image src={p.image_url} alt={p.name} fill className="object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -103,7 +105,7 @@ export default function FloristProducts({
             </div>
             <motion.button
               whileTap={{ scale: 0.97 }}
-              onClick={() => handleAdd(p)}
+              onClick={(e) => handleAdd(p, e)}
               className="btn-primary w-full text-xs py-2 justify-center relative overflow-hidden"
             >
               <AnimatePresence mode="wait">
@@ -119,7 +121,7 @@ export default function FloristProducts({
               </AnimatePresence>
             </motion.button>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );
