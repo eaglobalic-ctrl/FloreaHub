@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (!alreadyAttached) {
-        await db.from("messages").insert({
+        const { error: msgError } = await db.from("messages").insert({
           conversation_id: conversation.id,
           sender_role: "buyer",
           product_id: product.id,
@@ -91,6 +91,10 @@ export async function POST(req: NextRequest) {
           product_original_price: product.originalPrice ?? null,
           product_rating: product.rating ?? null,
         });
+        if (msgError) {
+          console.error("Product card insert error:", msgError);
+          throw msgError;
+        }
         await db.from("conversations").update({
           last_message_at: new Date().toISOString(),
           florist_unread_count: (conversation.florist_unread_count ?? 0) + 1,

@@ -43,8 +43,11 @@ export default function ChatWidget({
       body: JSON.stringify({ floristId, product }),
     })
       .then(r => r.json())
-      .then(d => { if (d.conversation) setConversationId(d.conversation.id); })
-      .catch(() => {});
+      .then(d => {
+        if (d.conversation) setConversationId(d.conversation.id);
+        else setError(d.error || "Couldn't start conversation.");
+      })
+      .catch(() => setError("Network error starting conversation."));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, signedIn, conversationId, floristId]);
 
