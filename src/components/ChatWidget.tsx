@@ -35,6 +35,16 @@ export default function ChatWidget({
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Lock background scroll while the panel is open — it's fixed-positioned,
+  // so without this the page behind it keeps scrolling and visually
+  // collides with the panel instead of sitting cleanly underneath it.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
   useEffect(() => {
     if (!open || conversationId || !signedIn) return;
     fetch("/api/conversations", {
@@ -132,12 +142,20 @@ export default function ChatWidget({
 
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-0 right-0 sm:bottom-5 sm:right-5 z-[60] w-full sm:w-96 h-[80vh] sm:h-[560px] bg-white sm:rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
-          >
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-[59] bg-black/30 sm:hidden"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed bottom-0 right-0 sm:bottom-5 sm:right-5 z-[60] w-full sm:w-96 h-[80vh] sm:h-[560px] bg-white sm:rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+            >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-white">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: "var(--primary)" }}>
@@ -244,6 +262,7 @@ export default function ChatWidget({
               </>
             )}
           </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
