@@ -197,7 +197,10 @@ body {
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  font-size: 0.875rem;
+  /* 16px on mobile — iOS Safari auto-zooms on focus for any input below
+     that, which felt like the page "jumping". Desktop drops back to the
+     original 14px below. */
+  font-size: 16px;
   color: var(--foreground);
   background: white;
   transition: border-color 0.2s ease;
@@ -205,6 +208,10 @@ body {
 }
 .input-premium:focus { border-color: var(--primary); }
 .input-premium::placeholder { color: var(--text-tertiary); }
+
+@media (min-width: 640px) {
+  .input-premium { font-size: 0.875rem; }
+}
 
 /* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar { display: none; }
