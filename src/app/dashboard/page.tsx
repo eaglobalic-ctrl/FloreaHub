@@ -491,7 +491,16 @@ export default function DashboardPage() {
               ) : (
                 products.map(p => (
                   <motion.div key={p.id} variants={fadeUp} className="card-premium p-5 flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0" />
+                    <div className="w-14 h-14 rounded-xl bg-gray-100 flex-shrink-0 overflow-hidden">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <Package size={18} />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-semibold text-gray-900 text-sm">{p.name}</p>
