@@ -20,6 +20,8 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-red-50 text-red-600 border-red-200",
 };
 
+const STATUS_FLOW = ["pending", "processing", "ready", "delivering", "delivered", "cancelled"];
+
 const NAV = [
   { icon: LayoutDashboard, label: "Overview", id: "overview" },
   { icon: ShoppingBag, label: "Orders", id: "orders" },
@@ -155,6 +157,25 @@ export default function DashboardPage() {
       toast.error("Couldn't save settings. Try again.");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const handleUpdateOrderStatus = async (orderId: string, status: string) => {
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, status }),
+      });
+      if (!res.ok) throw new Error();
+      setOrders(list => list.map(o => o.id === orderId ? { ...o, status } : o));
+      toast.success("Order status updated.");
+    } catch {
+      toast.error("Couldn't update order status.");
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -419,7 +440,16 @@ export default function DashboardPage() {
                               <td className="px-5 py-4 font-medium text-gray-900">{o.recipient_name || "—"}</td>
                               <td className="px-5 py-4 text-gray-600 max-w-[140px] truncate">{firstItem?.product_name || "—"}</td>
                               <td className="px-5 py-4 font-semibold text-gray-900">RM{Number(o.total).toFixed(2)}</td>
-                              <td className="px-5 py-4"><span className={`text-xs px-2.5 py-1 rounded-full border font-medium capitalize ${STATUS_STYLE[o.status] || ""}`}>{o.status}</span></td>
+                              <td className="px-5 py-4">
+                                <select
+                                  value={o.status}
+                                  disabled={updatingOrderId === o.id}
+                                  onChange={e => handleUpdateOrderStatus(o.id, e.target.value)}
+                                  className={`text-xs pl-2.5 pr-6 py-1 rounded-full border font-medium capitalize appearance-none cursor-pointer disabled:opacity-50 ${STATUS_STYLE[o.status] || ""}`}
+                                >
+                                  {STATUS_FLOW.map(s => <option key={s} value={s} className="bg-white text-gray-900">{s}</option>)}
+                                </select>
+                              </td>
                               <td className="px-5 py-4">
                                 <span className={`text-xs font-medium capitalize ${o.payment_status === "paid" ? "text-emerald-600" : o.payment_status === "failed" ? "text-red-500" : "text-amber-600"}`}>
                                   {o.payment_status}

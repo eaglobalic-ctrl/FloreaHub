@@ -60,6 +60,37 @@ export async function POST(req: NextRequest) {
   }
 }
 
+const VALID_STATUSES = ["pending", "processing", "ready", "delivering", "delivered", "cancelled"];
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { orderId, status } = await req.json();
+    if (!orderId || !VALID_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+
+    const db = getSupabaseAdmin();
+
+    // Only the florist that owns this order may advance its status
+    const { data: order } = await db.from("orders").select("id, florist_id").eq("id", orderId).maybeSingle();
+    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+
+    const { data: florist } = await db.from("florists").select("id").eq("id", order.florist_id).eq("user_id", session.userId).maybeSingle();
+    if (!florist) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { data: updated, error } = await db.from("orders").update({ status }).eq("id", orderId).select("*, order_items(*)").single();
+    if (error) throw error;
+
+    return NextResponse.json({ order: updated });
+  } catch (err) {
+    console.error("Order status update error:", err);
+    return NextResponse.json({ error: "Failed to update order" }, { status: 500 });
+  }
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const orderId = searchParams.get("id");
