@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { Check, Flower2, ArrowRight, ShoppingBag, MapPin, Phone, Clock, Package, Loader2, Star } from "lucide-react";
 import Link from "next/link";
@@ -23,10 +23,20 @@ const STATUS_STEPS = [
 
 function SuccessContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // ToyyibPay sends every outcome here (success, failed, cancelled) —
+    // status_id=1 is the only one that actually means paid. Anything else
+    // must NOT show "Payment Successful" or clear the cart.
+    const statusId = searchParams.get("status_id") || searchParams.get("status");
+    if (statusId && statusId !== "1") {
+      router.replace("/checkout/failed");
+      return;
+    }
+
     clearCart();
 
     // ToyyibPay returns: ?billcode=XXX&refno=FH-XXX&status_id=1
