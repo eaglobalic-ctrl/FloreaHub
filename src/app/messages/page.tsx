@@ -163,11 +163,11 @@ export default function BuyerMessagesPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col h-[100dvh] sm:h-auto sm:min-h-screen bg-gray-50 overflow-hidden sm:overflow-visible">
       <Navbar />
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        <h1 className="text-lg sm:text-heading font-bold sm:font-normal text-gray-900 mb-3 sm:mb-6">Messages</h1>
-        <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] h-[calc(100dvh-190px)] sm:h-[600px]">
+      <div className="flex-1 min-h-0 flex flex-col max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <h1 className="text-lg sm:text-heading font-bold sm:font-normal text-gray-900 mb-3 sm:mb-6 flex-shrink-0">Messages</h1>
+        <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] flex-1 min-h-0 sm:flex-none sm:h-[600px]">
           <div className="border-r border-gray-100 overflow-y-auto overscroll-contain">
             {loadingConvos ? (
               <div className="flex items-center justify-center h-32"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
@@ -292,7 +292,7 @@ export default function BuyerMessagesPage() {
           </div>
         </div>
       </div>
-      <Footer />
+      <div className="hidden sm:block"><Footer /></div>
     </div>
   );
 }
