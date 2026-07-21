@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Send, Image as ImageIcon, Loader2, MessageCircle, Flower2, Star, ArrowUpRight } from "lucide-react";
+import { Send, Image as ImageIcon, Loader2, MessageCircle, Flower2, Star, ArrowUpRight, ArrowLeft } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -125,9 +125,9 @@ export default function DashboardMessages() {
   const selected = conversations.find(c => c.id === selectedId);
 
   return (
-    <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] h-[600px]">
+    <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] h-[70vh] sm:h-[600px]">
       {/* Conversation list */}
-      <div className="border-r border-gray-100 overflow-y-auto overscroll-contain">
+      <div className={`border-r border-gray-100 overflow-y-auto overscroll-contain ${selectedId ? "hidden sm:block" : "block"}`}>
         {loadingConvos ? (
           <div className="flex items-center justify-center h-32"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
         ) : conversations.length === 0 ? (
@@ -160,12 +160,15 @@ export default function DashboardMessages() {
       </div>
 
       {/* Thread */}
-      <div className="flex flex-col min-w-0">
+      <div className={`min-w-0 flex-col min-h-0 ${selectedId ? "flex" : "hidden sm:flex"}`}>
         {!selected ? (
           <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Select a conversation to view messages.</div>
         ) : (
           <>
-            <div className="px-4 py-3.5 border-b border-gray-100">
+            <div className="px-4 py-3.5 border-b border-gray-100 flex items-center gap-2.5 flex-shrink-0">
+              <button onClick={() => setSelectedId(null)} className="sm:hidden p-1 -ml-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
+                <ArrowLeft size={18} />
+              </button>
               <p className="font-semibold text-gray-900 text-sm">{selected.users?.name ?? "Buyer"}</p>
             </div>
             <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 bg-gray-50">
@@ -218,7 +221,7 @@ export default function DashboardMessages() {
                 );
               })}
             </div>
-            <div className="border-t border-gray-100 p-3">
+            <div className="border-t border-gray-100 p-3 flex-shrink-0">
               {error && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2 mb-2">{error}</p>}
               <div className="flex items-center gap-2">
                 <button
