@@ -335,7 +335,11 @@ export default function ProductDetailPage() {
 
             {product.florists && (
               <div className="mt-3">
-                <ChatWidget floristId={product.florists.id} floristName={product.florists.name} />
+                <ChatWidget
+                  floristId={product.florists.id}
+                  floristName={product.florists.name}
+                  product={{ id: product.id, name: product.name, price: product.price, image: product.image_url }}
+                />
               </div>
             )}
           </motion.div>

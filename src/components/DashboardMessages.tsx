@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 import { motion } from "motion/react";
-import { Send, Image as ImageIcon, Loader2, MessageCircle } from "lucide-react";
+import { Send, Image as ImageIcon, Loader2, MessageCircle, Flower2 } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -17,6 +18,10 @@ type Message = {
   content: string | null;
   image_url: string | null;
   created_at: string;
+  product_id?: string | null;
+  product_name?: string | null;
+  product_price?: number | null;
+  product_image?: string | null;
 };
 
 const timeAgo = (dateStr: string) => {
@@ -164,6 +169,26 @@ export default function DashboardMessages() {
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
               {messages.map(m => {
                 const mine = m.sender_role === "florist";
+                if (m.product_id) {
+                  return (
+                    <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                      <Link href={`/products/${m.product_id}`} target="_blank" className="max-w-[70%] flex items-center gap-2.5 bg-white border border-gray-100 rounded-2xl p-2.5 hover:border-gray-200 transition-colors">
+                        <div className="w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          {m.product_image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={m.product_image} alt={m.product_name ?? "Product"} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300"><Flower2 size={16} /></div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">{m.product_name}</p>
+                          <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>RM{m.product_price}</p>
+                        </div>
+                      </Link>
+                    </div>
+                  );
+                }
                 return (
                   <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                     <div className={`max-w-[70%] rounded-2xl px-3.5 py-2.5 text-sm ${mine ? "text-white" : "bg-white border border-gray-100 text-gray-800"}`} style={mine ? { background: "var(--primary)" } : {}}>

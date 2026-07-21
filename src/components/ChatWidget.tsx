@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageCircle, X, Send, Image as ImageIcon, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Image as ImageIcon, Loader2, Flower2 } from "lucide-react";
 
 type Message = {
   id: string;
@@ -10,9 +10,17 @@ type Message = {
   content: string | null;
   image_url: string | null;
   created_at: string;
+  product_id?: string | null;
+  product_name?: string | null;
+  product_price?: number | null;
+  product_image?: string | null;
 };
 
-export default function ChatWidget({ floristId, floristName }: { floristId: string; floristName: string }) {
+type ProductContext = { id: string; name: string; price: number; image?: string | null };
+
+export default function ChatWidget({
+  floristId, floristName, product,
+}: { floristId: string; floristName: string; product?: ProductContext }) {
   const [open, setOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
@@ -30,11 +38,12 @@ export default function ChatWidget({ floristId, floristName }: { floristId: stri
     fetch("/api/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ floristId }),
+      body: JSON.stringify({ floristId, product }),
     })
       .then(r => r.json())
       .then(d => { if (d.conversation) setConversationId(d.conversation.id); })
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, signedIn, conversationId, floristId]);
 
   useEffect(() => {
@@ -150,6 +159,26 @@ export default function ChatWidget({ floristId, floristName }: { floristId: stri
                   )}
                   {messages.map(m => {
                     const mine = m.sender_role === "buyer";
+                    if (m.product_id) {
+                      return (
+                        <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                          <Link href={`/products/${m.product_id}`} className="max-w-[75%] flex items-center gap-2.5 bg-white border border-gray-100 rounded-2xl p-2.5 hover:border-gray-200 transition-colors">
+                            <div className="w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                              {m.product_image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={m.product_image} alt={m.product_name ?? "Product"} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300"><Flower2 size={16} /></div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-gray-800 truncate">{m.product_name}</p>
+                              <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>RM{m.product_price}</p>
+                            </div>
+                          </Link>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                         <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm ${mine ? "text-white" : "bg-white border border-gray-100 text-gray-800"}`} style={mine ? { background: "var(--primary)" } : {}}>

@@ -39,13 +39,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Buyer starts (or resumes) a conversation with a florist
+type ProductContext = { id: string; name: string; price: number; image?: string | null };
+
+// Buyer starts (or resumes) a conversation with a florist. If opened from a
+// product page, attaches a one-time product-card message — same as
+// Shopee's "Chat Now" on a product listing — so the seller sees exactly
+// what's being asked about without the buyer typing it out.
 export async function POST(req: NextRequest) {
   try {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-    const { floristId } = await req.json();
+    const { floristId, product } = await req.json() as { floristId: string; product?: ProductContext };
     if (!floristId) return NextResponse.json({ error: "Missing floristId" }, { status: 400 });
 
     const db = getSupabaseAdmin();
@@ -56,16 +61,42 @@ export async function POST(req: NextRequest) {
       .eq("buyer_id", session.userId)
       .eq("florist_id", floristId)
       .maybeSingle();
-    if (existing) return NextResponse.json({ conversation: existing });
 
-    const { data: created, error } = await db
-      .from("conversations")
-      .insert({ buyer_id: session.userId, florist_id: floristId })
-      .select()
-      .single();
-    if (error) throw error;
+    const conversation = existing ?? (await (async () => {
+      const { data: created, error } = await db
+        .from("conversations")
+        .insert({ buyer_id: session.userId, florist_id: floristId })
+        .select()
+        .single();
+      if (error) throw error;
+      return created;
+    })());
 
-    return NextResponse.json({ conversation: created });
+    if (product?.id) {
+      const { data: alreadyAttached } = await db
+        .from("messages")
+        .select("id")
+        .eq("conversation_id", conversation.id)
+        .eq("product_id", product.id)
+        .maybeSingle();
+
+      if (!alreadyAttached) {
+        await db.from("messages").insert({
+          conversation_id: conversation.id,
+          sender_role: "buyer",
+          product_id: product.id,
+          product_name: product.name,
+          product_price: product.price,
+          product_image: product.image ?? null,
+        });
+        await db.from("conversations").update({
+          last_message_at: new Date().toISOString(),
+          florist_unread_count: (conversation.florist_unread_count ?? 0) + 1,
+        }).eq("id", conversation.id);
+      }
+    }
+
+    return NextResponse.json({ conversation });
   } catch (err) {
     console.error("Conversation create error:", err);
     return NextResponse.json({ error: "Failed to start conversation" }, { status: 500 });
