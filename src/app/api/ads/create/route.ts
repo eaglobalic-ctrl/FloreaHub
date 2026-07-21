@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
     const { data: florist } = await supabaseAdmin.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).eq("status", "approved").maybeSingle();
     if (!florist) return NextResponse.json({ error: "Florist not found" }, { status: 403 });
 
-    const baseUrl = process.env.TOYYIBPAY_SANDBOX === "false"
-      ? "https://toyyibpay.com"
-      : "https://dev.toyyibpay.com";
+    const baseUrl = process.env.TOYYIBPAY_SANDBOX === "true"
+      ? "https://dev.toyyibpay.com"
+      : "https://toyyibpay.com";
 
     const planNames: Record<string, string> = {
       product_boost: "Product Boost (7 days)",
