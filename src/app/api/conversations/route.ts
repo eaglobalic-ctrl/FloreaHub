@@ -105,9 +105,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ conversation });
   } catch (err) {
     console.error("Conversation create error:", err);
-    // TEMPORARY: surfacing the raw error to diagnose a live bug reported
-    // by the user — revert to a generic message once root-caused.
-    const detail = err instanceof Error ? err.message : JSON.stringify(err);
-    return NextResponse.json({ error: `Failed to start conversation: ${detail}` }, { status: 500 });
+    return NextResponse.json({ error: "Failed to start conversation" }, { status: 500 });
   }
 }
