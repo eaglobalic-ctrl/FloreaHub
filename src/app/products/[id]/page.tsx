@@ -11,6 +11,7 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Skeleton from "@/components/ui/skeleton";
+import ChatWidget from "@/components/ChatWidget";
 import { addToCart } from "@/lib/cart";
 
 type Product = {
@@ -330,6 +331,12 @@ export default function ProductDetailPage() {
                 </div>
                 <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
               </Link>
+            )}
+
+            {product.florists && (
+              <div className="mt-3">
+                <ChatWidget floristId={product.florists.id} floristName={product.florists.name} />
+              </div>
             )}
           </motion.div>
         </div>
