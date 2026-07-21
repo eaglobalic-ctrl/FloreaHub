@@ -369,6 +369,37 @@ export async function sendOccasionReminderEmail({
   await send(email, `Reminder: ${occasionName} is in ${daysUntil} day${daysUntil === 1 ? "" : "s"}`, html);
 }
 
+// ── New chat message ───────────────────────────────────────────────────────────
+
+export async function sendNewChatMessageEmail({
+  toEmail, toName, fromName, preview, conversationUrl,
+}: { toEmail: string; toName: string; fromName: string; preview: string; conversationUrl: string }) {
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#b5294e,#7c1d35);padding:36px 32px;text-align:center;">
+      ${LOGO_SVG}
+    </div>
+    <div style="padding:36px 32px;">
+      <h2 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#111827;">New message from ${fromName}</h2>
+      <p style="margin:0 0 20px;color:#6b7280;font-size:15px;line-height:1.6;">Hi ${toName.split(" ")[0]}, you've got a new message on FloreaHub:</p>
+      <div style="background:#f9fafb;border-left:3px solid #b5294e;border-radius:8px;padding:16px 18px;margin-bottom:24px;">
+        <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;font-style:italic;">"${preview}"</p>
+      </div>
+      <a href="${conversationUrl}" style="display:block;background:#b5294e;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Reply Now →</a>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(toEmail, `New message from ${fromName}`, html);
+}
+
 // ── Florist rejected ──────────────────────────────────────────────────────────
 
 export async function sendFloristRejectedEmail({ name, email }: { name: string; email: string }) {

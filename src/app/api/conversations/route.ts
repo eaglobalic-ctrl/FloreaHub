@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { sendNewChatMessageEmail } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   try {
@@ -95,10 +96,30 @@ export async function POST(req: NextRequest) {
           console.error("Product card insert error:", msgError);
           throw msgError;
         }
+        const wasUnread = conversation.florist_unread_count ?? 0;
         await db.from("conversations").update({
           last_message_at: new Date().toISOString(),
-          florist_unread_count: (conversation.florist_unread_count ?? 0) + 1,
+          florist_unread_count: wasUnread + 1,
         }).eq("id", conversation.id);
+
+        if (wasUnread === 0) {
+          try {
+            const { data: florist } = await db.from("florists").select("name, email").eq("id", floristId).maybeSingle();
+            const { data: buyer } = await db.from("users").select("name").eq("id", session.userId).maybeSingle();
+            if (florist?.email) {
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://floriahub.vercel.app";
+              await sendNewChatMessageEmail({
+                toEmail: florist.email,
+                toName: florist.name ?? "there",
+                fromName: buyer?.name ?? "A buyer",
+                preview: `Asking about: ${product.name}`,
+                conversationUrl: `${baseUrl}/dashboard`,
+              });
+            }
+          } catch (emailErr) {
+            console.error("Chat notification email error (non-blocking):", emailErr);
+          }
+        }
       }
     }
 

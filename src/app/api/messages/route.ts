@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { moderateMessage } from "@/lib/chatModeration";
+import { sendNewChatMessageEmail } from "@/lib/email";
 
 type Role = "buyer" | "florist";
 
@@ -77,13 +78,56 @@ export async function POST(req: NextRequest) {
     if (error) throw error;
 
     const otherRole: Role = role === "buyer" ? "florist" : "buyer";
-    const { data: convo } = await db.from("conversations").select(`${otherRole}_unread_count`).eq("id", conversationId).maybeSingle();
-    const currentUnread = (convo as unknown as Record<string, number> | null)?.[`${otherRole}_unread_count`] ?? 0;
+    const { data: convo } = await db
+      .from("conversations")
+      .select("buyer_id, florist_id, buyer_unread_count, florist_unread_count")
+      .eq("id", conversationId)
+      .maybeSingle();
+
+    const currentUnread = (otherRole === "buyer" ? convo?.buyer_unread_count : convo?.florist_unread_count) ?? 0;
 
     await db.from("conversations").update({
       last_message_at: new Date().toISOString(),
       [`${otherRole}_unread_count`]: currentUnread + 1,
     }).eq("id", conversationId);
+
+    // Email notification — only on the 0-to-1 transition, so a burst of
+    // messages produces one email, not one per message, until the
+    // recipient actually reads the thread and it can fire again.
+    if (currentUnread === 0 && convo) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://floriahub.vercel.app";
+        const preview = content?.trim() ? content.trim().slice(0, 140) : "📷 Sent a photo";
+
+        if (otherRole === "florist") {
+          const { data: florist } = await db.from("florists").select("name, email, user_id").eq("id", convo.florist_id).maybeSingle();
+          const { data: buyer } = await db.from("users").select("name").eq("id", convo.buyer_id).maybeSingle();
+          if (florist?.email) {
+            await sendNewChatMessageEmail({
+              toEmail: florist.email,
+              toName: florist.name ?? "there",
+              fromName: buyer?.name ?? "A buyer",
+              preview,
+              conversationUrl: `${baseUrl}/dashboard`,
+            });
+          }
+        } else {
+          const { data: buyer } = await db.from("users").select("name, email").eq("id", convo.buyer_id).maybeSingle();
+          const { data: florist } = await db.from("florists").select("name").eq("id", convo.florist_id).maybeSingle();
+          if (buyer?.email) {
+            await sendNewChatMessageEmail({
+              toEmail: buyer.email,
+              toName: buyer.name ?? "there",
+              fromName: florist?.name ?? "The shop",
+              preview,
+              conversationUrl: `${baseUrl}/messages`,
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.error("Chat notification email error (non-blocking):", emailErr);
+      }
+    }
 
     return NextResponse.json({ message });
   } catch (err) {

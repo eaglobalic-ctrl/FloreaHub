@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendWelcomeEmail } from "@/lib/email";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { getSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,17 +42,51 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// The caller's own profile only — this used to accept an arbitrary
+// ?email= and return that person's name/phone with no auth check at all.
+// Nothing in the app actually called it that way; tightened to session-only.
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get("email");
-  if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
+  const session = getSession(req);
+  if (!session) return NextResponse.json({ user: null }, { status: 401 });
 
   try {
     const db = getSupabaseAdmin();
-    const { data, error } = await db.from("users").select("id, email, name, phone, role, status").eq("email", email).single();
+    const { data, error } = await db.from("users").select("id, email, name, phone, role, status, avatar_url").eq("id", session.userId).single();
     if (error) return NextResponse.json({ user: null });
     return NextResponse.json({ user: data });
   } catch {
     return NextResponse.json({ user: null });
+  }
+}
+
+const SELF_EDITABLE_FIELDS: Record<string, string> = { name: "name", phone: "phone", avatarUrl: "avatar_url" };
+
+export async function PATCH(req: NextRequest) {
+  const session = getSession(req);
+  if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  try {
+    const body = await req.json();
+    const update: Record<string, unknown> = {};
+    for (const [key, column] of Object.entries(SELF_EDITABLE_FIELDS)) {
+      if (key in body) update[column] = body[key];
+    }
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: "No editable fields provided" }, { status: 400 });
+    }
+
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from("users")
+      .update(update)
+      .eq("id", session.userId)
+      .select("id, email, name, phone, role, status, avatar_url")
+      .single();
+    if (error) throw error;
+
+    return NextResponse.json({ user: data });
+  } catch (err) {
+    console.error("Profile update error:", err);
+    return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
   }
 }

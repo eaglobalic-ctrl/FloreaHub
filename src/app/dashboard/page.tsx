@@ -68,6 +68,7 @@ export default function DashboardPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [florist, setFlorist] = useState<Florist | null>(null);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [floristLoading, setFloristLoading] = useState(true);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -129,6 +130,22 @@ export default function DashboardPage() {
       .then((d) => setReviews(d.reviews ?? []))
       .catch(() => setReviews([]))
       .finally(() => setLoadingReviews(false));
+  }, [florist]);
+
+  useEffect(() => {
+    if (!florist?.id) { setUnreadMessages(0); return; }
+    const sync = () => {
+      fetch("/api/conversations?role=florist")
+        .then(r => r.json())
+        .then(d => {
+          const total = (d.conversations ?? []).reduce((n: number, c: { florist_unread_count?: number }) => n + (c.florist_unread_count ?? 0), 0);
+          setUnreadMessages(total);
+        })
+        .catch(() => {});
+    };
+    sync();
+    const interval = setInterval(sync, 8000);
+    return () => clearInterval(interval);
   }, [florist]);
 
   useEffect(() => {
@@ -308,6 +325,14 @@ export default function DashboardPage() {
                 style={tab === id ? { background: "var(--primary)" } : {}}
               >
                 <Icon size={17} /> {label}
+                {id === "messages" && unreadMessages > 0 && (
+                  <span
+                    className="ml-auto w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                    style={{ background: tab === id ? "rgba(255,255,255,0.25)" : "var(--primary)", color: tab === id ? "white" : "white" }}
+                  >
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
               </button>
             )
           ))}
@@ -330,10 +355,16 @@ export default function DashboardPage() {
           </button>
           <h1 className="text-lg font-bold text-gray-900 capitalize">{NAV.find(n => n.id === tab)?.label || "Dashboard"}</h1>
           <div className="flex items-center gap-2">
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+            <button
+              onClick={() => setTab("messages")}
+              title={unreadMessages > 0 ? `${unreadMessages} unread message${unreadMessages > 1 ? "s" : ""}` : "Messages"}
+              className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+            >
               <Bell size={18} />
-              {orders.filter(o => o.status === "pending").length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "var(--primary)" }} />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
               )}
             </button>
             <Link href="/dashboard/ads" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5">
