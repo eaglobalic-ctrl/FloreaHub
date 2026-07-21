@@ -41,7 +41,15 @@ export async function GET(req: NextRequest) {
       console.error("Florists query error:", error);
       return NextResponse.json({ florists: [], error: error.message });
     }
-    return NextResponse.json({ florists: data ?? [] });
+
+    // Plan-tier placement (a paid "priority/featured placement" benefit) —
+    // higher tiers rank first, rating breaks ties within the same tier.
+    const PLAN_RANK: Record<string, number> = { elite: 0, pro: 1, starter: 2, free: 2 };
+    const sorted = [...(data ?? [])].sort(
+      (a, b) => (PLAN_RANK[a.plan] ?? 2) - (PLAN_RANK[b.plan] ?? 2) || (b.rating ?? 0) - (a.rating ?? 0)
+    );
+
+    return NextResponse.json({ florists: sorted });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Florists fetch error:", msg);

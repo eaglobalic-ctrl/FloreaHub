@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ExternalLink, X } from "lucide-react";
 import Link from "next/link";
+import { trackAdEvent } from "@/lib/ads";
 
 type Ad = { id: string; headline: string; tagline: string; florist_id: string };
 
@@ -13,7 +14,9 @@ export default function SponsoredBanner() {
   useEffect(() => {
     fetch("/api/ads?type=premium_banner")
       .then(r => r.json())
-      .then(d => { if (d.ads?.[0]) setAd(d.ads[0]); })
+      .then(d => {
+        if (d.ads?.[0]) { setAd(d.ads[0]); trackAdEvent(d.ads[0].id, "impression"); }
+      })
       .catch(() => {});
   }, []);
 
@@ -34,7 +37,7 @@ export default function SponsoredBanner() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link href="/florists" className="text-xs font-medium text-white bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full flex items-center gap-1 transition-colors">
+          <Link href="/florists" onClick={() => trackAdEvent(ad.id, "click")} className="text-xs font-medium text-white bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full flex items-center gap-1 transition-colors">
             Shop now <ExternalLink size={11} />
           </Link>
           <button onClick={() => setDismissed(true)} className="text-white/60 hover:text-white transition-colors">

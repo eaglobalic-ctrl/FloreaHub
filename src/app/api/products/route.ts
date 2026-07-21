@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ product: data });
     }
 
-    let query = db.from("products").select("*, florists(id, name, city)").eq("is_active", true);
+    let query = db.from("products").select("*, florists(id, name, city, plan)").eq("is_active", true);
 
     if (category && category !== "all") query = query.eq("category", category);
     if (floristId) query = query.eq("florist_id", floristId);
@@ -42,12 +42,29 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await query;
     if (error) throw error;
+
+    // Plan-tier priority placement — only meaningful for the default
+    // "popular" sort; explicit price/rating sorts are left untouched since
+    // the customer asked for those specifically.
+    if (sort !== "price_asc" && sort !== "price_desc" && sort !== "rating") {
+      const PLAN_RANK: Record<string, number> = { elite: 0, pro: 1, starter: 2, free: 2 };
+      (data ?? []).sort((a, b) => {
+        const fa = a.florists as { plan?: string } | null;
+        const fb = b.florists as { plan?: string } | null;
+        return (PLAN_RANK[fa?.plan ?? "free"] ?? 2) - (PLAN_RANK[fb?.plan ?? "free"] ?? 2);
+      });
+    }
+
     return NextResponse.json({ products: data ?? [] });
   } catch (err) {
     console.error("Products fetch error:", err);
     return NextResponse.json({ products: [] });
   }
 }
+
+// Starter/free share the same cap — "starter" ($0/mo, /pricing) never
+// actually lands in florists.plan since new florists default to 'free'.
+const LISTING_LIMITS: Record<string, number> = { free: 5, starter: 5, pro: 50, elite: Infinity };
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,8 +79,14 @@ export async function POST(req: NextRequest) {
     const db = getSupabaseAdmin();
 
     // Only the florist's own (approved, active) owner can list products for it
-    const { data: florist } = await db.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).eq("is_active", true).maybeSingle();
+    const { data: florist } = await db.from("florists").select("id, plan").eq("id", floristId).eq("user_id", session.userId).eq("is_active", true).maybeSingle();
     if (!florist) return NextResponse.json({ error: "Florist not found or not active" }, { status: 403 });
+
+    const limit = LISTING_LIMITS[florist.plan] ?? LISTING_LIMITS.free;
+    const { count } = await db.from("products").select("id", { count: "exact", head: true }).eq("florist_id", floristId);
+    if ((count ?? 0) >= limit) {
+      return NextResponse.json({ error: `Your ${florist.plan} plan allows up to ${limit} listings. Upgrade your plan to add more products.` }, { status: 403 });
+    }
 
     const { data: product, error } = await db.from("products").insert({
       florist_id: floristId,

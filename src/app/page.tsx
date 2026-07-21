@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -17,7 +17,7 @@ import SponsoredFlorists from "@/components/SponsoredFlorists";
 import TestimonialsColumn from "@/components/ui/testimonials-column";
 import CountUp from "@/components/ui/count-up";
 import CategoryTile from "@/components/ui/category-tile";
-import { FLORISTS, CATEGORIES, WOW_FEATURES, STATS, TESTIMONIALS } from "@/lib/data";
+import { dbToFloristCard, CATEGORIES, WOW_FEATURES, STATS, TESTIMONIALS } from "@/lib/data";
 import { fadeUp, stagger, scaleIn, popIn, floatAnim } from "@/lib/animations";
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -44,6 +44,16 @@ function InViewSection({ children, className = "" }: { children: React.ReactNode
 export default function Home() {
   const router = useRouter();
   const [heroQuery, setHeroQuery] = useState("");
+  const [featuredFlorists, setFeaturedFlorists] = useState<ReturnType<typeof dbToFloristCard>[]>([]);
+
+  useEffect(() => {
+    // /api/florists already ranks elite/pro plan tiers first — that
+    // ordering is exactly what "Featured homepage placement" is meant to buy.
+    fetch("/api/florists")
+      .then(r => r.json())
+      .then(d => setFeaturedFlorists((d.florists ?? []).slice(0, 4).map(dbToFloristCard)))
+      .catch(() => setFeaturedFlorists([]));
+  }, []);
 
   const handleHeroSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,7 +287,7 @@ export default function Home() {
             </Link>
           </motion.div>
           <motion.div variants={stagger} className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {FLORISTS.map((florist) => (
+            {featuredFlorists.map((florist) => (
               <motion.div key={florist.id} variants={scaleIn}>
                 <FloristCard florist={florist} />
               </motion.div>

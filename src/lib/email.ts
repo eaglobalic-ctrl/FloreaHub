@@ -432,3 +432,45 @@ export async function sendFloristRejectedEmail({ name, email }: { name: string; 
 
   await send(email, "Update permohonan florist — FloreaHub", html);
 }
+
+// ── Contact form submission (admin notification) ───────────────────────────────
+
+export async function sendContactFormEmail({ name, email, topic, message }: {
+  name: string; email: string; topic?: string; message: string;
+}) {
+  const adminEmail = process.env.ADMIN_EMAIL ?? process.env.GMAIL_USER ?? "";
+  if (!adminEmail) return;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#1e40af,#1e3a8a);padding:28px 32px;">
+      ${LOGO_SVG}
+      <p style="margin:12px 0 0;color:rgba(255,255,255,.8);font-size:13px;">Admin Notification</p>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 4px;font-size:20px;font-weight:700;color:#111827;">New Contact Form Message</h2>
+      <p style="margin:0 0 24px;color:#6b7280;font-size:14px;">Someone submitted the contact form on FloreaHub.</p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;font-size:13px;color:#6b7280;width:100px;">Name</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#111827;">${name}</td></tr>
+          <tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">Email</td><td style="padding:6px 0;font-size:14px;color:#111827;">${email}</td></tr>
+          ${topic ? `<tr><td style="padding:6px 0;font-size:13px;color:#6b7280;">Topic</td><td style="padding:6px 0;font-size:14px;color:#111827;">${topic}</td></tr>` : ""}
+        </table>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:18px;margin-bottom:24px;">
+        <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;white-space:pre-wrap;">${message}</p>
+      </div>
+      <a href="mailto:${email}" style="display:block;background:#1e40af;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Reply to ${name.split(" ")[0]}</a>
+    </div>
+    <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">FloreaHub Admin · floriahub.vercel.app/admin</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(adminEmail, `[FloreaHub] Contact form — ${topic || "General"} — ${name}`, html);
+}

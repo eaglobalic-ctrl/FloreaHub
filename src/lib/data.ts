@@ -1,71 +1,27 @@
 const AI = "https://image.pollinations.ai/prompt";
 
-export const FLORISTS = [
-  {
-    id: "1",
-    name: "Bloom & Co.",
-    location: "Kuala Lumpur",
-    area: "Mont Kiara",
-    rating: 4.9,
-    reviews: 312,
-    badge: "Top Seller",
-    deliveryTime: "2–4 hrs",
-    minOrder: 80,
-    tags: ["Wedding", "Corporate", "Custom"],
-    image: `${AI}/luxury+flower+boutique+interior+pink+roses+premium+Malaysian+florist+shop+elegant?width=600&height=400&nologo=true&seed=101`,
-    products: 48,
-    freshGuarantee: true,
-    sameDay: true,
-  },
-  {
-    id: "2",
-    name: "Petal Paradise",
-    location: "Selangor",
-    area: "Subang Jaya",
-    rating: 4.8,
-    reviews: 189,
-    badge: "New",
-    deliveryTime: "3–5 hrs",
-    minOrder: 60,
-    tags: ["Birthday", "Anniversary", "Daily"],
-    image: `${AI}/modern+florist+boutique+tropical+orchids+Malaysia+flower+display+beautiful?width=600&height=400&nologo=true&seed=202`,
-    products: 32,
-    freshGuarantee: true,
-    sameDay: true,
-  },
-  {
-    id: "3",
-    name: "Rose Garden MY",
-    location: "Penang",
-    area: "Georgetown",
-    rating: 4.7,
-    reviews: 256,
-    badge: "Verified",
-    deliveryTime: "4–6 hrs",
-    minOrder: 70,
-    tags: ["Luxury", "Events", "Hamper"],
-    image: `${AI}/garden+flower+shop+colorful+roses+sunflowers+Malaysia+florist+premium+display?width=600&height=400&nologo=true&seed=303`,
-    products: 61,
-    freshGuarantee: true,
-    sameDay: false,
-  },
-  {
-    id: "4",
-    name: "Fleur de Lune",
-    location: "Johor",
-    area: "Johor Bahru",
-    rating: 4.9,
-    reviews: 421,
-    badge: "Top Seller",
-    deliveryTime: "2–3 hrs",
-    minOrder: 90,
-    tags: ["Wedding", "Bridal", "Luxury"],
-    image: `${AI}/premium+luxury+flower+boutique+peonies+pastel+elegant+bridal+florist?width=600&height=400&nologo=true&seed=404`,
-    products: 55,
-    freshGuarantee: true,
-    sameDay: true,
-  },
-];
+// Maps a raw `florists` DB row to the card shape FloristCard expects —
+// shared by /florists and the homepage's Featured Florists section.
+export function dbToFloristCard(f: Record<string, unknown>) {
+  const plan = String(f.plan || "free");
+  return {
+    id: String(f.id),
+    name: String(f.name || ""),
+    location: String(f.state || f.city || "Malaysia"),
+    area: String(f.city || ""),
+    rating: Number(f.rating) || 0,
+    reviews: Number(f.review_count) || 0,
+    badge: plan === "elite" ? "Top Seller" : plan === "pro" ? "Verified" : "New",
+    deliveryTime: String(f.delivery_time || "2–4 hrs"),
+    minOrder: Number(f.min_order) || 50,
+    tags: Array.isArray(f.tags) ? f.tags as string[] : [],
+    image: String(f.cover_image || `${AI}/flower+shop+malaysia+florist?width=600&height=400&nologo=true&seed=${f.id}`),
+    products: Number(f.product_count) || 0,
+    freshGuarantee: Boolean(f.is_verified),
+    sameDay: Boolean(f.same_day_delivery),
+  };
+}
+
 
 export const CATEGORIES = [
   { id: "wedding", label: "Weddings", icon: "gem", count: 120 },

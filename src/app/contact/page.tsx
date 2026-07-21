@@ -12,11 +12,26 @@ export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", topic: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSent(true); }, 1500);
+    setError("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      setSent(true);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -94,6 +109,7 @@ export default function ContactPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Message *</label>
                       <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={5} placeholder="Tell us how we can help..." className="input-premium w-full resize-none" required />
                     </div>
+                    {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>}
                     <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3.5">
                       {loading
                         ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

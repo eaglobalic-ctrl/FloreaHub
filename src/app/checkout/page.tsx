@@ -10,7 +10,7 @@ import { fadeUp, stagger } from "@/lib/animations";
 
 const PLAN_DETAILS: Record<string, { name: string; price: number; desc: string }> = {
   pro: { name: "Pro Plan (Monthly)", price: 99, desc: "Up to 50 listings, priority placement, analytics" },
-  premium: { name: "Premium Plan (Monthly)", price: 199, desc: "Unlimited listings, featured placement, dedicated support" },
+  elite: { name: "Premium Plan (Monthly)", price: 199, desc: "Unlimited listings, featured placement, dedicated support" },
 };
 
 function CheckoutContent() {
@@ -28,6 +28,8 @@ function CheckoutContent() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [floristId, setFloristId] = useState<string | null>(null);
+  const [floristLookupDone, setFloristLookupDone] = useState(false);
 
   useEffect(() => {
     if (!planDetail) setCart(getCart());
@@ -41,8 +43,15 @@ function CheckoutContent() {
         const u = d.user;
         if (u?.name) setForm(f => ({ ...f, name: u.name, recipientName: u.name }));
         if (u?.email) setForm(f => ({ ...f, email: u.email }));
+        if (planDetail && u?.id) {
+          return fetch(`/api/florists?userId=${u.id}`)
+            .then(r => r.json())
+            .then(fd => setFloristId(fd.florists?.[0]?.id ?? null))
+            .finally(() => setFloristLookupDone(true));
+        }
+        if (planDetail) setFloristLookupDone(true);
       })
-      .catch(() => {});
+      .catch(() => { if (planDetail) setFloristLookupDone(true); });
 
     return () => window.removeEventListener("cart-updated", onUpdate);
   }, [planDetail]);
@@ -63,33 +72,39 @@ function CheckoutContent() {
     e.preventDefault();
     if (!form.name || !form.email || !form.phone) { setError("Please fill in all required fields."); return; }
     if (!planDetail && !form.address) { setError("Please enter a delivery address."); return; }
+    if (planDetail && !floristId) { setError("You need an approved florist account to upgrade a plan. Sign in with your florist account first."); return; }
     setError("");
     setLoading(true);
     try {
-      const deliveryAddress = form.address ? `${form.address}, ${form.city}`.trim().replace(/,\s*$/, "") : "";
-      const res = await fetch("/api/toyyibpay/create-bill", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: total,
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          description: planDetail ? planDetail.name : `FloreaHub Order (${cart.length} item${cart.length > 1 ? "s" : ""})`,
-          referenceNo: `FH-${Date.now()}`,
-          items: items,
-          deliveryFee,
-          recipientName: form.sameAsContact ? form.name : form.recipientName,
-          recipientPhone: form.sameAsContact ? form.phone : form.recipientPhone,
-          deliveryAddress,
-          notes: form.notes,
-        }),
-      });
+      const res = planDetail
+        ? await fetch("/api/toyyibpay/create-plan-bill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ floristId, plan, name: form.name, email: form.email, phone: form.phone }),
+          })
+        : await fetch("/api/toyyibpay/create-bill", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: total,
+              name: form.name,
+              email: form.email,
+              phone: form.phone,
+              description: `FloreaHub Order (${cart.length} item${cart.length > 1 ? "s" : ""})`,
+              referenceNo: `FH-${Date.now()}`,
+              items: items,
+              deliveryFee,
+              recipientName: form.sameAsContact ? form.name : form.recipientName,
+              recipientPhone: form.sameAsContact ? form.phone : form.recipientPhone,
+              deliveryAddress: form.address ? `${form.address}, ${form.city}`.trim().replace(/,\s*$/, "") : "",
+              notes: form.notes,
+            }),
+          });
       const data = await res.json();
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        setError("Payment setup failed. Please try again.");
+        setError(data.error ?? "Payment setup failed. Please try again.");
       }
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -260,6 +275,11 @@ function CheckoutContent() {
                 </div>
 
                 {planDetail && <p className="text-xs text-gray-500 mb-4 bg-blue-50 p-3 rounded-lg">{planDetail.desc}</p>}
+                {planDetail && floristLookupDone && !floristId && (
+                  <p className="text-xs text-amber-700 mb-4 bg-amber-50 border border-amber-100 p-3 rounded-lg">
+                    You need an approved florist account to upgrade a plan. <Link href="/login" className="underline font-medium">Sign in</Link> with your florist account, or <Link href="/register/florist" className="underline font-medium">register one</Link> first.
+                  </p>
+                )}
 
                 <div className="border-t border-gray-100 pt-4 space-y-2 mb-5">
                   <div className="flex justify-between text-sm text-gray-500">
@@ -280,7 +300,7 @@ function CheckoutContent() {
                 <button
                   form="checkout-form"
                   type="submit"
-                  disabled={loading || items.length === 0}
+                  disabled={loading || items.length === 0 || Boolean(planDetail) && (!floristLookupDone || !floristId)}
                   className="btn-primary w-full flex items-center justify-center gap-2 py-3.5 disabled:opacity-50 text-base"
                 >
                   {loading

@@ -5,6 +5,7 @@ import { Search, SlidersHorizontal, X, MapPin, Star, Zap, ChevronDown, Loader2 }
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristCard from "@/components/FloristCard";
+import { dbToFloristCard } from "@/lib/data";
 import { stagger, scaleIn } from "@/lib/animations";
 
 const SORT_OPTIONS = [
@@ -13,28 +14,8 @@ const SORT_OPTIONS = [
   { value: "minOrder_asc", label: "Lowest Minimum Order" },
 ];
 
-function dbToCard(f: Record<string, unknown>) {
-  const plan = String(f.plan || "free");
-  return {
-    id: String(f.id),
-    name: String(f.name || ""),
-    location: String(f.state || f.city || "Malaysia"),
-    area: String(f.city || ""),
-    rating: Number(f.rating) || 0,
-    reviews: Number(f.review_count) || 0,
-    badge: plan === "elite" ? "Top Seller" : plan === "pro" ? "Verified" : "New",
-    deliveryTime: String(f.delivery_time || "2–4 hrs"),
-    minOrder: Number(f.min_order) || 50,
-    tags: Array.isArray(f.tags) ? f.tags as string[] : [],
-    image: String(f.cover_image || `https://image.pollinations.ai/prompt/flower+shop+malaysia+florist?width=600&height=400&nologo=true&seed=${f.id}`),
-    products: Number(f.product_count) || 0,
-    freshGuarantee: Boolean(f.is_verified),
-    sameDay: Boolean(f.same_day_delivery),
-  };
-}
-
 export default function FloristsPage() {
-  const [florists, setFlorists] = useState<ReturnType<typeof dbToCard>[]>([]);
+  const [florists, setFlorists] = useState<ReturnType<typeof dbToFloristCard>[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [location, setLocation] = useState("All");
@@ -46,7 +27,7 @@ export default function FloristsPage() {
   useEffect(() => {
     fetch("/api/florists")
       .then((r) => r.json())
-      .then((d) => setFlorists((d.florists ?? []).map(dbToCard)))
+      .then((d) => setFlorists((d.florists ?? []).map(dbToFloristCard)))
       .catch(() => setFlorists([]))
       .finally(() => setLoading(false));
   }, []);

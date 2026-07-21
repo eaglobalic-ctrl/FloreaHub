@@ -11,7 +11,9 @@ import ShopProductCard from "@/components/ui/shop-product-card";
 import { CATEGORIES } from "@/lib/data";
 import { stagger, scaleIn } from "@/lib/animations";
 import { addToCart as saveToCart, getCart } from "@/lib/cart";
-import { getActiveAds } from "@/lib/ads";
+import { trackAdEvent } from "@/lib/ads";
+
+type SponsoredAd = { id: string; headline: string; tagline: string; florist_id: string; florist_name: string; image_url: string };
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   wedding: Gem, birthday: Gift, anniversary: Heart,
@@ -54,7 +56,7 @@ function ShopContent() {
   const [cartCount, setCartCount] = useState(0);
   const [addedId, setAddedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(qParam);
-  const [sponsoredAds, setSponsoredAds] = useState<ReturnType<typeof getActiveAds>>([]);
+  const [sponsoredAds, setSponsoredAds] = useState<SponsoredAd[]>([]);
 
   useEffect(() => {
     fetch("/api/products")
@@ -65,7 +67,16 @@ function ShopContent() {
   }, []);
 
   useEffect(() => { setSearchQuery(qParam); }, [qParam]);
-  useEffect(() => { setSponsoredAds(getActiveAds("product_boost").slice(0, 2)); }, []);
+  useEffect(() => {
+    fetch("/api/ads?type=product_boost")
+      .then(r => r.json())
+      .then(d => {
+        const top2 = (d.ads ?? []).slice(0, 2);
+        setSponsoredAds(top2);
+        top2.forEach((ad: SponsoredAd) => trackAdEvent(ad.id, "impression"));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const sync = () => setCartCount(getCart().reduce((n, i) => n + i.quantity, 0));
@@ -199,14 +210,14 @@ function ShopContent() {
                 <div key={ad.id} className="flex items-center gap-3 p-3 bg-white rounded-xl border border-amber-100 shadow-sm">
                   <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={ad.imageUrl} alt={ad.headline} className="w-full h-full object-cover" />
+                    <img src={ad.image_url} alt={ad.headline} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-gray-900 truncate">{ad.headline}</p>
                     <p className="text-xs text-gray-500 truncate">{ad.tagline}</p>
-                    <p className="text-[10px] text-amber-600 font-medium mt-0.5">{ad.floristName}</p>
+                    <p className="text-[10px] text-amber-600 font-medium mt-0.5">{ad.florist_name}</p>
                   </div>
-                  <Link href={`/florists/${ad.floristId}`} className="text-xs font-semibold text-white px-2.5 py-1.5 rounded-lg flex-shrink-0" style={{ background: "var(--primary)" }}>
+                  <Link href={`/florists/${ad.florist_id}`} onClick={() => trackAdEvent(ad.id, "click")} className="text-xs font-semibold text-white px-2.5 py-1.5 rounded-lg flex-shrink-0" style={{ background: "var(--primary)" }}>
                     Visit
                   </Link>
                 </div>

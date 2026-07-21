@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Star, MapPin, Clock } from "lucide-react";
 import Link from "next/link";
+import { trackAdEvent } from "@/lib/ads";
 
 type Ad = {
   id: string; headline: string; tagline: string;
@@ -15,7 +16,11 @@ export default function SponsoredFlorists() {
   useEffect(() => {
     fetch("/api/ads?type=shop_spotlight")
       .then(r => r.json())
-      .then(d => setAds((d.ads ?? []).slice(0, 3)))
+      .then(d => {
+        const top3 = (d.ads ?? []).slice(0, 3);
+        setAds(top3);
+        top3.forEach((ad: Ad) => trackAdEvent(ad.id, "impression"));
+      })
       .catch(() => {});
   }, []);
 
@@ -45,7 +50,7 @@ export default function SponsoredFlorists() {
               transition={{ delay: i * 0.08 }}
               className="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all hover:-translate-y-0.5"
             >
-              <Link href={`/florists/${ad.florist_id}`} className="block">
+              <Link href={`/florists/${ad.florist_id}`} onClick={() => trackAdEvent(ad.id, "click")} className="block">
                 <div className="h-44 overflow-hidden relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={ad.image_url} alt={ad.headline} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />

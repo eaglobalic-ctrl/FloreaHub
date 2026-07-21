@@ -77,35 +77,16 @@ export function saveAd(ad: AdCampaign): void {
   } catch {}
 }
 
-export function getActiveAds(type?: AdType): AdCampaign[] {
-  const now = new Date().toISOString();
-  return getAds().filter(
-    (a) =>
-      a.status === "active" &&
-      a.startDate <= now &&
-      a.endDate >= now &&
-      (!type || a.type === type)
-  );
-}
-
-export function trackImpression(id: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const stored = localStorage.getItem(KEY);
-    const ads: AdCampaign[] = stored ? JSON.parse(stored) : [];
-    const idx = ads.findIndex((a) => a.id === id);
-    if (idx !== -1) { ads[idx].impressions++; localStorage.setItem(KEY, JSON.stringify(ads)); }
-  } catch {}
-}
-
-export function trackClick(id: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const stored = localStorage.getItem(KEY);
-    const ads: AdCampaign[] = stored ? JSON.parse(stored) : [];
-    const idx = ads.findIndex((a) => a.id === id);
-    if (idx !== -1) { ads[idx].clicks++; localStorage.setItem(KEY, JSON.stringify(ads)); }
-  } catch {}
+// Reports a real impression/click to the `ads` table via the API — replaces
+// the old trackImpression/trackClick which only wrote to the viewer's own
+// localStorage and never produced any real aggregate data server-side.
+export function trackAdEvent(adId: string, type: "impression" | "click"): void {
+  fetch("/api/ads/track", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adId, type }),
+    keepalive: true,
+  }).catch(() => {});
 }
 
 const AI = "https://image.pollinations.ai/prompt";

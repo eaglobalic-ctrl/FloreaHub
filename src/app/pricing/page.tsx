@@ -47,7 +47,7 @@ const PLANS = [
     href: "/checkout?plan=pro",
   },
   {
-    id: "premium",
+    id: "elite",
     name: "Premium",
     icon: Star,
     price: { monthly: 199, yearly: 159 },
@@ -65,7 +65,7 @@ const PLANS = [
       "Custom promotional campaigns",
     ],
     cta: "Start Premium",
-    href: "/checkout?plan=premium",
+    href: "/checkout?plan=elite",
   },
 ];
 
