@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Bell, Plus, Trash2, Calendar, Heart, Star, Cake, Gift, Check, ArrowRight } from "lucide-react";
+import { Bell, Plus, Trash2, Calendar, Heart, Star, Cake, Gift, Check, ArrowRight, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { fadeUp, stagger } from "@/lib/animations";
@@ -19,24 +20,55 @@ const TYPES = [
 const NOTIFY = ["3 days before", "1 week before", "2 weeks before", "1 month before"];
 
 export default function RemindersPage() {
-  const [reminders, setReminders] = useState<Reminder[]>([
-    { id: "1", name: "Mum's Birthday", date: "2026-08-14", type: "birthday", notify: "3 days before" },
-    { id: "2", name: "Wedding Anniversary", date: "2026-09-22", type: "anniversary", notify: "1 week before" },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
   const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({ name: "", date: "", type: "birthday", notify: "3 days before" });
 
-  const addReminder = () => {
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then(r => r.json())
+      .then(d => {
+        if (!d.user) { setLoading(false); return; }
+        setSignedIn(true);
+        return fetch("/api/reminders").then(r => r.json()).then(rd => setReminders(rd.reminders ?? []));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const addReminder = async () => {
     if (!form.name || !form.date) return;
-    setReminders(r => [...r, { ...form, id: String(Date.now()) }]);
-    setForm({ name: "", date: "", type: "birthday", notify: "3 days before" });
-    setAdding(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setReminders(r => [...r, data.reminder]);
+      setForm({ name: "", date: "", type: "birthday", notify: "3 days before" });
+      setAdding(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch { /* ignore */ } finally {
+      setSaving(false);
+    }
   };
 
-  const removeReminder = (id: string) => setReminders(r => r.filter(x => x.id !== id));
+  const removeReminder = async (id: string) => {
+    setReminders(r => r.filter(x => x.id !== id));
+    await fetch("/api/reminders", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  };
 
   const typeIcon = (type: string) => {
     const t = TYPES.find(t => t.id === type);
@@ -50,6 +82,33 @@ export default function RemindersPage() {
     if (d < now) d.setFullYear(now.getFullYear() + 1);
     return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center bg-rose-50">
+          <Loader2 size={28} className="animate-spin text-rose-300" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!signedIn) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center bg-rose-50 p-6">
+          <div className="card-premium p-10 max-w-sm text-center">
+            <Bell size={36} className="mx-auto mb-4" style={{ color: "var(--primary)" }} />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Sign In Required</h2>
+            <p className="text-gray-500 text-sm mb-6">Sign in to set and manage your occasion reminders.</p>
+            <Link href="/login" className="btn-primary w-full justify-center">Sign In</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -161,9 +220,9 @@ export default function RemindersPage() {
                       </select>
                     </div>
                     <div className="flex gap-3">
-                      <button onClick={() => setAdding(false)} className="btn-secondary flex-1">Cancel</button>
-                      <button onClick={addReminder} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                        Save Reminder <ArrowRight size={15} />
+                      <button onClick={() => setAdding(false)} className="btn-secondary flex-1" disabled={saving}>Cancel</button>
+                      <button onClick={addReminder} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60">
+                        {saving ? <Loader2 size={15} className="animate-spin" /> : <>Save Reminder <ArrowRight size={15} /></>}
                       </button>
                     </div>
                   </div>
