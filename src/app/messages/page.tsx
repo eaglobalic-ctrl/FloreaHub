@@ -165,10 +165,10 @@ export default function BuyerMessagesPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Navbar />
-      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-heading text-gray-900 mb-6">Messages</h1>
-        <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] h-[600px]">
-          <div className="border-r border-gray-100 overflow-y-auto">
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <h1 className="text-lg sm:text-heading font-bold sm:font-normal text-gray-900 mb-3 sm:mb-6">Messages</h1>
+        <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] h-[calc(100dvh-190px)] sm:h-[600px]">
+          <div className="border-r border-gray-100 overflow-y-auto overscroll-contain">
             {loadingConvos ? (
               <div className="flex items-center justify-center h-32"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
             ) : conversations.length === 0 ? (
@@ -208,7 +208,7 @@ export default function BuyerMessagesPage() {
                 <div className="px-4 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
                   <Link href={`/florists/${selected.florist_id}`} className="font-semibold text-gray-900 text-sm hover:underline">{selected.florists?.name ?? "Shop"}</Link>
                 </div>
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 bg-gray-50">
                   {messages.map(m => {
                     const mine = m.sender_role === "buyer";
                     if (m.product_id) {

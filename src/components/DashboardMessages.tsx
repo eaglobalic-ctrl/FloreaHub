@@ -127,7 +127,7 @@ export default function DashboardMessages() {
   return (
     <div className="card-premium overflow-hidden grid grid-cols-1 sm:grid-cols-[260px_1fr] h-[600px]">
       {/* Conversation list */}
-      <div className="border-r border-gray-100 overflow-y-auto">
+      <div className="border-r border-gray-100 overflow-y-auto overscroll-contain">
         {loadingConvos ? (
           <div className="flex items-center justify-center h-32"><Loader2 size={20} className="animate-spin text-gray-300" /></div>
         ) : conversations.length === 0 ? (
@@ -168,7 +168,7 @@ export default function DashboardMessages() {
             <div className="px-4 py-3.5 border-b border-gray-100">
               <p className="font-semibold text-gray-900 text-sm">{selected.users?.name ?? "Buyer"}</p>
             </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 bg-gray-50">
               {messages.map(m => {
                 const mine = m.sender_role === "florist";
                 if (m.product_id) {
