@@ -154,7 +154,7 @@ export default function ChatWidget({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="fixed bottom-0 right-0 sm:bottom-5 sm:right-5 z-[60] w-full sm:w-96 h-[80vh] sm:h-[560px] bg-white sm:rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
+              className="fixed inset-0 sm:inset-auto sm:bottom-5 sm:right-5 z-[60] w-full sm:w-96 h-[100dvh] sm:h-[560px] bg-white sm:rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden"
             >
             <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 bg-white">
               <div className="flex items-center gap-2.5 min-w-0">
