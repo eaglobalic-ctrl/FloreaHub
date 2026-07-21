@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Flower2, ShoppingCart, Search, User, LayoutDashboard, ShoppingBag, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, Flower2, ShoppingCart, Search, User, LayoutDashboard, ShoppingBag, LogOut, ChevronDown, MessageCircle } from "lucide-react";
 import { getCart } from "@/lib/cart";
 
 type StoredUser = { id: string; email: string; name: string; role: string };
@@ -20,6 +20,7 @@ export default function Navbar() {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [florist, setFlorist] = useState<StoredFlorist | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [unreadChats, setUnreadChats] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +48,22 @@ export default function Navbar() {
     window.addEventListener("user-updated", syncUser);
     return () => window.removeEventListener("user-updated", syncUser);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!user) { setUnreadChats(0); return; }
+    const sync = () => {
+      fetch("/api/conversations?role=buyer")
+        .then(r => r.json())
+        .then(d => {
+          const total = (d.conversations ?? []).reduce((n: number, c: { buyer_unread_count?: number }) => n + (c.buyer_unread_count ?? 0), 0);
+          setUnreadChats(total);
+        })
+        .catch(() => {});
+    };
+    sync();
+    const interval = setInterval(sync, 8000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     if (searchOpen) setTimeout(() => searchRef.current?.focus(), 100);
@@ -127,6 +144,18 @@ export default function Navbar() {
               </button>
             )}
 
+            {/* Messages */}
+            {user && (
+              <Link href="/messages" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
+                <MessageCircle size={18} />
+                {unreadChats > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                    {unreadChats > 9 ? "9+" : unreadChats}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Cart — every account can shop, sellers included */}
             <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
               <ShoppingCart size={18} />
@@ -182,6 +211,14 @@ export default function Navbar() {
                           <Link href="/orders" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                             <ShoppingBag size={14} className="text-gray-400" /> My Orders
                           </Link>
+                          <Link href="/messages" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                            <MessageCircle size={14} className="text-gray-400" /> Messages
+                            {unreadChats > 0 && (
+                              <span className="ml-auto w-4.5 h-4.5 rounded-full text-white text-[10px] font-bold flex items-center justify-center px-1" style={{ background: "var(--primary)" }}>
+                                {unreadChats > 9 ? "9+" : unreadChats}
+                              </span>
+                            )}
+                          </Link>
                           <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                             <User size={14} className="text-gray-400" /> Profile
                           </Link>
@@ -210,6 +247,16 @@ export default function Navbar() {
             <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 text-gray-600 hover:text-gray-900">
               <Search size={20} />
             </button>
+            {user && (
+              <Link href="/messages" className="relative p-2 text-gray-600 hover:text-gray-900">
+                <MessageCircle size={20} />
+                {unreadChats > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                    {unreadChats > 9 ? "9+" : unreadChats}
+                  </span>
+                )}
+              </Link>
+            )}
             <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900">
               <ShoppingCart size={20} />
               {cartCount > 0 && (

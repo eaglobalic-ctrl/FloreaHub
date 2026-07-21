@@ -12,6 +12,7 @@ import { toast } from "@/components/Toast";
 import { StatCardSkeleton, RowSkeleton } from "@/components/ui/skeleton";
 import ImageUpload from "@/components/ui/image-upload";
 import DashboardMessages from "@/components/DashboardMessages";
+import ResponseRateBadge from "@/components/ResponseRateBadge";
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -400,6 +401,9 @@ export default function DashboardPage() {
                   </div>
                 )}
               </motion.div>
+
+              {/* Response rate — renders nothing until there's enough chat history to show a real number */}
+              {florist?.id && <ResponseRateBadge floristId={florist.id} className="card-premium p-5" />}
 
               {/* Low stock alert */}
               {lowStockProducts.length > 0 && (

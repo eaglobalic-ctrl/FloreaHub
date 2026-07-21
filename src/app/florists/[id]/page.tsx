@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristProducts from "@/components/FloristProducts";
 import ChatWidget from "@/components/ChatWidget";
+import ResponseRateBadge from "@/components/ResponseRateBadge";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 async function getFlorist(id: string) {
@@ -121,6 +122,7 @@ export default async function FloristDetailPage({ params }: { params: Promise<{ 
                     </div>
                     Real-Photo Promise
                   </div>
+                  <ResponseRateBadge floristId={florist.id} />
                 </div>
 
                 <div className="text-sm divide-y divide-gray-50 mb-5">
