@@ -5,6 +5,7 @@ import { MapPin, Star, Clock, Zap, Leaf, Camera, ChevronRight, Package, Phone, M
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloristProducts from "@/components/FloristProducts";
+import ChatWidget from "@/components/ChatWidget";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 async function getFlorist(id: string) {
@@ -149,9 +150,12 @@ export default async function FloristDetailPage({ params }: { params: Promise<{ 
                   )}
                 </div>
 
-                <Link href={`/builder?florist=${florist.id}`} className="btn-primary w-full justify-center text-sm">
-                  Custom Bouquet with This Florist
-                </Link>
+                <div className="space-y-2.5">
+                  <Link href={`/builder?florist=${florist.id}`} className="btn-primary w-full justify-center text-sm">
+                    Custom Bouquet with This Florist
+                  </Link>
+                  <ChatWidget floristId={florist.id} floristName={florist.name} />
+                </div>
               </div>
             </div>
           </aside>

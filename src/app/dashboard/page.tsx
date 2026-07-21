@@ -5,12 +5,13 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2
+  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2, MessageCircle
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
 import { StatCardSkeleton, RowSkeleton } from "@/components/ui/skeleton";
 import ImageUpload from "@/components/ui/image-upload";
+import DashboardMessages from "@/components/DashboardMessages";
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -27,6 +28,7 @@ const NAV = [
   { icon: LayoutDashboard, label: "Overview", id: "overview" },
   { icon: ShoppingBag, label: "Orders", id: "orders" },
   { icon: Package, label: "Products", id: "products" },
+  { icon: MessageCircle, label: "Messages", id: "messages" },
   { icon: Star, label: "Reviews", id: "reviews" },
   { icon: Megaphone, label: "Ads", id: "ads", href: "/dashboard/ads" },
   { icon: Settings, label: "Settings", id: "settings" },
@@ -548,6 +550,12 @@ export default function DashboardPage() {
                   </motion.div>
                 ))
               )}
+            </motion.div>
+          )}
+
+          {tab === "messages" && (
+            <motion.div variants={stagger} initial="hidden" animate="show">
+              <DashboardMessages />
             </motion.div>
           )}
 
