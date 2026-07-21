@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save
+  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
@@ -40,12 +40,13 @@ type Order = {
 type Product = {
   id: string; name: string; price: number; stock: number;
   review_count: number; badge?: string; is_active: boolean;
+  description?: string | null; category?: string; image_url?: string | null; same_day?: boolean;
 };
 
 type Florist = {
   id: string; name: string; plan: string; status: string;
   description?: string | null; address?: string | null; city?: string; state?: string;
-  phone?: string | null; email?: string | null; same_day_delivery?: boolean;
+  phone?: string | null; email?: string | null; cover_image?: string | null; same_day_delivery?: boolean;
   min_order?: number; delivery_fee?: number;
 };
 
@@ -65,11 +66,12 @@ export default function DashboardPage() {
   const [florist, setFlorist] = useState<Florist | null>(null);
   const [floristLoading, setFloristLoading] = useState(true);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [settingsForm, setSettingsForm] = useState({
     name: "", description: "", address: "", city: "", state: "",
-    phone: "", email: "", same_day_delivery: false, min_order: 0, delivery_fee: 0,
+    phone: "", email: "", cover_image: "", same_day_delivery: false, min_order: 0, delivery_fee: 0,
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -135,6 +137,7 @@ export default function DashboardPage() {
       state: florist.state ?? "",
       phone: florist.phone ?? "",
       email: florist.email ?? "",
+      cover_image: florist.cover_image ?? "",
       same_day_delivery: florist.same_day_delivery ?? false,
       min_order: florist.min_order ?? 0,
       delivery_fee: florist.delivery_fee ?? 0,
@@ -501,7 +504,7 @@ export default function DashboardPage() {
                         {p.stock === 0 ? "Out of stock" : p.stock < 5 ? "Low stock" : "In stock"}
                       </p>
                     </div>
-                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
+                    <button onClick={() => setEditingProduct(p)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
                       <Settings size={15} />
                     </button>
                   </motion.div>
@@ -544,44 +547,55 @@ export default function DashboardPage() {
                 <h3 className="font-semibold text-gray-900 mb-5">Shop Profile</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Shop Name</label>
-                    <input value={settingsForm.name} onChange={e => setSettingsForm(f => ({ ...f, name: e.target.value }))} className="input-premium w-full" />
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Shop Photo</label>
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
+                        {settingsForm.cover_image ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={settingsForm.cover_image} alt="Shop photo" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">None</div>
+                        )}
+                      </div>
+                      <input value={settingsForm.cover_image} onChange={e => setSettingsForm(f => ({ ...f, cover_image: e.target.value }))} placeholder="https://..." className="input-premium flex-1" />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1.5">Paste an image URL. Shown on your shop card and shop page.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
                     <textarea value={settingsForm.description} onChange={e => setSettingsForm(f => ({ ...f, description: e.target.value }))} rows={3} className="input-premium w-full resize-none" placeholder="Tell customers what makes your shop special..." />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Email</label>
-                      <input type="email" value={settingsForm.email} onChange={e => setSettingsForm(f => ({ ...f, email: e.target.value }))} className="input-premium w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Phone</label>
-                      <input type="tel" value={settingsForm.phone} onChange={e => setSettingsForm(f => ({ ...f, phone: e.target.value }))} className="input-premium w-full" />
-                    </div>
-                  </div>
                 </div>
               </motion.div>
 
               <motion.div variants={fadeUp} className="card-premium p-6">
-                <h3 className="font-semibold text-gray-900 mb-5">Location</h3>
-                <div className="space-y-4">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-semibold text-gray-900">Shop Name, Contact &amp; Location</h3>
+                  <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-full">Locked</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
-                    <input value={settingsForm.address} onChange={e => setSettingsForm(f => ({ ...f, address: e.target.value }))} className="input-premium w-full" />
+                    <p className="text-gray-400 text-xs mb-1">Shop Name</p>
+                    <p className="text-gray-700 font-medium">{settingsForm.name || "—"}</p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
-                      <input value={settingsForm.city} onChange={e => setSettingsForm(f => ({ ...f, city: e.target.value }))} className="input-premium w-full" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">State</label>
-                      <input value={settingsForm.state} onChange={e => setSettingsForm(f => ({ ...f, state: e.target.value }))} className="input-premium w-full" />
-                    </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">Contact Email</p>
+                    <p className="text-gray-700 font-medium">{settingsForm.email || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">Contact Phone</p>
+                    <p className="text-gray-700 font-medium">{settingsForm.phone || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-1">City / State</p>
+                    <p className="text-gray-700 font-medium">{[settingsForm.city, settingsForm.state].filter(Boolean).join(", ") || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-gray-400 text-xs mb-1">Address</p>
+                    <p className="text-gray-700 font-medium">{settingsForm.address || "—"}</p>
                   </div>
                 </div>
+                <p className="text-xs text-gray-400 mt-4">Need to change these? <Link href="/contact" className="underline hover:text-gray-600">Contact support</Link> — they&apos;re locked to keep your verified details consistent.</p>
               </motion.div>
 
               <motion.div variants={fadeUp} className="card-premium p-6">
@@ -626,6 +640,15 @@ export default function DashboardPage() {
           floristId={florist.id}
           onClose={() => setShowAddProduct(false)}
           onCreated={() => { setShowAddProduct(false); reloadProducts(); }}
+        />
+      )}
+
+      {editingProduct && (
+        <EditProductModal
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSaved={() => { setEditingProduct(null); reloadProducts(); }}
+          onDeleted={() => { setEditingProduct(null); reloadProducts(); }}
         />
       )}
     </div>
@@ -713,6 +736,141 @@ function AddProductModal({ floristId, onClose, onCreated }: { floristId: string;
             {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Add Product</span><ArrowRight size={15} /></>}
           </button>
         </form>
+      </motion.div>
+    </div>
+  );
+}
+
+function EditProductModal({
+  product, onClose, onSaved, onDeleted,
+}: { product: Product; onClose: () => void; onSaved: () => void; onDeleted: () => void }) {
+  const [name, setName] = useState(product.name);
+  const [price, setPrice] = useState(String(product.price));
+  const [category, setCategory] = useState(product.category ?? "daily");
+  const [stock, setStock] = useState(String(product.stock));
+  const [imageUrl, setImageUrl] = useState(product.image_url ?? "");
+  const [description, setDescription] = useState(product.description ?? "");
+  const [isActive, setIsActive] = useState(product.is_active);
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/products", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: product.id,
+          name, price: Number(price), category, stock: Number(stock),
+          image_url: imageUrl || null, description: description || null,
+          is_active: isActive,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); return; }
+      toast.success("Product updated.");
+      onSaved();
+    } catch {
+      setError("Gagal kemaskini produk. Sila cuba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/products", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: product.id }),
+      });
+      const data = await res.json();
+      if (data.error) { setError(data.error); setDeleting(false); return; }
+      toast.success("Product deleted.");
+      onDeleted();
+    } catch {
+      setError("Gagal padam produk. Sila cuba lagi.");
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-bold text-gray-900">Edit Product</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400"><X size={18} /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Name</label>
+            <input required value={name} onChange={e => setName(e.target.value)} className="input-premium w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Price (RM)</label>
+              <input required type="number" min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="input-premium w-full" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Stock</label>
+              <input required type="number" min="0" value={stock} onChange={e => setStock(e.target.value)} className="input-premium w-full" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+            <select value={category} onChange={e => setCategory(e.target.value)} className="input-premium w-full">
+              {["daily", "birthday", "anniversary", "wedding", "corporate", "sympathy"].map(c => (
+                <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL (optional)</label>
+            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." className="input-premium w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (optional)</label>
+            <textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} className="input-premium w-full resize-none" />
+          </div>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <div
+              onClick={() => setIsActive(v => !v)}
+              className="w-9 h-5 rounded-full relative transition-colors flex-shrink-0"
+              style={{ background: isActive ? "var(--primary)" : "#e5e7eb" }}
+            >
+              <motion.div className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow" animate={{ left: isActive ? "17px" : "2px" }} transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+            </div>
+            <span className="text-sm text-gray-700">Active (visible in shop)</span>
+          </label>
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}
+          <button type="submit" disabled={loading || deleting} className="btn-primary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-60">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <><Save size={15} /><span>Save Changes</span></>}
+          </button>
+        </form>
+
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          {!confirmDelete ? (
+            <button onClick={() => setConfirmDelete(true)} disabled={loading || deleting} className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+              <Trash2 size={14} /> Delete Product
+            </button>
+          ) : (
+            <div className="bg-red-50 border border-red-100 rounded-xl p-4">
+              <p className="text-sm text-red-700 font-medium mb-3">Delete this product permanently?</p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmDelete(false)} disabled={deleting} className="btn-secondary flex-1 text-sm py-2">Cancel</button>
+                <button onClick={handleDelete} disabled={deleting} className="flex-1 text-sm py-2 rounded-xl bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+                  {deleting ? <Loader2 size={14} className="animate-spin" /> : "Delete"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );

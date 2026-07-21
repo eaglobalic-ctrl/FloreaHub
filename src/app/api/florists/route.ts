@@ -49,9 +49,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// Shop name, contact info, and location are set at registration/approval
+// time and stay locked from self-service editing — only photo,
+// description, and delivery settings are the florist's to change here.
 const SELF_EDITABLE_FIELDS = [
-  "name", "description", "address", "city", "state", "phone", "email",
-  "same_day_delivery", "min_order", "delivery_fee",
+  "description", "cover_image", "same_day_delivery", "min_order", "delivery_fee",
 ] as const;
 
 export async function PUT(req: NextRequest) {

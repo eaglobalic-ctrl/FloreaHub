@@ -83,3 +83,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create product" }, { status: 500 });
   }
 }
+
+const EDITABLE_FIELDS = ["name", "description", "price", "category", "image_url", "stock", "same_day", "is_active"] as const;
+
+async function assertOwnsProduct(db: ReturnType<typeof getSupabaseAdmin>, productId: string, userId: string) {
+  const { data: product } = await db.from("products").select("id, florist_id").eq("id", productId).maybeSingle();
+  if (!product) return null;
+  const { data: florist } = await db.from("florists").select("id").eq("id", product.florist_id).eq("user_id", userId).maybeSingle();
+  return florist ? product : null;
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+    const { productId, ...fields } = await req.json();
+    if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+
+    const db = getSupabaseAdmin();
+    const owned = await assertOwnsProduct(db, productId, session.userId);
+    if (!owned) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const update: Record<string, unknown> = {};
+    for (const key of EDITABLE_FIELDS) {
+      if (key in fields) update[key] = fields[key];
+    }
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ error: "No editable fields provided" }, { status: 400 });
+    }
+
+    const { data: product, error } = await db.from("products").update(update).eq("id", productId).select().single();
+    if (error) throw error;
+
+    return NextResponse.json({ product });
+  } catch (err) {
+    console.error("Product update error:", err);
+    return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+    const { productId } = await req.json();
+    if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+
+    const db = getSupabaseAdmin();
+    const owned = await assertOwnsProduct(db, productId, session.userId);
+    if (!owned) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const { error } = await db.from("products").delete().eq("id", productId);
+    if (error) throw error;
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("Product delete error:", err);
+    return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
+  }
+}
