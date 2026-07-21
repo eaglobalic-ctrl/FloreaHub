@@ -10,6 +10,7 @@ import {
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
 import { StatCardSkeleton, RowSkeleton } from "@/components/ui/skeleton";
+import ImageUpload from "@/components/ui/image-upload";
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -548,18 +549,12 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Shop Photo</label>
-                    <div className="flex items-center gap-3">
-                      <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
-                        {settingsForm.cover_image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={settingsForm.cover_image} alt="Shop photo" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">None</div>
-                        )}
-                      </div>
-                      <input value={settingsForm.cover_image} onChange={e => setSettingsForm(f => ({ ...f, cover_image: e.target.value }))} placeholder="https://..." className="input-premium flex-1" />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1.5">Paste an image URL. Shown on your shop card and shop page.</p>
+                    <ImageUpload
+                      value={settingsForm.cover_image}
+                      onChange={url => setSettingsForm(f => ({ ...f, cover_image: url }))}
+                      folder="shops"
+                    />
+                    <p className="text-xs text-gray-400 mt-1.5">Shown on your shop card and shop page.</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
@@ -724,8 +719,8 @@ function AddProductModal({ floristId, onClose, onCreated }: { floristId: string;
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL (optional)</label>
-            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." className="input-premium w-full" />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Photo (optional)</label>
+            <ImageUpload value={imageUrl} onChange={setImageUrl} folder="products" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (optional)</label>
@@ -831,8 +826,8 @@ function EditProductModal({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Image URL (optional)</label>
-            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="https://..." className="input-premium w-full" />
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Photo (optional)</label>
+            <ImageUpload value={imageUrl} onChange={setImageUrl} folder="products" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Description (optional)</label>
