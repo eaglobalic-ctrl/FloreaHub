@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-type ProductContext = { id: string; name: string; price: number; image?: string | null };
+type ProductContext = { id: string; name: string; price: number; image?: string | null; originalPrice?: number | null; rating?: number | null };
 
 // Buyer starts (or resumes) a conversation with a florist. If opened from a
 // product page, attaches a one-time product-card message — same as
@@ -88,6 +88,8 @@ export async function POST(req: NextRequest) {
           product_name: product.name,
           product_price: product.price,
           product_image: product.image ?? null,
+          product_original_price: product.originalPrice ?? null,
+          product_rating: product.rating ?? null,
         });
         await db.from("conversations").update({
           last_message_at: new Date().toISOString(),

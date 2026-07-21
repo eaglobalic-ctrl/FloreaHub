@@ -338,7 +338,7 @@ export default function ProductDetailPage() {
                 <ChatWidget
                   floristId={product.florists.id}
                   floristName={product.florists.name}
-                  product={{ id: product.id, name: product.name, price: product.price, image: product.image_url }}
+                  product={{ id: product.id, name: product.name, price: product.price, image: product.image_url, originalPrice: product.original_price, rating: product.rating }}
                 />
               </div>
             )}

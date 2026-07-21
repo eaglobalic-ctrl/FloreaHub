@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { Send, Image as ImageIcon, Loader2, MessageCircle, Flower2 } from "lucide-react";
+import { Send, Image as ImageIcon, Loader2, MessageCircle, Flower2, Star, ArrowUpRight } from "lucide-react";
 
 type Conversation = {
   id: string;
@@ -22,6 +22,8 @@ type Message = {
   product_name?: string | null;
   product_price?: number | null;
   product_image?: string | null;
+  product_original_price?: number | null;
+  product_rating?: number | null;
 };
 
 const timeAgo = (dateStr: string) => {
@@ -172,18 +174,32 @@ export default function DashboardMessages() {
                 if (m.product_id) {
                   return (
                     <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                      <Link href={`/products/${m.product_id}`} target="_blank" className="max-w-[70%] flex items-center gap-2.5 bg-white border border-gray-100 rounded-2xl p-2.5 hover:border-gray-200 transition-colors">
-                        <div className="w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      <Link href={`/products/${m.product_id}`} target="_blank" className="max-w-[75%] w-64 block bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 hover:shadow-sm transition-all group">
+                        <div className="w-full h-28 bg-gray-100 overflow-hidden">
                           {m.product_image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={m.product_image} alt={m.product_name ?? "Product"} className="w-full h-full object-cover" />
+                            <img src={m.product_image} alt={m.product_name ?? "Product"} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300"><Flower2 size={16} /></div>
+                            <div className="w-full h-full flex items-center justify-center text-gray-300"><Flower2 size={20} /></div>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium text-gray-800 truncate">{m.product_name}</p>
-                          <p className="text-xs font-bold" style={{ color: "var(--primary)" }}>RM{m.product_price}</p>
+                        <div className="p-2.5">
+                          <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-1">{m.product_name}</p>
+                          {m.product_rating != null && (
+                            <div className="flex items-center gap-1 mb-1">
+                              <Star size={10} className="text-amber-400" fill="currentColor" />
+                              <span className="text-[11px] text-gray-500">{Number(m.product_rating).toFixed(1)}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <span className="text-sm font-bold" style={{ color: "var(--primary)" }}>RM{m.product_price}</span>
+                            {m.product_original_price != null && m.product_original_price > (m.product_price ?? 0) && (
+                              <span className="text-[11px] text-gray-400 line-through">RM{m.product_original_price}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: "var(--primary)" }}>
+                            View Product <ArrowUpRight size={11} />
+                          </div>
                         </div>
                       </Link>
                     </div>
