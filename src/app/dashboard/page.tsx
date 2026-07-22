@@ -51,7 +51,7 @@ type Florist = {
   id: string; name: string; plan: string; status: string;
   description?: string | null; address?: string | null; city?: string; state?: string;
   phone?: string | null; email?: string | null; cover_image?: string | null; same_day_delivery?: boolean;
-  min_order?: number; delivery_fee?: number;
+  min_order?: number; delivery_fee?: number; toyyibpay_username?: string | null;
 };
 
 type Review = {
@@ -77,6 +77,7 @@ export default function DashboardPage() {
   const [settingsForm, setSettingsForm] = useState({
     name: "", description: "", address: "", city: "", state: "",
     phone: "", email: "", cover_image: "", same_day_delivery: false, min_order: 0, delivery_fee: 0,
+    toyyibpay_username: "",
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -162,6 +163,7 @@ export default function DashboardPage() {
       same_day_delivery: florist.same_day_delivery ?? false,
       min_order: florist.min_order ?? 0,
       delivery_fee: florist.delivery_fee ?? 0,
+      toyyibpay_username: florist.toyyibpay_username ?? "",
     });
   }, [florist]);
 
@@ -374,6 +376,19 @@ export default function DashboardPage() {
         </header>
 
         <main className="flex-1 p-6 overflow-auto">
+          {!floristLoading && florist?.status === "approved" && !florist?.toyyibpay_username && tab !== "settings" && (
+            <button
+              onClick={() => setTab("settings")}
+              className="w-full flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 text-left hover:bg-amber-100 transition-colors"
+            >
+              <AlertCircle size={16} className="text-amber-600 flex-shrink-0" />
+              <span className="text-sm text-amber-800 flex-1">
+                <strong>Payout not set up.</strong> Add your ToyyibPay username so orders can pay out to you.
+              </span>
+              <span className="text-xs font-semibold text-amber-700 underline flex-shrink-0">Set up now</span>
+            </button>
+          )}
+
           {tab === "overview" && (
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
               {/* Stats */}
@@ -668,6 +683,28 @@ export default function DashboardPage() {
                       <input type="number" min={0} value={settingsForm.delivery_fee} onChange={e => setSettingsForm(f => ({ ...f, delivery_fee: Number(e.target.value) }))} className="input-premium w-full" />
                     </div>
                   </div>
+                </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="card-premium p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900">Payout Setup</h3>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${settingsForm.toyyibpay_username ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                    {settingsForm.toyyibpay_username ? "Configured" : "Not Set Up"}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 mb-5">
+                  FloreaHub pays you directly via ToyyibPay Split Payment — your share of every sale routes straight to your own account. Orders can&apos;t pay out to you until this is set up.
+                </p>
+                {!settingsForm.toyyibpay_username && (
+                  <a href="https://toyyibpay.com/access/registration" target="_blank" rel="noopener noreferrer" className="text-sm underline font-medium mb-4 inline-block" style={{ color: "var(--primary)" }}>
+                    Don&apos;t have a ToyyibPay account? Register free →
+                  </a>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">ToyyibPay Username</label>
+                  <input value={settingsForm.toyyibpay_username} onChange={e => setSettingsForm(f => ({ ...f, toyyibpay_username: e.target.value }))} placeholder="e.g. bloomandco" className="input-premium w-full" />
+                  <p className="text-xs text-gray-400 mt-1.5">Your ToyyibPay account username — not your email.</p>
                 </div>
               </motion.div>
 

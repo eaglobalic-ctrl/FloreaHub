@@ -2,10 +2,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText, AlertCircle } from "lucide-react";
+import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText, AlertCircle, Wallet, ExternalLink } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 
-const STEPS = ["Business Info", "Shop Details", "Specialties", "Done"];
+const STEPS = ["Business Info", "Shop Details", "Specialties", "Payout Setup", "Done"];
 const SPECIALTIES = ["Wedding", "Birthday", "Anniversary", "Corporate", "Sympathy", "Luxury", "Custom", "Subscription", "Daily", "Bridal"];
 const STATES = ["Kuala Lumpur", "Selangor", "Penang", "Johor", "Perak", "Sabah", "Sarawak", "Kedah", "Kelantan", "Terengganu", "Pahang", "Negeri Sembilan", "Melaka", "Perlis"];
 
@@ -21,6 +21,7 @@ export default function FloristRegisterPage() {
     sameDay: false, deliveryRadius: "10",
     specialties: [] as string[],
     bio: "",
+    toyyibpayUsername: "",
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function FloristRegisterPage() {
         shopState: form.state,
         shopPhone: form.phone,
         bio: form.bio || undefined,
+        toyyibpayUsername: form.toyyibpayUsername || undefined,
       }),
     });
     const data = await res.json();
@@ -59,12 +61,12 @@ export default function FloristRegisterPage() {
   };
 
   const next = async () => {
-    if (step < 2) { setStep(s => s + 1); return; }
+    if (step < 3) { setStep(s => s + 1); return; }
     setLoading(true);
     setError("");
     try {
       if (loggedIn) {
-        if (await submitApplication()) setStep(3);
+        if (await submitApplication()) setStep(4);
         return;
       }
 
@@ -84,7 +86,7 @@ export default function FloristRegisterPage() {
       if (data.error) { setError(data.error); return; }
       if (data.existed) { setError("Email ini sudah didaftarkan. Sila log masuk dahulu, kemudian mohon dari akaun sedia ada."); return; }
 
-      if (await submitApplication()) setStep(3);
+      if (await submitApplication()) setStep(4);
     } catch {
       setError("Ada masalah menghantar permohonan. Sila cuba lagi.");
     } finally {
@@ -96,6 +98,7 @@ export default function FloristRegisterPage() {
     loggedIn ? !!form.shopName : (form.shopName && form.ownerName && form.email && form.phone && form.password.length >= 8),
     form.state && form.area && form.address,
     form.specialties.length > 0,
+    true, // Payout Setup is optional — skip-able
   ][step];
 
   return (
@@ -110,7 +113,7 @@ export default function FloristRegisterPage() {
               </div>
               <span className="text-xl font-semibold text-gray-900">Florea<span style={{ color: "var(--primary)" }}>Hub</span></span>
             </Link>
-            {step < 3 && (
+            {step < 4 && (
               <>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">Register Your Flower Shop</h1>
                 <p className="text-gray-500">Join 500+ verified florists on FloreaHub. Free to list.</p>
@@ -120,15 +123,15 @@ export default function FloristRegisterPage() {
         </motion.div>
 
         {/* Progress */}
-        {step < 3 && (
+        {step < 4 && (
           <div className="flex items-center justify-center gap-2 mb-8">
-            {STEPS.slice(0, 3).map((s, i) => (
+            {STEPS.slice(0, 4).map((s, i) => (
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < step ? "text-white" : i === step ? "text-white" : "bg-gray-100 text-gray-400"}`} style={i <= step ? { background: "var(--primary)" } : {}}>
                   {i < step ? <Check size={14} strokeWidth={2.5} /> : i + 1}
                 </div>
                 <span className={`text-sm hidden sm:block ${i === step ? "font-semibold text-gray-900" : "text-gray-400"}`}>{s}</span>
-                {i < 2 && <div className={`w-8 h-px ${i < step ? "bg-primary" : "bg-gray-200"}`} style={i < step ? { background: "var(--primary)" } : {}} />}
+                {i < 3 && <div className={`w-8 h-px ${i < step ? "bg-primary" : "bg-gray-200"}`} style={i < step ? { background: "var(--primary)" } : {}} />}
               </div>
             ))}
           </div>
@@ -261,6 +264,30 @@ export default function FloristRegisterPage() {
           )}
 
           {step === 3 && (
+            <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="card-premium p-8">
+              <div className="flex items-center gap-2 mb-3 text-gray-700">
+                <Wallet size={20} style={{ color: "var(--primary)" }} />
+                <h2 className="text-lg font-semibold">Payout Setup</h2>
+              </div>
+              <p className="text-sm text-gray-500 mb-5">
+                FloreaHub pays florists directly via ToyyibPay Split Payment — your share of every sale is routed straight to your own account (FloreaHub keeps a small commission automatically). This step is optional — you can set it up anytime later from your dashboard, but orders can only pay out once it's done.
+              </p>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 text-sm text-blue-900">
+                <p className="mb-2">1. Register a free ToyyibPay account (if you don't have one):</p>
+                <a href="https://toyyibpay.com/access/registration" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold underline">
+                  toyyibpay.com/access/registration <ExternalLink size={13} />
+                </a>
+                <p className="mt-3">2. Enter your ToyyibPay account username below (not your email).</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">ToyyibPay Username (optional)</label>
+                <input value={form.toyyibpayUsername} onChange={e => set("toyyibpayUsername", e.target.value)} placeholder="e.g. bloomandco" className="input-premium w-full" />
+                <p className="text-xs text-gray-400 mt-1.5">Leave blank to skip — you can add this later from Dashboard → Payout Setup.</p>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 4 && (
             <motion.div key="done" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card-premium p-10 text-center">
               <motion.div
                 initial={{ scale: 0 }}
@@ -288,7 +315,7 @@ export default function FloristRegisterPage() {
           )}
         </AnimatePresence>
 
-        {step < 3 && (
+        {step < 4 && (
           <div className="flex items-center justify-between mt-6">
             <button onClick={() => setStep(s => s - 1)} className={`flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors ${step === 0 ? "invisible" : ""}`}>
               <ArrowLeft size={16} /> Back
@@ -300,7 +327,7 @@ export default function FloristRegisterPage() {
             >
               {loading
                 ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <>{step < 2 ? "Continue" : "Submit Application"} <ArrowRight size={16} /></>}
+                : <>{step < 3 ? "Continue" : form.toyyibpayUsername ? "Submit Application" : "Skip & Submit Application"} <ArrowRight size={16} /></>}
             </button>
           </div>
         )}

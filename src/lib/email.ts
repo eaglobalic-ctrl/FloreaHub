@@ -294,6 +294,12 @@ export async function sendFloristApprovedEmail({ name, email }: { name: string; 
           <li>Pilih plan subscription untuk tingkatkan visibility</li>
         </ul>
       </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="margin:0 0 8px;font-weight:600;color:#1e40af;font-size:14px;">Penting — cara kamu terima bayaran</p>
+        <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.7;">
+          FloreaHub bayar florist terus melalui ToyyibPay Split Payment — bahagian kamu dari setiap jualan dihantar terus ke akaun ToyyibPay kamu sendiri (FloreaHub ambil komisen kecil secara automatik). Kamu perlu setup ini dulu sebelum boleh terima bayaran order — pergi ke <strong>Dashboard → Payout Setup</strong> untuk masukkan username ToyyibPay kamu.
+        </p>
+      </div>
       <a href="https://floriahub.vercel.app/login" style="display:block;background:#2d6a4f;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Login &amp; Mula Jual</a>
     </div>
     <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
@@ -431,6 +437,40 @@ export async function sendFloristRejectedEmail({ name, email }: { name: string; 
 </html>`;
 
   await send(email, "Update permohonan florist — FloreaHub", html);
+}
+
+// ── Payout setup reminder ────────────────────────────────────────────────────
+
+export async function sendPayoutSetupReminderEmail({ name, email }: { name: string; email: string }) {
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#b45309,#92400e);padding:32px;text-align:center;">
+      ${LOGO_SVG}
+      <p style="margin:12px 0 0;color:rgba(255,255,255,.85);font-size:13px;">Payout Setup Needed</p>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111827;">Kamu dah ada order, tapi payout belum setup</h2>
+      <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, kami perasan kedai kamu dah terima order tapi akaun ToyyibPay untuk payout belum di-setup lagi. Bahagian kamu dari jualan ini masih belum boleh dihantar sehingga ini diselesaikan.
+      </p>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;">
+          Pergi ke <strong>Dashboard → Settings → Payout Setup</strong> dan masukkan username akaun ToyyibPay kamu. Belum ada akaun? Daftar percuma di <a href="https://toyyibpay.com/access/registration" style="color:#92400e;font-weight:600;">toyyibpay.com/access/registration</a>.
+        </p>
+      </div>
+      <a href="https://floriahub.vercel.app/dashboard" style="display:block;background:#b45309;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Setup Payout Sekarang</a>
+    </div>
+    <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, "Setup payout kamu — order sedang menunggu, FloreaHub", html);
 }
 
 // ── Contact form submission (admin notification) ───────────────────────────────

@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
 // time and stay locked from self-service editing — only photo,
 // description, and delivery settings are the florist's to change here.
 const SELF_EDITABLE_FIELDS = [
-  "description", "cover_image", "same_day_delivery", "min_order", "delivery_fee",
+  "description", "cover_image", "same_day_delivery", "min_order", "delivery_fee", "toyyibpay_username",
 ] as const;
 
 export async function PUT(req: NextRequest) {

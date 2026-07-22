@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Sila log masuk dahulu" }, { status: 401 });
 
-    const { shopName, shopCity, shopState, shopPhone, bio } = await req.json();
+    const { shopName, shopCity, shopState, shopPhone, bio, toyyibpayUsername } = await req.json();
     if (!shopName || !shopCity) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
       phone: shopPhone || user.phone,
       email: user.email,
       description: bio ?? null,
+      toyyibpay_username: toyyibpayUsername || null,
       status: "pending" as const,
       is_active: false,
       is_verified: false,
