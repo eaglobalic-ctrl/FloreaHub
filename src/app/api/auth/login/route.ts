@@ -11,11 +11,12 @@ export async function POST(req: NextRequest) {
     const db = getSupabaseAdmin();
     const { data: user, error } = await db
       .from("users")
-      .select("id, email, name, phone, role, status, password_hash")
+      .select("id, email, name, phone, role, status, password_hash, is_active")
       .eq("email", email)
       .single();
 
     if (error || !user) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    if (user.is_active === false) return NextResponse.json({ error: "This account has been suspended. Contact support if you think this is a mistake." }, { status: 403 });
 
     if (!user.password_hash) {
       // Account predates password auth — claim it with whatever is submitted now

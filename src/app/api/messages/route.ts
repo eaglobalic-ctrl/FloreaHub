@@ -27,10 +27,13 @@ export async function GET(req: NextRequest) {
     const role = await resolveRole(db, conversationId, session.userId);
     if (!role) return NextResponse.json({ messages: [] });
 
+    // Blocked messages are kept in the table (audit trail for admin chat
+    // moderation) but never shown to either side of the conversation.
     const { data, error } = await db
       .from("messages")
       .select("*")
       .eq("conversation_id", conversationId)
+      .is("blocked_reason", null)
       .order("created_at", { ascending: true });
     if (error) throw error;
 
@@ -63,6 +66,15 @@ export async function POST(req: NextRequest) {
     if (content?.trim()) {
       const check = moderateMessage(content);
       if (check.blocked) {
+        // Recorded (not silently dropped) so admin chat moderation has an
+        // audit trail of blocked attempts — GET filters these out, so
+        // neither side of the conversation ever sees it.
+        await db.from("messages").insert({
+          conversation_id: conversationId,
+          sender_role: role,
+          content: content.trim(),
+          blocked_reason: check.reason,
+        });
         return NextResponse.json({
           error: `For everyone's safety, please don't share ${check.reason}s in chat. Keep all communication and payments on FloreaHub — it's how we back the Freshness Guarantee.`,
         }, { status: 400 });
