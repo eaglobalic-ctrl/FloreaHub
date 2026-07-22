@@ -296,8 +296,11 @@ export async function sendFloristApprovedEmail({ name, email }: { name: string; 
       </div>
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0 0 8px;font-weight:600;color:#1e40af;font-size:14px;">Penting — cara kamu terima bayaran</p>
-        <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.7;">
+        <p style="margin:0 0 10px;color:#1e3a8a;font-size:13px;line-height:1.7;">
           FloreaHub bayar florist terus melalui ToyyibPay Split Payment — bahagian kamu dari setiap jualan dihantar terus ke akaun ToyyibPay kamu sendiri (FloreaHub ambil komisen kecil secara automatik). Kamu perlu setup ini dulu sebelum boleh terima bayaran order — pergi ke <strong>Dashboard → Payout Setup</strong> untuk masukkan username ToyyibPay kamu.
+        </p>
+        <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.7;">
+          <strong>Nota:</strong> bila order dibayar, bahagian kamu akan nampak status <strong>Pending</strong> dulu dalam akaun ToyyibPay kamu — ambil masa 1-4 hari bekerja untuk settle sebelum boleh dikeluarkan. Ini biasa, bukan tanda ada masalah.
         </p>
       </div>
       <a href="https://floriahub.vercel.app/login" style="display:block;background:#2d6a4f;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Login &amp; Mula Jual</a>

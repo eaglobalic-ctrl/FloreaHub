@@ -769,6 +769,9 @@ export default function DashboardPage() {
                   <input value={settingsForm.toyyibpay_username} onChange={e => setSettingsForm(f => ({ ...f, toyyibpay_username: e.target.value }))} placeholder="e.g. bloomandco" className="input-premium w-full" />
                   <p className="text-xs text-gray-400 mt-1.5">Your ToyyibPay account username — not your email.</p>
                 </div>
+                <p className="text-xs text-gray-400 mt-4 bg-gray-50 rounded-lg px-3 py-2.5">
+                  When an order is paid, your share shows as <strong>Pending</strong> in your ToyyibPay account first — it takes 1-4 business days to settle before it&apos;s available to withdraw. That&apos;s normal, not a sign anything went wrong.
+                </p>
               </motion.div>
 
               <motion.div variants={fadeUp} className="flex justify-end">
