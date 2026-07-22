@@ -112,9 +112,22 @@ export async function POST(req: NextRequest) {
       body: params.toString(),
     });
 
-    const data = await res.json();
-    if (!data?.[0]?.BillCode) {
-      return NextResponse.json({ error: "Failed to create bill", raw: data }, { status: 500 });
+    // Read as text first — if ToyyibPay ever returns a non-JSON error page
+    // (e.g. a validation error rendered as HTML), .json() would throw and
+    // we'd lose the actual reason inside the generic catch-all below.
+    const rawText = await res.text();
+    let data: unknown;
+    try { data = JSON.parse(rawText); } catch { data = null; }
+
+    const billCodeCandidate = Array.isArray(data) ? (data[0] as { BillCode?: string } | undefined)?.BillCode : undefined;
+    if (!billCodeCandidate) {
+      console.error("ToyyibPay createBill did not return a BillCode:", JSON.stringify({
+        httpStatus: res.status,
+        sentSplitPayment: splitArgs.length > 0,
+        splitArgs,
+        rawResponseText: rawText.slice(0, 2000),
+      }));
+      return NextResponse.json({ error: "Failed to create bill", raw: data ?? rawText }, { status: 500 });
     }
 
     // ToyyibPay's createBill response only ever confirms the bill itself
@@ -122,10 +135,10 @@ export async function POST(req: NextRequest) {
     // split args format is ever wrong, this is the only trace of it; check
     // Vercel logs against orders.split_recipient for the first real orders.
     if (splitArgs.length > 0) {
-      console.log("Split payment requested:", JSON.stringify({ billCode: data[0].BillCode, splitArgs, rawResponse: data }));
+      console.log("Split payment requested:", JSON.stringify({ billCode: billCodeCandidate, splitArgs, rawResponse: data }));
     }
 
-    const billCode = data[0].BillCode;
+    const billCode = billCodeCandidate;
 
     // Save order(s) to Supabase — one row per florist, sharing this
     // bill_code as the group reference.
