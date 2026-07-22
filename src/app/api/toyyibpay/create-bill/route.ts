@@ -108,6 +108,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to create bill", raw: data }, { status: 500 });
     }
 
+    // ToyyibPay's createBill response only ever confirms the bill itself
+    // (BillCode) — it does not confirm whether a split was accepted. If the
+    // split args format is ever wrong, this is the only trace of it; check
+    // Vercel logs against orders.split_recipient for the first real orders.
+    if (splitArgs.length > 0) {
+      console.log("Split payment requested:", JSON.stringify({ billCode: data[0].BillCode, splitArgs, rawResponse: data }));
+    }
+
     const billCode = data[0].BillCode;
 
     // Save order(s) to Supabase — one row per florist, sharing this
