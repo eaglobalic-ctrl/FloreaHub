@@ -202,7 +202,7 @@ export default function Navbar() {
                           <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                             <LayoutDashboard size={14} className="text-gray-400" /> Dashboard
                           </Link>
-                          <Link href="/dashboard/products" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                          <Link href="/dashboard?tab=products" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
                             <ShoppingBag size={14} className="text-gray-400" /> My Products
                           </Link>
                         </>

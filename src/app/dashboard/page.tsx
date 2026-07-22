@@ -62,6 +62,14 @@ type Review = {
 export default function DashboardPage() {
   const [tab, setTab] = useState("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Reads ?tab= via window.location directly (not useSearchParams) so this
+  // doesn't require wrapping the whole page in a Suspense boundary.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (requested && NAV.some(n => n.id === requested)) setTab(requested);
+  }, []);
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
