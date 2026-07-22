@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { moderateAdContent } from "@/lib/moderation";
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +13,11 @@ export async function POST(req: NextRequest) {
 
     if (!adType || !floristId || !floristName || !price) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const moderation = moderateAdContent(headline ?? "", tagline);
+    if (moderation.blocked) {
+      return NextResponse.json({ error: moderation.reason }, { status: 422 });
     }
 
     const supabaseAdmin = getSupabaseAdmin();
