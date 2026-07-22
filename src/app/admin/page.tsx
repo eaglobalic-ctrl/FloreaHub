@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import {
   Check, X, Clock, Users, Store, Mail, MapPin, Phone, ShieldCheck, LogOut,
   LayoutDashboard, DollarSign, ShoppingBag, Package, Star, MessageCircle,
-  Megaphone, CreditCard, Activity, Loader2, Ban, Trash2, Edit2, Save, TrendingUp,
+  Megaphone, CreditCard, Activity, Loader2, Ban, Trash2, Edit2, Save, TrendingUp, AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { fadeUp, stagger } from "@/lib/animations";
@@ -24,6 +24,7 @@ const NAV = [
   { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
   { id: "contact", label: "Contact Inbox", icon: Mail },
   { id: "system", label: "System", icon: Activity },
+  { id: "errors", label: "Error Log", icon: AlertTriangle },
 ];
 
 const money = (n: number) => `RM${(Number(n) || 0).toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -123,6 +124,7 @@ export default function AdminPage() {
           {tab === "subscriptions" && <SubscriptionsTab />}
           {tab === "contact" && <ContactTab />}
           {tab === "system" && <SystemTab />}
+          {tab === "errors" && <ErrorsTab />}
         </motion.div>
       </main>
     </div>
@@ -845,6 +847,42 @@ function SystemTab() {
           <div className="flex items-center justify-between"><span className="text-gray-600">Ads expiry cron has run</span><span className="text-gray-900 font-medium">{data.activity.hasExpiredAdsProcessed ? "Yes" : "Not yet"}</span></div>
         </div>
       </Card>
+    </div>
+  );
+}
+
+// ── Error Log (in-app, no Vercel dashboard needed) ──────────────────────────
+
+type SystemError = { id: string; context: string; detail: unknown; created_at: string };
+
+function ErrorsTab() {
+  const [errors, setErrors] = useState<SystemError[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/errors").then(r => r.json()).then(d => setErrors(d.errors ?? [])).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Error Log</h2>
+      <p className="text-sm text-gray-500 mb-6">Server-side failures logged in-app (order inserts, payment callbacks, etc.) — no Vercel dashboard needed. Showing latest 100.</p>
+      {loading ? <Loading /> : errors.length === 0 ? (
+        <EmptyState icon={Check} text="No errors logged. Clean." />
+      ) : (
+        <div className="space-y-2">
+          {errors.map(e => (
+            <div key={e.id} className="card-premium p-4">
+              <div className="flex items-center gap-2 mb-1.5">
+                <AlertTriangle size={14} className="text-red-500 flex-shrink-0" />
+                <p className="font-medium text-gray-900 text-sm">{e.context}</p>
+                <span className="text-xs text-gray-400 ml-auto flex-shrink-0">{fmtDateTime(e.created_at)}</span>
+              </div>
+              <pre className="text-xs text-gray-600 bg-gray-50 rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-words">{JSON.stringify(e.detail, null, 2)}</pre>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

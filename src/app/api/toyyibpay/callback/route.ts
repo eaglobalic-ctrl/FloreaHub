@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendOrderConfirmationEmail, sendNewOrderNotificationToFlorist } from "@/lib/email";
+import { logSystemError } from "@/lib/systemLog";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +24,8 @@ export async function POST(req: NextRequest) {
         bill_code: billCode,
       }, { count: "exact" }).like("id", `${orderId}%`);
 
-      if (updateError) console.error("Order payment_status update FAILED:", JSON.stringify({ orderId, billCode, error: updateError }));
+      if (updateError) await logSystemError("Order payment_status update FAILED", { orderId, billCode, error: updateError });
+      if (count === 0) await logSystemError("Order payment_status update matched ZERO rows — no order exists for this reference", { orderId, billCode });
       console.log("Order paid:", orderId, "rows updated:", count);
 
       // Fetch order(s) and send one consolidated confirmation email —

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { getAppUrl } from "@/lib/url";
+import { logSystemError } from "@/lib/systemLog";
 
 const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
   ? "https://dev.toyyibpay.com"
@@ -175,7 +176,7 @@ export async function POST(req: NextRequest) {
           split_amount: wasSplit ? g.floristAmount : null,
         });
         if (orderError) {
-          console.error("Order insert FAILED:", JSON.stringify({ orderId: g.orderId, billCode, error: orderError }));
+          await logSystemError("Order insert FAILED", { orderId: g.orderId, billCode, error: orderError });
           continue; // don't try to attach items to an order row that doesn't exist
         }
 
@@ -191,11 +192,11 @@ export async function POST(req: NextRequest) {
           }))
         );
         if (itemsError) {
-          console.error("Order items insert FAILED:", JSON.stringify({ orderId: g.orderId, billCode, error: itemsError }));
+          await logSystemError("Order items insert FAILED", { orderId: g.orderId, billCode, error: itemsError });
         }
       }
     } catch (dbErr) {
-      console.error("Order DB save error (non-blocking):", dbErr);
+      await logSystemError("Order DB save error (non-blocking)", { billCode, error: String(dbErr) });
     }
 
     return NextResponse.json({ billCode, paymentUrl: `${BASE_URL}/${billCode}`, orderId });
