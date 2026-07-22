@@ -78,7 +78,8 @@ export async function POST(req: NextRequest) {
     }
     const billCode = data[0].BillCode;
 
-    await db.from("subscriptions").update({ bill_code: billCode }).eq("id", sub.id);
+    const { error: billCodeError } = await db.from("subscriptions").update({ bill_code: billCode }).eq("id", sub.id);
+    if (billCodeError) console.error("Subscription bill_code update error:", JSON.stringify({ subId: sub.id, error: billCodeError }));
 
     return NextResponse.json({ billCode, paymentUrl: `${BASE_URL}/${billCode}` });
   } catch (err) {

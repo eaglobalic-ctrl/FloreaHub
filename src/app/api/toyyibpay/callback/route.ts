@@ -17,13 +17,14 @@ export async function POST(req: NextRequest) {
     // `${orderId}-1`, `${orderId}-2`, ...) sharing this reference — "%" also
     // matches zero extra characters, so this covers the single-seller case too.
     if (statusId === "1" && orderId) {
-      await db.from("orders").update({
+      const { error: updateError, count } = await db.from("orders").update({
         payment_status: "paid",
         status: "processing",
         bill_code: billCode,
-      }).like("id", `${orderId}%`);
+      }, { count: "exact" }).like("id", `${orderId}%`);
 
-      console.log("Order paid:", orderId);
+      if (updateError) console.error("Order payment_status update FAILED:", JSON.stringify({ orderId, billCode, error: updateError }));
+      console.log("Order paid:", orderId, "rows updated:", count);
 
       // Fetch order(s) and send one consolidated confirmation email —
       // awaited deliberately, since Vercel can freeze the function the
@@ -59,7 +60,8 @@ export async function POST(req: NextRequest) {
             const { data: product } = await db.from("products").select("stock").eq("id", item.product_id).maybeSingle();
             if (product) {
               const newStock = Math.max(0, (Number(product.stock) || 0) - item.quantity);
-              await db.from("products").update({ stock: newStock }).eq("id", item.product_id);
+              const { error: stockError } = await db.from("products").update({ stock: newStock }).eq("id", item.product_id);
+              if (stockError) console.error("Stock update FAILED:", JSON.stringify({ productId: item.product_id, error: stockError }));
             }
           }
 
@@ -82,7 +84,8 @@ export async function POST(req: NextRequest) {
       }
 
     } else if (statusId === "3" && orderId) {
-      await db.from("orders").update({ payment_status: "failed" }).like("id", `${orderId}%`);
+      const { error: failError } = await db.from("orders").update({ payment_status: "failed" }).like("id", `${orderId}%`);
+      if (failError) console.error("Order payment_status=failed update error:", JSON.stringify({ orderId, error: failError }));
     }
 
     return NextResponse.json({ received: true });

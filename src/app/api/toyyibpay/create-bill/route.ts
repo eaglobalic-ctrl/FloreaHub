@@ -143,11 +143,18 @@ export async function POST(req: NextRequest) {
 
     // Save order(s) to Supabase — one row per florist, sharing this
     // bill_code as the group reference.
+    //
+    // Supabase-js does NOT throw on a failed insert — it resolves normally
+    // with { data, error }. Every insert below used to be called without
+    // capturing that, so a rejected insert (RLS, constraint, whatever)
+    // failed completely silently: the bill still looked successful to the
+    // buyer, but no order ever existed in the database. Confirmed via 3
+    // real paid transactions that never appeared under their bill_code.
     try {
       for (const g of groupCalcs) {
         const wasSplit = splitArgs.some(s => s.id === g.toyyibpayUsername);
 
-        await db.from("orders").insert({
+        const { error: orderError } = await db.from("orders").insert({
           id: g.orderId,
           user_id: session.userId,
           florist_id: g.floristId,
@@ -167,8 +174,12 @@ export async function POST(req: NextRequest) {
           split_recipient: wasSplit ? g.toyyibpayUsername : null,
           split_amount: wasSplit ? g.floristAmount : null,
         });
+        if (orderError) {
+          console.error("Order insert FAILED:", JSON.stringify({ orderId: g.orderId, billCode, error: orderError }));
+          continue; // don't try to attach items to an order row that doesn't exist
+        }
 
-        await db.from("order_items").insert(
+        const { error: itemsError } = await db.from("order_items").insert(
           g.groupItems.map(item => ({
             order_id: g.orderId,
             product_id: item.id ?? null,
@@ -179,6 +190,9 @@ export async function POST(req: NextRequest) {
             quantity: item.quantity,
           }))
         );
+        if (itemsError) {
+          console.error("Order items insert FAILED:", JSON.stringify({ orderId: g.orderId, billCode, error: itemsError }));
+        }
       }
     } catch (dbErr) {
       console.error("Order DB save error (non-blocking):", dbErr);
