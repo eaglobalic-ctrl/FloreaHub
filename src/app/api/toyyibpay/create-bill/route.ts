@@ -67,9 +67,13 @@ export async function POST(req: NextRequest) {
     // anyone else's share simply stays with the platform account and needs
     // manual payout later (tracked via orders.split_recipient being null
     // while florist_id is set — surfaced in the admin financial dashboard).
+    //
+    // amount is in CENTS, same convention as billAmount — confirmed against
+    // a real transaction on 2026-07-22: sending RM as a decimal string
+    // ("6.86") got interpreted as 6.86 cents (RM0.07), not RM6.86.
     const splitArgs = groupCalcs
       .filter(g => g.floristId && g.toyyibpayUsername)
-      .map(g => ({ id: g.toyyibpayUsername as string, amount: g.floristAmount.toFixed(2) }));
+      .map(g => ({ id: g.toyyibpayUsername as string, amount: String(Math.round(g.floristAmount * 100)) }));
 
     for (const g of groupCalcs) {
       if (g.floristId && !g.toyyibpayUsername) {
