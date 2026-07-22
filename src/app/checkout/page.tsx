@@ -141,7 +141,11 @@ function CheckoutContent() {
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        setError(data.error ?? "Payment setup failed. Please try again.");
+        // TEMPORARY — showing the raw ToyyibPay rejection reason directly on
+        // the page while we diagnose a "Failed to create bill" issue.
+        // Remove this once resolved; it's not something a real buyer should see.
+        const detail = data.raw ? `\n\nDEBUG: ${typeof data.raw === "string" ? data.raw : JSON.stringify(data.raw)}` : "";
+        setError((data.error ?? "Payment setup failed. Please try again.") + detail);
       }
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -297,7 +301,7 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>}
+              {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl whitespace-pre-wrap break-words">{error}</p>}
 
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <Lock size={11} />
