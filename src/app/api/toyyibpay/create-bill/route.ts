@@ -70,22 +70,22 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // SPLIT PAYMENT TEMPORARILY DISABLED (2026-07-22) — a real checkout
-    // attempt got `{"Status":"Error","msg":"Split Payment Error"}` from
-    // ToyyibPay even after fixing the RM-vs-cents amount bug, meaning the
-    // billSplitPaymentArgs field structure itself (id vs userSecretKey —
-    // conflicting info between an earlier support conversation and
-    // third-party docs) is still wrong, and getting it wrong doesn't just
-    // skip the split, it rejects the ENTIRE bill — blocking checkout for
-    // every buyer. Until the exact format is confirmed directly with
-    // ToyyibPay support, every product order routes 100% to the platform
-    // account and needs manual payout (tracked via orders.split_recipient
-    // staying null while florist_id is set — surfaced in the admin
-    // financial dashboard's "Manual Payout Needed" list).
-    const splitArgs: { id: string; amount: string }[] = [];
+    // SPLIT PAYMENT RE-ENABLED (2026-07-23, by explicit request) — this
+    // exact args format (id + amount-in-cents) already got
+    // `{"Status":"Error","msg":"Split Payment Error"}` from ToyyibPay once
+    // (2026-07-22), which rejects the WHOLE bill, not just the split — the
+    // billSplitPaymentArgs field structure (id vs userSecretKey) is still
+    // unconfirmed with ToyyibPay support. If this reproduces the same
+    // rejection, check the Admin Panel Error Log immediately — every
+    // florist order will fail to pay until it's turned off again.
+    const splitArgs = groupCalcs
+      .filter(g => g.floristId && g.toyyibpayUsername)
+      .map(g => ({ id: g.toyyibpayUsername as string, amount: String(Math.round(g.floristAmount * 100)) }));
 
-    if (groupCalcs.some(g => g.floristId)) {
-      console.log(`Split payment disabled — order ${orderId} routes 100% to platform, needs manual payout for: ${groupCalcs.filter(g => g.floristId).map(g => `${g.floristId} (RM${g.total})`).join(", ")}`);
+    for (const g of groupCalcs) {
+      if (g.floristId && !g.toyyibpayUsername) {
+        console.error(`Split payment: florist ${g.floristId} has no ToyyibPay username — RM${g.total} will need manual payout (order ${g.orderId})`);
+      }
     }
 
     const params = new URLSearchParams({

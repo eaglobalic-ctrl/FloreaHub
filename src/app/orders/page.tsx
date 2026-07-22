@@ -15,6 +15,8 @@ type Order = {
   created_at: string;
   delivery_address?: string;
   florist_id?: string;
+  tracking_number?: string | null;
+  courier?: string | null;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number; product_image?: string }[];
 };
 
@@ -204,6 +206,15 @@ export default function OrdersPage() {
                           <span className="font-semibold text-gray-700">RM{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {order.tracking_number && (
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-3">
+                      <Truck size={12} className="text-gray-400 flex-shrink-0" />
+                      <span className="font-medium">{order.courier || "Courier"}</span>
+                      <span className="text-gray-400">tracking:</span>
+                      <span className="font-mono">{order.tracking_number}</span>
                     </div>
                   )}
 

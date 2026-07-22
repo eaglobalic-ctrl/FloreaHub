@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2, MessageCircle
+  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2, MessageCircle, Edit2
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
@@ -38,7 +38,7 @@ const NAV = [
 type Order = {
   id: string; status: string; payment_status: string; total: number;
   recipient_name?: string; created_at: string; florist_seen_at?: string | null;
-  split_amount?: number | null;
+  split_amount?: number | null; tracking_number?: string | null; courier?: string | null;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number }[];
 };
 
@@ -254,6 +254,31 @@ export default function DashboardPage() {
       toast.success("Order status updated.");
     } catch {
       toast.error("Couldn't update order status.");
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // Second way to advance an order: save a courier tracking number and the
+  // backend auto-bumps status to "delivering" — the manual dropdown above
+  // still works exactly as before, this is purely an alternative.
+  const [trackingDrafts, setTrackingDrafts] = useState<Record<string, { courier: string; trackingNumber: string }>>({});
+  const handleSaveTracking = async (orderId: string) => {
+    const draft = trackingDrafts[orderId];
+    if (!draft?.trackingNumber?.trim()) { toast.error("Enter a tracking number first."); return; }
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, trackingNumber: draft.trackingNumber.trim(), courier: draft.courier || "Other" }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      setOrders(list => list.map(o => o.id === orderId ? { ...o, tracking_number: data.order?.tracking_number, courier: data.order?.courier, status: data.order?.status ?? o.status } : o));
+      toast.success("Tracking saved — status set to delivering.");
+    } catch {
+      toast.error("Couldn't save tracking.");
     } finally {
       setUpdatingOrderId(null);
     }
@@ -551,7 +576,7 @@ export default function DashboardPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-100 bg-gray-50">
-                          {["Order ID", "Customer", "Product", "Amount", "Status", "Payment", "Time"].map(h => (
+                          {["Order ID", "Customer", "Product", "Amount", "Status", "Tracking", "Payment", "Time"].map(h => (
                             <th key={h} className="text-left text-xs font-semibold text-gray-500 px-5 py-3">{h}</th>
                           ))}
                         </tr>
@@ -559,6 +584,7 @@ export default function DashboardPage() {
                       <tbody>
                         {orders.map(o => {
                           const firstItem = o.order_items?.[0];
+                          const draft = trackingDrafts[o.id] ?? { courier: o.courier ?? "Lalamove", trackingNumber: o.tracking_number ?? "" };
                           return (
                             <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                               <td className="px-5 py-4 font-mono text-xs text-gray-500">{o.id.slice(0, 12)}...</td>
@@ -574,6 +600,32 @@ export default function DashboardPage() {
                                 >
                                   {STATUS_FLOW.map(s => <option key={s} value={s} className="bg-white text-gray-900">{s}</option>)}
                                 </select>
+                              </td>
+                              <td className="px-5 py-4">
+                                {o.tracking_number && !trackingDrafts[o.id] ? (
+                                  <button onClick={() => setTrackingDrafts(d => ({ ...d, [o.id]: draft }))} className="text-xs text-gray-600 hover:text-gray-900">
+                                    <span className="font-medium">{o.courier}</span>: {o.tracking_number} <Edit2 size={10} className="inline ml-1" />
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center gap-1.5">
+                                    <select
+                                      value={draft.courier}
+                                      onChange={e => setTrackingDrafts(d => ({ ...d, [o.id]: { ...draft, courier: e.target.value } }))}
+                                      className="text-xs border border-gray-200 rounded-lg px-1.5 py-1 flex-shrink-0"
+                                    >
+                                      {["Lalamove", "Grab", "Self-delivery", "Other"].map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                    <input
+                                      value={draft.trackingNumber}
+                                      onChange={e => setTrackingDrafts(d => ({ ...d, [o.id]: { ...draft, trackingNumber: e.target.value } }))}
+                                      placeholder="Tracking no."
+                                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 w-24"
+                                    />
+                                    <button onClick={() => handleSaveTracking(o.id)} disabled={updatingOrderId === o.id} className="text-xs px-2 py-1 rounded-lg text-white flex-shrink-0 disabled:opacity-50" style={{ background: "var(--primary)" }}>
+                                      Save
+                                    </button>
+                                  </div>
+                                )}
                               </td>
                               <td className="px-5 py-4">
                                 <span className={`text-xs font-medium capitalize ${o.payment_status === "paid" ? "text-emerald-600" : o.payment_status === "failed" ? "text-red-500" : "text-amber-600"}`}>

@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest) {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { orderId, status, markSeenFloristId } = await req.json();
+    const { orderId, status, markSeenFloristId, trackingNumber, courier } = await req.json();
 
     // Bulk "I've seen my new orders" — clears the dashboard's new-orders
     // badge, same idea as clearing a chat's unread count on open.
@@ -80,32 +80,57 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    if (!orderId || !VALID_STATUSES.includes(status)) {
+    if (!orderId) {
+      return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+    }
+    if (status !== undefined && !VALID_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+    if (status === undefined && trackingNumber === undefined && courier === undefined) {
+      return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
     }
 
     const db = getSupabaseAdmin();
 
     // Only the florist that owns this order may advance its status
-    const { data: order } = await db.from("orders").select("id, florist_id").eq("id", orderId).maybeSingle();
+    const { data: order } = await db.from("orders").select("id, florist_id, status").eq("id", orderId).maybeSingle();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
     const { data: florist } = await db.from("florists").select("id, name").eq("id", order.florist_id).eq("user_id", session.userId).maybeSingle();
     if (!florist) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { data: updated, error } = await db.from("orders").update({ status }).eq("id", orderId).select("*, order_items(*)").single();
+    // Two ways to advance an order, both landing on the same field: the
+    // existing manual buttons (explicit status), or saving a courier
+    // tracking number — which implies "it's out for delivery" and
+    // auto-advances status, without removing the manual path. Never lets
+    // a tracking-number save move status BACKWARDS (e.g. re-saving after
+    // "delivered" shouldn't revert to "delivering").
+    let nextStatus: string | undefined = status;
+    if (!nextStatus && trackingNumber) {
+      const currentIdx = VALID_STATUSES.indexOf(order.status);
+      const deliveringIdx = VALID_STATUSES.indexOf("delivering");
+      if (currentIdx < deliveringIdx) nextStatus = "delivering";
+    }
+
+    const update: Record<string, unknown> = {};
+    if (nextStatus) update.status = nextStatus;
+    if (trackingNumber !== undefined) update.tracking_number = trackingNumber || null;
+    if (courier !== undefined) update.courier = courier || null;
+
+    const { data: updated, error } = await db.from("orders").update(update).eq("id", orderId).select("*, order_items(*)").single();
     if (error) throw error;
 
-    // Buyer gets an automatic email every time the florist advances the
-    // order — the status change itself is still a manual real-world action
-    // (someone has to actually prepare/dispatch real flowers), but the
-    // buyer no longer has to keep refreshing /orders to find out.
-    if (updated?.buyer_email) {
+    // Buyer gets an automatic email every time the order's status actually
+    // changes (whether via the manual button or the tracking-number
+    // shortcut) — the status change itself is still a manual real-world
+    // action (someone has to actually prepare/dispatch real flowers), but
+    // the buyer no longer has to keep refreshing /orders to find out.
+    if (nextStatus && updated?.buyer_email) {
       sendOrderStatusUpdateEmail({
         email: updated.buyer_email,
         name: updated.buyer_name ?? updated.recipient_name ?? "Customer",
         orderId: updated.id,
-        status,
+        status: nextStatus,
         floristName: florist.name,
       }).catch(err => console.error("Order status email error (non-blocking):", err));
     }
