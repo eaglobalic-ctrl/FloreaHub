@@ -803,7 +803,7 @@ function SystemTab() {
     { label: "ToyyibPay secret key", ok: data.config.toyyibpaySecret },
     { label: "ToyyibPay category code", ok: data.config.toyyibpayCategory },
     { label: "Cron secret", ok: data.config.cronSecret },
-    { label: "Admin notification email", ok: data.config.adminEmail },
+    { label: "Admin notification email", ok: data.config.adminEmail, note: data.config.adminEmailSource ? `via ${data.config.adminEmailSource}` : undefined },
   ];
 
   return (
@@ -819,7 +819,9 @@ function SystemTab() {
           {configRows.map(r => (
             <div key={r.label} className="flex items-center justify-between text-sm">
               <span className="text-gray-600">{r.label}</span>
-              {r.ok ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><Check size={13} /> Configured</span> : <span className="flex items-center gap-1 text-red-500 text-xs font-medium"><X size={13} /> Missing</span>}
+              {r.ok
+                ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium"><Check size={13} /> Configured{r.note ? ` (${r.note})` : ""}</span>
+                : <span className="flex items-center gap-1 text-red-500 text-xs font-medium"><X size={13} /> Missing</span>}
             </div>
           ))}
         </div>

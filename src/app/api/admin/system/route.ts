@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
         toyyibpayCategory: !!process.env.TOYYIBPAY_CATEGORY_CODE,
         toyyibpaySandbox: process.env.TOYYIBPAY_SANDBOX === "true",
         cronSecret: !!process.env.CRON_SECRET,
-        adminEmail: !!process.env.ADMIN_EMAIL,
+        // Admin-notification emails (sendAdminFloristNotification,
+        // sendContactFormEmail) fall back to GMAIL_USER when ADMIN_EMAIL
+        // isn't set — so this is "configured" either way, just note which.
+        adminEmail: !!process.env.ADMIN_EMAIL || !!process.env.GMAIL_USER,
+        adminEmailSource: process.env.ADMIN_EMAIL ? "ADMIN_EMAIL" : process.env.GMAIL_USER ? "GMAIL_USER (fallback)" : null,
         appUrl: process.env.NEXT_PUBLIC_APP_URL || null,
       },
       activity: {
