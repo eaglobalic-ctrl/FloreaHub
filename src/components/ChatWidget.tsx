@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { MessageCircle, X, Send, Image as ImageIcon, Loader2, Flower2, Star, ArrowUpRight } from "lucide-react";
+import { MessageCircle, X, Send, Image as ImageIcon, Loader2, Flower2, Star, ArrowUpRight, Package } from "lucide-react";
 
 type Message = {
   id: string;
@@ -16,6 +16,7 @@ type Message = {
   product_image?: string | null;
   product_original_price?: number | null;
   product_rating?: number | null;
+  order_id?: string | null;
 };
 
 type ProductContext = { id: string; name: string; price: number; image?: string | null; originalPrice?: number | null; rating?: number | null };
@@ -182,6 +183,25 @@ export default function ChatWidget({
                   )}
                   {messages.map(m => {
                     const mine = m.sender_role === "buyer";
+                    if (m.order_id) {
+                      return (
+                        <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                          <Link href="/orders" className="max-w-[78%] w-64 block bg-emerald-50 border border-emerald-100 rounded-2xl overflow-hidden hover:border-emerald-200 transition-all">
+                            <div className="p-3 flex items-center gap-2 border-b border-emerald-100">
+                              <Package size={14} className="text-emerald-600" />
+                              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Order Placed</span>
+                            </div>
+                            <div className="p-2.5">
+                              <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug mb-1.5">{m.product_name}</p>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-emerald-700">RM{m.product_price}</span>
+                                <span className="text-[11px] text-gray-400 font-mono">{m.order_id}</span>
+                              </div>
+                            </div>
+                          </Link>
+                        </div>
+                      );
+                    }
                     if (m.product_id) {
                       return (
                         <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>

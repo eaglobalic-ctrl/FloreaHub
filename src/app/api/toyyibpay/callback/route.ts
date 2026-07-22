@@ -115,6 +115,43 @@ export async function POST(req: NextRequest) {
         console.error("Stock/florist-notify error (non-blocking):", err);
       }
 
+      // Post an "order placed" card into the buyer<->florist chat — was
+      // reusing the generic "asking about this product" card before, which
+      // reads wrong once a purchase actually happened.
+      try {
+        const { data: orders } = billCode
+          ? await db.from("orders").select("*, order_items(*)").eq("bill_code", billCode).not("florist_id", "is", null)
+          : await db.from("orders").select("*, order_items(*)").like("id", `${orderId}%`).not("florist_id", "is", null);
+
+        for (const order of orders ?? []) {
+          if (!order.user_id || !order.florist_id) continue;
+          const firstItem = order.order_items?.[0];
+          if (!firstItem) continue;
+
+          const { data: existingConvo } = await db.from("conversations").select("*").eq("buyer_id", order.user_id).eq("florist_id", order.florist_id).maybeSingle();
+          const conversation = existingConvo ?? (await db.from("conversations").insert({ buyer_id: order.user_id, florist_id: order.florist_id }).select().single()).data;
+          if (!conversation) continue;
+
+          const { error: cardError } = await db.from("messages").insert({
+            conversation_id: conversation.id,
+            sender_role: "buyer",
+            order_id: order.id,
+            product_id: firstItem.product_id,
+            product_name: order.order_items.length > 1 ? `${firstItem.product_name} +${order.order_items.length - 1} more` : firstItem.product_name,
+            product_price: Number(order.total),
+            product_image: firstItem.product_image,
+          });
+          if (cardError) console.error("Order card insert FAILED:", JSON.stringify({ orderId: order.id, error: cardError }));
+
+          await db.from("conversations").update({
+            last_message_at: new Date().toISOString(),
+            florist_unread_count: (conversation.florist_unread_count ?? 0) + 1,
+          }).eq("id", conversation.id);
+        }
+      } catch (err) {
+        console.error("Order card post error (non-blocking):", err);
+      }
+
     } else if (statusId === "3" && (orderId || billCode)) {
       const { error: failError } = billCode
         ? await db.from("orders").update({ payment_status: "failed" }).eq("bill_code", billCode)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -89,11 +90,25 @@ export async function PATCH(req: NextRequest) {
     const { data: order } = await db.from("orders").select("id, florist_id").eq("id", orderId).maybeSingle();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 
-    const { data: florist } = await db.from("florists").select("id").eq("id", order.florist_id).eq("user_id", session.userId).maybeSingle();
+    const { data: florist } = await db.from("florists").select("id, name").eq("id", order.florist_id).eq("user_id", session.userId).maybeSingle();
     if (!florist) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { data: updated, error } = await db.from("orders").update({ status }).eq("id", orderId).select("*, order_items(*)").single();
     if (error) throw error;
+
+    // Buyer gets an automatic email every time the florist advances the
+    // order — the status change itself is still a manual real-world action
+    // (someone has to actually prepare/dispatch real flowers), but the
+    // buyer no longer has to keep refreshing /orders to find out.
+    if (updated?.buyer_email) {
+      sendOrderStatusUpdateEmail({
+        email: updated.buyer_email,
+        name: updated.buyer_name ?? updated.recipient_name ?? "Customer",
+        orderId: updated.id,
+        status,
+        floristName: florist.name,
+      }).catch(err => console.error("Order status email error (non-blocking):", err));
+    }
 
     return NextResponse.json({ order: updated });
   } catch (err) {
