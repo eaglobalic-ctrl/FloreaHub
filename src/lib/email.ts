@@ -476,6 +476,66 @@ export async function sendCommissionUpdateEmail({ name, email }: { name: string;
   await send(email, "Kemas kini penting: komisen turun ke 2% + bayaran automatik — FloreaHub", html);
 }
 
+// ── Subscription renewal reminder ────────────────────────────────────────────
+
+export async function sendPlanRenewalReminderEmail({ name, email, plan, endsAt }: {
+  name: string; email: string; plan: string; endsAt: string;
+}) {
+  const planLabel = plan === "elite" ? "Premium" : plan === "pro" ? "Pro" : plan;
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#b45309,#92400e);padding:32px;text-align:center;">
+      ${LOGO_SVG}
+      <p style="margin:12px 0 0;color:rgba(255,255,255,.85);font-size:13px;">Plan Renewal Reminder</p>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111827;">Plan ${planLabel} kamu tamat tak lama lagi</h2>
+      <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, plan <strong>${planLabel}</strong> kamu akan tamat pada <strong>${new Date(endsAt).toLocaleDateString("ms-MY", { day: "numeric", month: "long", year: "numeric" })}</strong>. FloreaHub tidak auto-caj — kamu perlu renew secara manual untuk kekalkan benefit plan ini, jika tidak akaun akan turun ke Starter secara automatik selepas tarikh tamat.
+      </p>
+      <a href="https://floriahub.vercel.app/pricing" style="display:block;background:#b45309;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Renew Plan Sekarang</a>
+    </div>
+    <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, `Plan ${planLabel} kamu tamat dalam 3 hari — FloreaHub`, html);
+}
+
+export async function sendPlanDowngradedEmail({ name, email, plan }: { name: string; email: string; plan: string }) {
+  const planLabel = plan === "elite" ? "Premium" : plan === "pro" ? "Pro" : plan;
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#6b7280,#4b5563);padding:32px;text-align:center;">
+      ${LOGO_SVG}
+      <p style="margin:12px 0 0;color:rgba(255,255,255,.85);font-size:13px;">Plan Expired</p>
+    </div>
+    <div style="padding:32px;">
+      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111827;">Plan ${planLabel} kamu telah tamat</h2>
+      <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, plan <strong>${planLabel}</strong> kamu telah tamat tempoh dan akaun kamu kini di bawah plan Starter. Listing dan produk kamu masih aktif, tapi benefit seperti priority placement dan had listing lebih tinggi tidak lagi terpakai.
+      </p>
+      <a href="https://floriahub.vercel.app/pricing" style="display:block;background:#4b5563;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Upgrade Semula</a>
+    </div>
+    <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, `Plan ${planLabel} kamu telah tamat — FloreaHub`, html);
+}
+
 // ── Payout setup reminder ────────────────────────────────────────────────────
 
 export async function sendPayoutSetupReminderEmail({ name, email }: { name: string; email: string }) {

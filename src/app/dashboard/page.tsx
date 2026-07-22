@@ -79,6 +79,8 @@ export default function DashboardPage() {
     phone: "", email: "", cover_image: "", same_day_delivery: false, min_order: 0, delivery_fee: 0,
     toyyibpay_username: "",
   });
+  const [subscription, setSubscription] = useState<{ id: string; plan: string; status: string; ends_at: string | null } | null>(null);
+  const [cancellingPlan, setCancellingPlan] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
   useEffect(() => {
@@ -132,6 +134,35 @@ export default function DashboardPage() {
       .catch(() => setReviews([]))
       .finally(() => setLoadingReviews(false));
   }, [florist]);
+
+  useEffect(() => {
+    if (!florist?.id) return;
+    fetch(`/api/subscriptions?floristId=${florist.id}`)
+      .then(r => r.json())
+      .then(d => setSubscription(d.subscription ?? null))
+      .catch(() => setSubscription(null));
+  }, [florist]);
+
+  const handleCancelPlan = async () => {
+    if (!florist?.id || !subscription) return;
+    if (!confirm("Cancel your current plan? You'll keep its benefits until the paid period ends, then drop to Starter.")) return;
+    setCancellingPlan(true);
+    try {
+      const res = await fetch("/api/subscriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ floristId: florist.id }),
+      });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      setSubscription(data.subscription);
+      toast.success("Plan cancelled — benefits continue until it expires.");
+    } catch {
+      toast.error("Couldn't cancel. Try again.");
+    } finally {
+      setCancellingPlan(false);
+    }
+  };
 
   useEffect(() => {
     if (!florist?.id) { setUnreadMessages(0); return; }
@@ -684,6 +715,38 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+
+              <motion.div variants={fadeUp} className="card-premium p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900">Current Plan</h3>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700 capitalize">
+                    {florist?.plan === "elite" ? "Premium" : florist?.plan || "Free"}
+                  </span>
+                </div>
+                {subscription ? (
+                  <>
+                    <p className="text-sm text-gray-500 mb-4">
+                      {subscription.status === "cancelled" ? "Cancelled — " : ""}
+                      {subscription.ends_at
+                        ? `${subscription.status === "cancelled" ? "Benefits end" : "Renews or expires"} on ${new Date(subscription.ends_at).toLocaleDateString("en-MY", { day: "numeric", month: "long", year: "numeric" })}.`
+                        : "No end date on record."}
+                    </p>
+                    <div className="flex gap-2.5">
+                      <Link href="/pricing" className="btn-secondary text-sm py-2 px-4">Change Plan</Link>
+                      {subscription.status === "active" && (
+                        <button onClick={handleCancelPlan} disabled={cancellingPlan} className="text-sm py-2 px-4 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60">
+                          {cancellingPlan ? "Cancelling..." : "Cancel Plan"}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-500 mb-4">You&apos;re on the free Starter plan — up to 5 listings, no priority placement.</p>
+                    <Link href="/pricing" className="btn-secondary text-sm py-2 px-4 inline-block">View Plans</Link>
+                  </>
+                )}
               </motion.div>
 
               <motion.div variants={fadeUp} className="card-premium p-6">
