@@ -141,11 +141,7 @@ function CheckoutContent() {
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        // TEMPORARY — showing the raw ToyyibPay rejection reason directly on
-        // the page while we diagnose a "Failed to create bill" issue.
-        // Remove this once resolved; it's not something a real buyer should see.
-        const detail = data.raw ? `\n\nDEBUG: ${typeof data.raw === "string" ? data.raw : JSON.stringify(data.raw)}` : "";
-        setError((data.error ?? "Payment setup failed. Please try again.") + detail);
+        setError(data.error ?? "Payment setup failed. Please try again.");
       }
     } catch {
       setError("Network error. Please check your connection and try again.");

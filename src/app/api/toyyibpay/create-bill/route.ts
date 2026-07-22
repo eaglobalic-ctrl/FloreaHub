@@ -68,22 +68,22 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // Only florists with a configured ToyyibPay username go into the split —
-    // anyone else's share simply stays with the platform account and needs
-    // manual payout later (tracked via orders.split_recipient being null
-    // while florist_id is set — surfaced in the admin financial dashboard).
-    //
-    // amount is in CENTS, same convention as billAmount — confirmed against
-    // a real transaction on 2026-07-22: sending RM as a decimal string
-    // ("6.86") got interpreted as 6.86 cents (RM0.07), not RM6.86.
-    const splitArgs = groupCalcs
-      .filter(g => g.floristId && g.toyyibpayUsername)
-      .map(g => ({ id: g.toyyibpayUsername as string, amount: String(Math.round(g.floristAmount * 100)) }));
+    // SPLIT PAYMENT TEMPORARILY DISABLED (2026-07-22) — a real checkout
+    // attempt got `{"Status":"Error","msg":"Split Payment Error"}` from
+    // ToyyibPay even after fixing the RM-vs-cents amount bug, meaning the
+    // billSplitPaymentArgs field structure itself (id vs userSecretKey —
+    // conflicting info between an earlier support conversation and
+    // third-party docs) is still wrong, and getting it wrong doesn't just
+    // skip the split, it rejects the ENTIRE bill — blocking checkout for
+    // every buyer. Until the exact format is confirmed directly with
+    // ToyyibPay support, every product order routes 100% to the platform
+    // account and needs manual payout (tracked via orders.split_recipient
+    // staying null while florist_id is set — surfaced in the admin
+    // financial dashboard's "Manual Payout Needed" list).
+    const splitArgs: { id: string; amount: string }[] = [];
 
-    for (const g of groupCalcs) {
-      if (g.floristId && !g.toyyibpayUsername) {
-        console.error(`Split payment: florist ${g.floristId} has no ToyyibPay username — RM${g.total} will need manual payout (order ${g.orderId})`);
-      }
+    if (groupCalcs.some(g => g.floristId)) {
+      console.log(`Split payment disabled — order ${orderId} routes 100% to platform, needs manual payout for: ${groupCalcs.filter(g => g.floristId).map(g => `${g.floristId} (RM${g.total})`).join(", ")}`);
     }
 
     const params = new URLSearchParams({
