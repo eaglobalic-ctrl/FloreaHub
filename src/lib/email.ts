@@ -558,7 +558,7 @@ export async function sendPayoutSetupReminderEmail({ name, email }: { name: stri
       </p>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;">
-          Pergi ke <strong>Dashboard → Settings → Payout Setup</strong> dan masukkan username akaun ToyyibPay kamu. Belum ada akaun? Daftar percuma di <a href="https://toyyibpay.com/access/registration" style="color:#92400e;font-weight:600;">toyyibpay.com/access/registration</a>.
+          Pergi ke <strong>Dashboard → Settings → Payout Setup</strong> dan masukkan username akaun ToyyibPay kamu. Belum ada akaun? <a href="https://toyyibpay.com/e/586756306506121794" style="color:#92400e;font-weight:600;">Daftar percuma di sini</a>.
         </p>
       </div>
       <a href="https://floriahub.vercel.app/dashboard" style="display:block;background:#b45309;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Setup Payout Sekarang</a>

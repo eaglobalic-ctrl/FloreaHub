@@ -274,8 +274,8 @@ export default function FloristRegisterPage() {
               </p>
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 text-sm text-blue-900">
                 <p className="mb-2">1. Register a free ToyyibPay account (if you don't have one):</p>
-                <a href="https://toyyibpay.com/access/registration" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold underline">
-                  toyyibpay.com/access/registration <ExternalLink size={13} />
+                <a href="https://toyyibpay.com/e/586756306506121794" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-semibold underline">
+                  Register at ToyyibPay <ExternalLink size={13} />
                 </a>
                 <p className="mt-3">2. Enter your ToyyibPay account username below (not your email).</p>
               </div>
