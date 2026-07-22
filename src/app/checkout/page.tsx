@@ -31,17 +31,22 @@ function CheckoutContent() {
   const [floristId, setFloristId] = useState<string | null>(null);
   const [floristLookupDone, setFloristLookupDone] = useState(false);
   const [floristDeliveryFees, setFloristDeliveryFees] = useState<Record<string, number>>({});
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     if (!planDetail) setCart(getCart());
     const onUpdate = () => setCart(getCart());
     window.addEventListener("cart-updated", onUpdate);
 
-    // Pre-fill from the signed-in session, if any
+    // Checkout requires a signed-in buyer — orders need to be linked to a
+    // real account for order history and for the post-purchase "Message
+    // Seller" flow (chat requires both sides to have an account).
     fetch("/api/auth/me")
       .then(r => r.json())
       .then(d => {
         const u = d.user;
+        setSignedIn(!!u);
         if (u?.name) setForm(f => ({ ...f, name: u.name, recipientName: u.name }));
         if (u?.email) setForm(f => ({ ...f, email: u.email }));
         if (planDetail && u?.id) {
@@ -52,7 +57,8 @@ function CheckoutContent() {
         }
         if (planDetail) setFloristLookupDone(true);
       })
-      .catch(() => { if (planDetail) setFloristLookupDone(true); });
+      .catch(() => { if (planDetail) setFloristLookupDone(true); })
+      .finally(() => setCheckingAuth(false));
 
     return () => window.removeEventListener("cart-updated", onUpdate);
   }, [planDetail]);
@@ -101,6 +107,7 @@ function CheckoutContent() {
     e.preventDefault();
     if (!form.name || !form.email || !form.phone) { setError("Please fill in all required fields."); return; }
     if (!planDetail && !form.address) { setError("Please enter a delivery address."); return; }
+    if (!planDetail && !form.deliveryDate) { setError("Please choose a delivery date."); return; }
     if (planDetail && !floristId) { setError("You need an approved florist account to upgrade a plan. Sign in with your florist account first."); return; }
     setError("");
     setLoading(true);
@@ -126,6 +133,7 @@ function CheckoutContent() {
               recipientName: form.sameAsContact ? form.name : form.recipientName,
               recipientPhone: form.sameAsContact ? form.phone : form.recipientPhone,
               deliveryAddress: form.address ? `${form.address}, ${form.city}`.trim().replace(/,\s*$/, "") : "",
+              deliveryDate: form.deliveryDate,
               notes: form.notes,
             }),
           });
@@ -141,6 +149,28 @@ function CheckoutContent() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-2 border-gray-200 border-t-rose-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!signedIn) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <div className="card-premium p-10 max-w-sm text-center">
+          <Lock size={36} className="mx-auto mb-4" style={{ color: "var(--primary)" }} />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Sign In to Checkout</h2>
+          <p className="text-gray-500 text-sm mb-6">You need an account so you can track your order and message the florist directly. Your cart is saved.</p>
+          <Link href="/login" className="btn-primary w-full justify-center mb-3">Sign In</Link>
+          <Link href="/register" className="btn-secondary w-full justify-center">Create Account</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!planDetail && cart.length === 0) {
     return (
@@ -251,9 +281,9 @@ function CheckoutContent() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                          <span className="flex items-center gap-1.5"><Calendar size={13} /> Delivery Date</span>
+                          <span className="flex items-center gap-1.5"><Calendar size={13} /> Delivery Date *</span>
                         </label>
-                        <input type="date" value={form.deliveryDate} onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))} min={new Date().toISOString().split("T")[0]} className="input-premium w-full" />
+                        <input type="date" value={form.deliveryDate} onChange={e => setForm(f => ({ ...f, deliveryDate: e.target.value }))} min={new Date().toISOString().split("T")[0]} className="input-premium w-full" required />
                       </div>
                     </div>
 

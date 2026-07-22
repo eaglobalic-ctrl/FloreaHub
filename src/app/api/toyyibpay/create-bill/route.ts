@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSession } from "@/lib/session";
 
 const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
   ? "https://dev.toyyibpay.com"
@@ -15,7 +16,11 @@ type Item = { id: string; name: string; image: string; florist: string; floristI
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, notes } = await req.json();
+    const session = getSession(req);
+    if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+    const { amount, name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, deliveryDate, notes } = await req.json();
+    if (!deliveryDate) return NextResponse.json({ error: "Delivery date is required" }, { status: 400 });
 
     if (!process.env.TOYYIBPAY_SECRET_KEY || !process.env.TOYYIBPAY_CATEGORY_CODE) {
       return NextResponse.json({ error: "ToyyibPay credentials not configured" }, { status: 500 });
@@ -130,6 +135,7 @@ export async function POST(req: NextRequest) {
 
         await db.from("orders").insert({
           id: g.orderId,
+          user_id: session.userId,
           florist_id: g.floristId,
           subtotal: g.subtotal,
           delivery_fee: g.deliveryFee,
@@ -139,6 +145,7 @@ export async function POST(req: NextRequest) {
           recipient_name: recipientName ?? name,
           recipient_phone: recipientPhone ?? phone,
           delivery_address: deliveryAddress ?? null,
+          delivery_date: deliveryDate,
           notes: notes ?? null,
           bill_code: billCode,
           payment_status: "pending",

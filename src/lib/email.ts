@@ -228,6 +228,67 @@ export async function sendOrderConfirmationEmail({
   await send(email, `Pesanan disahkan — ${orderId}`, html);
 }
 
+// ── Florist: new order notification ──────────────────────────────────────────
+
+export async function sendNewOrderNotificationToFlorist({
+  email, name, orderId, items, total, recipientName, deliveryAddress, deliveryDate,
+}: {
+  email: string; name: string; orderId: string;
+  items: OrderItem[];
+  total: number; recipientName?: string; deliveryAddress?: string; deliveryDate?: string;
+}) {
+  const itemRows = items.map(i => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;">
+        <p style="margin:0;font-size:14px;font-weight:500;color:#111827;">${i.product_name}</p>
+        <p style="margin:2px 0 0;font-size:12px;color:#9ca3af;">qty ${i.quantity}</p>
+      </td>
+      <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:right;font-size:14px;font-weight:600;color:#111827;">
+        RM${(i.price * i.quantity).toFixed(2)}
+      </td>
+    </tr>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#b5294e,#8a1f3c);padding:32px;text-align:center;">
+      ${LOGO_SVG}
+      <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:inline-block;line-height:44px;text-align:center;margin:16px auto 10px;font-size:22px;color:#fff;font-weight:700;">&#127801;</div>
+      <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700;">New Order!</h1>
+      <p style="margin:6px 0 0;color:rgba(255,255,255,.7);font-size:13px;">${orderId}</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, kamu dapat order baru! Bayaran dah disahkan — sila mula sediakan pesanan ni.
+      </p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;"><tbody>${itemRows}</tbody></table>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr>
+          <td style="padding:8px 0 0;font-size:16px;font-weight:700;color:#111827;">Jumlah (kamu terima ~98%)</td>
+          <td style="padding:8px 0 0;font-size:16px;font-weight:700;color:#b5294e;text-align:right;">RM${total.toFixed(2)}</td>
+        </tr>
+      </table>
+      ${(deliveryAddress || deliveryDate) ? `
+      <div style="background:#f9fafb;border-radius:10px;padding:16px;margin-bottom:24px;">
+        <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;">Hantar kepada</p>
+        ${recipientName ? `<p style="margin:0;font-size:14px;color:#111827;font-weight:500;">${recipientName}</p>` : ""}
+        ${deliveryAddress ? `<p style="margin:2px 0 0;font-size:13px;color:#6b7280;">${deliveryAddress}</p>` : ""}
+        ${deliveryDate ? `<p style="margin:6px 0 0;font-size:13px;color:#6b7280;"><strong>Tarikh hantar:</strong> ${new Date(deliveryDate).toLocaleDateString("ms-MY", { day: "numeric", month: "long", year: "numeric" })}</p>` : ""}
+      </div>` : ""}
+      <a href="https://floriahub.vercel.app/dashboard?tab=orders" style="display:block;background:#b5294e;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Lihat Order di Dashboard →</a>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, `Order baru diterima — ${orderId}`, html);
+}
+
 // ── Admin: new florist notification ──────────────────────────────────────────
 
 export async function sendAdminFloristNotification({ name, email, shopCity, shopPhone }: {

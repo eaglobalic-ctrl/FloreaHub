@@ -2,7 +2,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { Check, Flower2, ArrowRight, ShoppingBag, MapPin, Phone, Clock, Package, Loader2, Star } from "lucide-react";
+import { Check, Flower2, ArrowRight, ShoppingBag, MapPin, Phone, Clock, Package, Loader2, Star, MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { clearCart } from "@/lib/cart";
 
@@ -11,6 +11,7 @@ type Order = {
   recipient_name?: string; recipient_phone?: string; delivery_address?: string;
   created_at: string; bill_code?: string;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number }[];
+  florists?: { id: string; name: string } | null;
 };
 
 const STATUS_STEPS = [
@@ -26,6 +27,28 @@ function SuccessContent() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [messagingId, setMessagingId] = useState<string | null>(null);
+
+  const messageSeller = async (floristId: string) => {
+    setMessagingId(floristId);
+    try {
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ floristId }),
+      });
+      const data = await res.json();
+      if (data.conversation?.id) {
+        router.push(`/messages?conversationId=${data.conversation.id}`);
+      } else {
+        router.push("/messages");
+      }
+    } catch {
+      router.push("/messages");
+    } finally {
+      setMessagingId(null);
+    }
+  };
 
   useEffect(() => {
     // ToyyibPay sends every outcome here (success, failed, cancelled) —
@@ -164,6 +187,19 @@ function SuccessContent() {
                             </div>
                           )}
                         </div>
+                      )}
+
+                      {order.florists?.id && (
+                        <button
+                          onClick={() => messageSeller(order.florists!.id)}
+                          disabled={messagingId === order.florists.id}
+                          className="btn-secondary w-full mt-5 flex items-center justify-center gap-2 py-2.5 text-sm disabled:opacity-60"
+                        >
+                          {messagingId === order.florists.id
+                            ? <Loader2 size={15} className="animate-spin" />
+                            : <MessageCircle size={15} />}
+                          Message {order.florists.name}
+                        </button>
                       )}
                     </div>
 

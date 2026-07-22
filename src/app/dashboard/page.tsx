@@ -37,7 +37,8 @@ const NAV = [
 
 type Order = {
   id: string; status: string; payment_status: string; total: number;
-  recipient_name?: string; created_at: string;
+  recipient_name?: string; created_at: string; florist_seen_at?: string | null;
+  split_amount?: number | null;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number }[];
 };
 
@@ -133,6 +134,20 @@ export default function DashboardPage() {
     reloadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [florist]);
+
+  const newOrdersCount = orders.filter(o => o.payment_status === "paid" && !o.florist_seen_at).length;
+
+  useEffect(() => {
+    if (tab !== "orders" || !florist?.id || newOrdersCount === 0) return;
+    fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markSeenFloristId: florist.id }),
+    }).then(() => {
+      setOrders(prev => prev.map(o => ({ ...o, florist_seen_at: o.florist_seen_at ?? new Date().toISOString() })));
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, florist?.id]);
 
   useEffect(() => {
     if (!florist?.id) { setLoadingReviews(false); return; }
@@ -249,8 +264,15 @@ export default function DashboardPage() {
     const pendingOrders = orders.filter(o => o.status === "pending");
     const completedOrders = orders.filter(o => o.status === "delivered");
     const revenue = paidOrders.reduce((s, o) => s + Number(o.total), 0);
+    // ToyyibPay settles a paid split within 1-4 business days — this is what
+    // "floating"/pending payments in your ToyyibPay dashboard corresponds to.
+    const fourDaysAgo = Date.now() - 4 * 24 * 60 * 60 * 1000;
+    const pendingSettlement = paidOrders
+      .filter(o => new Date(o.created_at).getTime() >= fourDaysAgo)
+      .reduce((s, o) => s + (o.split_amount != null ? Number(o.split_amount) : Number(o.total) * 0.98), 0);
     return [
       { label: "Revenue", value: `RM ${revenue.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "from paid orders", up: revenue > 0, icon: TrendingUp, color: "#2d6a4f" },
+      { label: "Pending Settlement", value: `RM ${pendingSettlement.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "est., settles in 1-4 days", up: pendingSettlement > 0, icon: Clock, color: "#b45309" },
       { label: "Pending Orders", value: String(pendingOrders.length), change: `${orders.length} total`, up: pendingOrders.length > 0, icon: Clock, color: "#f59e0b" },
       { label: "Completed", value: String(completedOrders.length), change: "delivered", up: completedOrders.length > 0, icon: CheckCircle, color: "#3b82f6" },
       { label: "Products", value: String(products.length), change: "in catalogue", up: true, icon: Package, color: "#b5294e" },
@@ -374,6 +396,14 @@ export default function DashboardPage() {
                     {unreadMessages > 9 ? "9+" : unreadMessages}
                   </span>
                 )}
+                {id === "orders" && newOrdersCount > 0 && (
+                  <span
+                    className="ml-auto w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center flex-shrink-0"
+                    style={{ background: tab === id ? "rgba(255,255,255,0.25)" : "var(--primary)", color: "white" }}
+                  >
+                    {newOrdersCount > 9 ? "9+" : newOrdersCount}
+                  </span>
+                )}
               </button>
             )
           ))}
@@ -431,9 +461,9 @@ export default function DashboardPage() {
           {tab === "overview" && (
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
               {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                 {loadingOrders && loadingProducts ? (
-                  [...Array(4)].map((_, i) => <StatCardSkeleton key={i} />)
+                  [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)
                 ) : (
                   stats.map(({ label, value, change, up, icon: Icon, color }) => (
                     <motion.div key={label} variants={fadeUp} className="card-premium p-5">

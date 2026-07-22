@@ -67,7 +67,18 @@ export async function PATCH(req: NextRequest) {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { orderId, status } = await req.json();
+    const { orderId, status, markSeenFloristId } = await req.json();
+
+    // Bulk "I've seen my new orders" — clears the dashboard's new-orders
+    // badge, same idea as clearing a chat's unread count on open.
+    if (markSeenFloristId) {
+      const db = getSupabaseAdmin();
+      const { data: florist } = await db.from("florists").select("id").eq("id", markSeenFloristId).eq("user_id", session.userId).maybeSingle();
+      if (!florist) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      await db.from("orders").update({ florist_seen_at: new Date().toISOString() }).eq("florist_id", markSeenFloristId).is("florist_seen_at", null);
+      return NextResponse.json({ ok: true });
+    }
+
     if (!orderId || !VALID_STATUSES.includes(status)) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
@@ -106,12 +117,12 @@ export async function GET(req: NextRequest) {
       // "%" also matches zero extra characters, so this covers both the
       // single-seller case (id === orderId) and multi-seller sub-rows
       // (id === `${orderId}-2`, etc.) in one parameterized query.
-      const { data, error } = await db.from("orders").select("*, order_items(*)").like("id", `${orderId}%`);
+      const { data, error } = await db.from("orders").select("*, order_items(*), florists(id, name)").like("id", `${orderId}%`);
       if (error) throw error;
       return NextResponse.json({ orders: data ?? [] });
     }
     if (billCode) {
-      const { data, error } = await db.from("orders").select("*, order_items(*)").eq("bill_code", billCode);
+      const { data, error } = await db.from("orders").select("*, order_items(*), florists(id, name)").eq("bill_code", billCode);
       if (error) throw error;
       return NextResponse.json({ orders: data ?? [] });
     }

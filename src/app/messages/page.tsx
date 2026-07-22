@@ -75,6 +75,13 @@ export default function BuyerMessagesPage() {
     return () => clearInterval(interval);
   }, [signedIn, loadConversations]);
 
+  // Deep-link from "Message Seller" on the checkout success page — read via
+  // window.location directly (not useSearchParams) to avoid a Suspense wrap.
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("conversationId");
+    if (requested) setSelectedId(requested);
+  }, []);
+
   const loadMessages = useCallback(() => {
     if (!selectedId) return;
     fetch(`/api/messages?conversationId=${selectedId}`)
