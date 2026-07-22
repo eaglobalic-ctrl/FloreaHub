@@ -79,6 +79,7 @@ export default function ProductDetailPage() {
         price: product.price,
         image: product.image_url || "",
         florist: product.florists?.name || "",
+        floristId: product.florists?.id ?? null,
       });
     }
     setAdded(true);

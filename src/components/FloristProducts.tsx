@@ -53,6 +53,7 @@ export default function FloristProducts({
       price: p.price,
       image: p.image_url || "",
       florist: floristName,
+      floristId: floristId ?? null,
     });
     setAddedId(p.id);
     setTimeout(() => setAddedId(null), 1200);

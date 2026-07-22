@@ -7,7 +7,7 @@ const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, name, email, phone, description, referenceNo, items, deliveryFee, recipientName, recipientPhone, deliveryAddress, notes } = await req.json();
+    const { amount, name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, notes } = await req.json();
 
     if (!process.env.TOYYIBPAY_SECRET_KEY || !process.env.TOYYIBPAY_CATEGORY_CODE) {
       return NextResponse.json({ error: "ToyyibPay credentials not configured" }, { status: 500 });
@@ -45,42 +45,59 @@ export async function POST(req: NextRequest) {
     }
 
     const billCode = data[0].BillCode;
-    const subtotal = amount - (deliveryFee ?? 0);
 
-    // Save order to Supabase
+    // Save order(s) to Supabase — one row per florist in the cart (a cart
+    // can span multiple sellers, like Shopee's combined checkout), sharing
+    // this bill_code as the group reference. Items with no floristId (e.g.
+    // the custom bouquet builder) fall into a single "unassigned" group
+    // fulfilled by FloreaHub directly, not any specific florist.
     try {
       const db = getSupabaseAdmin();
+      type Item = { id: string; name: string; image: string; florist: string; floristId?: string | null; price: number; quantity: number };
+      const cartItems: Item[] = items ?? [];
 
-      // Resolve the florist this order belongs to from the first real product in the cart
-      // (products carry florist_id; the plan-upgrade/custom-builder "items" don't map to a real product)
-      let floristId: string | null = null;
-      const firstProductId = items?.find((item: { id: string }) => item.id)?.id;
-      if (firstProductId) {
-        const { data: product } = await db.from("products").select("florist_id").eq("id", firstProductId).maybeSingle();
-        floristId = product?.florist_id ?? null;
+      const groups = new Map<string, Item[]>();
+      for (const item of cartItems) {
+        const key = item.floristId ?? "__none__";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(item);
       }
 
-      await db.from("orders").insert({
-        id: orderId,
-        florist_id: floristId,
-        subtotal: subtotal > 0 ? subtotal : amount,
-        delivery_fee: deliveryFee ?? 0,
-        total: amount,
-        buyer_name: name,
-        buyer_email: email,
-        recipient_name: recipientName ?? name,
-        recipient_phone: recipientPhone ?? phone,
-        delivery_address: deliveryAddress ?? null,
-        notes: notes ?? null,
-        bill_code: billCode,
-        payment_status: "pending",
-        status: "pending",
-      });
+      const floristIds = Array.from(groups.keys()).filter(k => k !== "__none__");
+      const { data: florists } = floristIds.length
+        ? await db.from("florists").select("id, delivery_fee").in("id", floristIds)
+        : { data: [] };
+      const deliveryFeeByFlorist = new Map((florists ?? []).map(f => [f.id, Number(f.delivery_fee) || 0]));
 
-      if (items?.length) {
+      const groupEntries = Array.from(groups.entries());
+      const multiSeller = groupEntries.length > 1;
+
+      for (let i = 0; i < groupEntries.length; i++) {
+        const [key, groupItems] = groupEntries[i];
+        const groupOrderId = multiSeller ? `${orderId}-${i + 1}` : orderId;
+        const groupSubtotal = groupItems.reduce((s, it) => s + it.price * it.quantity, 0);
+        const groupDeliveryFee = key === "__none__" ? 15 : (deliveryFeeByFlorist.get(key) ?? 15);
+
+        await db.from("orders").insert({
+          id: groupOrderId,
+          florist_id: key === "__none__" ? null : key,
+          subtotal: groupSubtotal,
+          delivery_fee: groupDeliveryFee,
+          total: groupSubtotal + groupDeliveryFee,
+          buyer_name: name,
+          buyer_email: email,
+          recipient_name: recipientName ?? name,
+          recipient_phone: recipientPhone ?? phone,
+          delivery_address: deliveryAddress ?? null,
+          notes: notes ?? null,
+          bill_code: billCode,
+          payment_status: "pending",
+          status: "pending",
+        });
+
         await db.from("order_items").insert(
-          items.map((item: { id: string; name: string; image: string; florist: string; price: number; quantity: number }) => ({
-            order_id: orderId,
+          groupItems.map(item => ({
+            order_id: groupOrderId,
             product_id: item.id ?? null,
             product_name: item.name,
             product_image: item.image ?? null,

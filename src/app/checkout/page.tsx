@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { ShoppingBag, CreditCard, ArrowRight, Lock, Trash2, Flower2, MapPin, User, Phone, Calendar, FileText } from "lucide-react";
@@ -30,6 +30,7 @@ function CheckoutContent() {
   const [error, setError] = useState("");
   const [floristId, setFloristId] = useState<string | null>(null);
   const [floristLookupDone, setFloristLookupDone] = useState(false);
+  const [floristDeliveryFees, setFloristDeliveryFees] = useState<Record<string, number>>({});
 
   useEffect(() => {
     if (!planDetail) setCart(getCart());
@@ -63,9 +64,37 @@ function CheckoutContent() {
     }
   }, [form.sameAsContact, form.name, form.phone]);
 
-  const items = planDetail ? [{ id: plan!, name: planDetail.name, price: planDetail.price, quantity: 1, image: "", florist: "FloreaHub" }] : cart;
+  // Cart items are grouped per-florist (multi-seller checkout, like Shopee) —
+  // each seller's parcel carries its own delivery fee instead of one flat rate.
+  const groupedCart = useMemo(() => {
+    const groups = new Map<string, CartItem[]>();
+    for (const item of cart) {
+      const key = item.floristId ?? "__none__";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(item);
+    }
+    return groups;
+  }, [cart]);
+
+  const floristIdsKey = useMemo(
+    () => Array.from(new Set(cart.map(i => i.floristId).filter((id): id is string => !!id))).sort().join(","),
+    [cart]
+  );
+
+  useEffect(() => {
+    if (planDetail || !floristIdsKey) return;
+    const ids = floristIdsKey.split(",");
+    Promise.all(
+      ids.map(id => fetch(`/api/florists?id=${id}`).then(r => r.json()).then(d => [id, Number(d.florists?.[0]?.delivery_fee ?? 15)] as [string, number]))
+    ).then(pairs => setFloristDeliveryFees(Object.fromEntries(pairs)));
+  }, [floristIdsKey, planDetail]);
+
+  const items = planDetail ? [{ id: plan!, name: planDetail.name, price: planDetail.price, quantity: 1, image: "", florist: "FloreaHub", floristId: null }] : cart;
   const subtotal = planDetail ? planDetail.price : getCartTotal(cart);
-  const deliveryFee = planDetail ? 0 : 15;
+  const deliveryFee = planDetail ? 0 : Array.from(groupedCart.keys()).reduce(
+    (sum, key) => sum + (key === "__none__" ? 15 : floristDeliveryFees[key] ?? 15),
+    0
+  );
   const total = subtotal + deliveryFee;
 
   const handlePayment = async (e: React.FormEvent) => {
@@ -250,28 +279,51 @@ function CheckoutContent() {
             <motion.div variants={fadeUp} className="lg:col-span-2">
               <div className="card-premium p-6 sticky top-24">
                 <h2 className="font-bold text-gray-900 mb-5">Order Summary</h2>
-                <div className="space-y-3 mb-5">
-                  {items.map(item => (
-                    <div key={item.id} className="flex items-center gap-3">
-                      {!planDetail && item.image && (
-                        <div className="w-11 h-11 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
-                          <Image src={item.image} alt={item.name} width={44} height={44} className="w-full h-full object-cover" />
+                <div className="space-y-5 mb-5">
+                  {planDetail
+                    ? items.map(item => (
+                        <div key={item.id} className="flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                            <p className="text-xs text-gray-400">{item.florist} · qty {item.quantity}</p>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">RM{item.price * item.quantity}</span>
                         </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                        <p className="text-xs text-gray-400">{item.florist} · qty {item.quantity}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">RM{item.price * item.quantity}</span>
-                        {!planDetail && (
-                          <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
-                            <Trash2 size={13} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                    : Array.from(groupedCart.entries()).map(([key, groupItems]) => {
+                        const groupSubtotal = groupItems.reduce((s, i) => s + i.price * i.quantity, 0);
+                        const groupDeliveryFee = key === "__none__" ? 15 : floristDeliveryFees[key] ?? 15;
+                        return (
+                          <div key={key} className="space-y-2.5">
+                            <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                              <span>{groupItems[0].florist || "FloreaHub"}</span>
+                              <span className="text-gray-400 font-normal normal-case">Delivery RM{groupDeliveryFee.toFixed(2)}</span>
+                            </div>
+                            {groupItems.map(item => (
+                              <div key={item.id} className="flex items-center gap-3">
+                                {item.image && (
+                                  <div className="w-11 h-11 rounded-lg bg-gray-100 flex-shrink-0 overflow-hidden">
+                                    <Image src={item.image} alt={item.name} width={44} height={44} className="w-full h-full object-cover" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
+                                  <p className="text-xs text-gray-400">qty {item.quantity}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-gray-900">RM{item.price * item.quantity}</span>
+                                  <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-400 transition-colors p-0.5">
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                            <div className="flex justify-between text-xs text-gray-400 pt-0.5">
+                              <span>Seller subtotal</span><span>RM{groupSubtotal.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
                 </div>
 
                 {planDetail && <p className="text-xs text-gray-500 mb-4 bg-blue-50 p-3 rounded-lg">{planDetail.desc}</p>}

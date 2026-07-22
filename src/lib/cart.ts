@@ -5,6 +5,9 @@ export type CartItem = {
   quantity: number;
   image: string;
   florist: string;
+  // null for non-marketplace items (e.g. the custom bouquet builder) that
+  // aren't fulfilled by a specific florist — these never get split payment.
+  floristId: string | null;
 };
 
 const KEY = "floreahub_cart";

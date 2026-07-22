@@ -21,7 +21,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 };
 
 type Product = {
-  id: string; name: string; florist: string; price: number; originalPrice: number | null;
+  id: string; name: string; florist: string; floristId: string | null; price: number; originalPrice: number | null;
   image: string; category: string; rating: number; reviews: number; sameDay: boolean; badge: string;
 };
 
@@ -31,6 +31,7 @@ function dbToProduct(p: Record<string, unknown>): Product {
     id: String(p.id),
     name: String(p.name || ""),
     florist: String(f?.name || ""),
+    floristId: f?.id ? String(f.id) : null,
     price: Number(p.price) || 0,
     originalPrice: p.original_price ? Number(p.original_price) : null,
     image: String(p.image_url || `https://image.pollinations.ai/prompt/flower+arrangement+malaysia?width=400&height=400&nologo=true&seed=${p.id}`),
@@ -89,7 +90,7 @@ function ShopContent() {
     setWishlist((p) => p.includes(id) ? p.filter((w) => w !== id) : [...p, id]);
 
   const handleAddToCart = (p: Product) => {
-    saveToCart({ id: p.id, name: p.name, price: p.price, image: p.image, florist: p.florist });
+    saveToCart({ id: p.id, name: p.name, price: p.price, image: p.image, florist: p.florist, floristId: p.floristId });
     setAddedId(p.id);
     setTimeout(() => setAddedId(null), 1200);
   };

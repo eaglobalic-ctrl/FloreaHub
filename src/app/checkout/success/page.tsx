@@ -24,7 +24,7 @@ const STATUS_STEPS = [
 function SuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [order, setOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,31 +40,33 @@ function SuccessContent() {
     clearCart();
 
     // ToyyibPay returns: ?billcode=XXX&refno=FH-XXX&status_id=1
+    // A multi-seller cart creates one order row per florist sharing the
+    // same bill_code/reference group, so either lookup can return several.
     const refno = searchParams.get("refno") || searchParams.get("billExternalReferenceNo");
     const billcode = searchParams.get("billcode");
 
-    const fetchOrder = async () => {
+    const fetchOrders = async () => {
       if (refno) {
         const res = await fetch(`/api/orders?id=${refno}`).catch(() => null);
         if (res?.ok) {
           const d = await res.json();
-          if (d.order) { setOrder(d.order); setLoading(false); return; }
+          if (d.orders?.length) { setOrders(d.orders); setLoading(false); return; }
         }
       }
       if (billcode) {
         const res = await fetch(`/api/orders?billCode=${billcode}`).catch(() => null);
         if (res?.ok) {
           const d = await res.json();
-          if (d.order) { setOrder(d.order); setLoading(false); return; }
+          if (d.orders?.length) { setOrders(d.orders); setLoading(false); return; }
         }
       }
       setLoading(false);
     };
 
-    fetchOrder();
+    fetchOrders();
   }, [searchParams]);
 
-  const currentStep = order ? STATUS_STEPS.findIndex(s => s.key === order.status) : 0;
+  const totalPaid = orders.reduce((s, o) => s + Number(o.total), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white py-12 px-4">
@@ -97,85 +99,101 @@ function SuccessContent() {
             <div className="card-premium p-8 flex items-center justify-center mb-5">
               <Loader2 size={24} className="animate-spin text-gray-300" />
             </div>
-          ) : order ? (
+          ) : orders.length > 0 ? (
             <>
-              {/* Order summary card */}
-              <div className="card-premium p-6 mb-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">Order Summary</h3>
-                  <span className="text-xs font-mono text-gray-400">{order.id}</span>
+              {orders.length > 1 && (
+                <div className="flex justify-between items-center mb-4 px-1">
+                  <p className="text-sm text-gray-500">{orders.length} sellers · shipped separately</p>
+                  <p className="font-bold text-gray-900">Total Paid <span style={{ color: "var(--primary)" }}>RM{totalPaid.toFixed(2)}</span></p>
                 </div>
+              )}
 
-                {/* Items */}
-                {order.order_items && order.order_items.length > 0 && (
-                  <div className="space-y-3 mb-4 pb-4 border-b border-gray-100">
-                    {order.order_items.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm">
-                        <div>
-                          <span className="font-medium text-gray-800">{item.product_name}</span>
-                          <span className="text-gray-400 ml-1.5">×{item.quantity}</span>
-                          <p className="text-xs text-gray-400">{item.florist_name}</p>
-                        </div>
-                        <span className="font-semibold text-gray-900">RM{(item.price * item.quantity).toFixed(2)}</span>
+              {orders.map(order => {
+                const currentStep = STATUS_STEPS.findIndex(s => s.key === order.status);
+                return (
+                  <div key={order.id} className="mb-5">
+                    {/* Order summary card */}
+                    <div className="card-premium p-6 mb-3">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-gray-900">
+                          {orders.length > 1 ? (order.order_items?.[0]?.florist_name ?? "Order") : "Order Summary"}
+                        </h3>
+                        <span className="text-xs font-mono text-gray-400">{order.id}</span>
                       </div>
-                    ))}
+
+                      {/* Items */}
+                      {order.order_items && order.order_items.length > 0 && (
+                        <div className="space-y-3 mb-4 pb-4 border-b border-gray-100">
+                          {order.order_items.map((item, i) => (
+                            <div key={i} className="flex items-center justify-between text-sm">
+                              <div>
+                                <span className="font-medium text-gray-800">{item.product_name}</span>
+                                <span className="text-gray-400 ml-1.5">×{item.quantity}</span>
+                                {orders.length === 1 && <p className="text-xs text-gray-400">{item.florist_name}</p>}
+                              </div>
+                              <span className="font-semibold text-gray-900">RM{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex justify-between font-bold text-gray-900 mb-5">
+                        <span>{orders.length > 1 ? "Subtotal + delivery" : "Total Paid"}</span>
+                        <span style={{ color: "var(--primary)" }}>RM{Number(order.total).toFixed(2)}</span>
+                      </div>
+
+                      {/* Delivery info */}
+                      {(order.recipient_name || order.delivery_address) && (
+                        <div className="space-y-2 text-sm">
+                          {order.recipient_name && (
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <Package size={13} className="text-gray-400 flex-shrink-0" />
+                              {order.recipient_name}
+                            </div>
+                          )}
+                          {order.recipient_phone && (
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <Phone size={13} className="text-gray-400 flex-shrink-0" />
+                              {order.recipient_phone}
+                            </div>
+                          )}
+                          {order.delivery_address && (
+                            <div className="flex items-start gap-2 text-gray-600">
+                              <MapPin size={13} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                              {order.delivery_address}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Order tracker */}
+                    <div className="card-premium p-6">
+                      <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                        <Clock size={15} style={{ color: "var(--primary)" }} /> Order Status
+                      </h3>
+                      <div className="space-y-4">
+                        {STATUS_STEPS.slice(0, 4).map((step, i) => {
+                          const done = i <= currentStep;
+                          const active = i === currentStep;
+                          return (
+                            <div key={step.key} className="flex items-start gap-3">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${done ? "shadow-sm" : "bg-gray-100"}`}
+                                style={done ? { background: active ? "var(--primary)" : "var(--accent)" } : {}}>
+                                {done ? <Check size={12} color="white" strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-gray-300" />}
+                              </div>
+                              <div>
+                                <p className={`text-sm font-medium ${active ? "text-gray-900" : done ? "text-gray-600" : "text-gray-300"}`}>{step.label}</p>
+                                <p className={`text-xs ${active ? "text-gray-500" : "text-gray-300"}`}>{step.desc}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                )}
-
-                <div className="flex justify-between font-bold text-gray-900 mb-5">
-                  <span>Total Paid</span>
-                  <span style={{ color: "var(--primary)" }}>RM{Number(order.total).toFixed(2)}</span>
-                </div>
-
-                {/* Delivery info */}
-                {(order.recipient_name || order.delivery_address) && (
-                  <div className="space-y-2 text-sm">
-                    {order.recipient_name && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Package size={13} className="text-gray-400 flex-shrink-0" />
-                        {order.recipient_name}
-                      </div>
-                    )}
-                    {order.recipient_phone && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Phone size={13} className="text-gray-400 flex-shrink-0" />
-                        {order.recipient_phone}
-                      </div>
-                    )}
-                    {order.delivery_address && (
-                      <div className="flex items-start gap-2 text-gray-600">
-                        <MapPin size={13} className="text-gray-400 flex-shrink-0 mt-0.5" />
-                        {order.delivery_address}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Order tracker */}
-              <div className="card-premium p-6 mb-5">
-                <h3 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
-                  <Clock size={15} style={{ color: "var(--primary)" }} /> Order Status
-                </h3>
-                <div className="space-y-4">
-                  {STATUS_STEPS.slice(0, 4).map((step, i) => {
-                    const done = i <= currentStep;
-                    const active = i === currentStep;
-                    return (
-                      <div key={step.key} className="flex items-start gap-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${done ? "shadow-sm" : "bg-gray-100"}`}
-                          style={done ? { background: active ? "var(--primary)" : "var(--accent)" } : {}}>
-                          {done ? <Check size={12} color="white" strokeWidth={3} /> : <div className="w-2 h-2 rounded-full bg-gray-300" />}
-                        </div>
-                        <div>
-                          <p className={`text-sm font-medium ${active ? "text-gray-900" : done ? "text-gray-600" : "text-gray-300"}`}>{step.label}</p>
-                          <p className={`text-xs ${active ? "text-gray-500" : "text-gray-300"}`}>{step.desc}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                );
+              })}
             </>
           ) : (
             /* Generic success (no order found) */

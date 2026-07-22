@@ -100,15 +100,20 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = getSupabaseAdmin();
+    // A multi-seller checkout creates one order row per florist, all sharing
+    // the same bill_code — either lookup can now resolve to more than one row.
     if (orderId) {
-      const { data: order, error } = await db.from("orders").select("*, order_items(*)").eq("id", orderId).single();
+      // "%" also matches zero extra characters, so this covers both the
+      // single-seller case (id === orderId) and multi-seller sub-rows
+      // (id === `${orderId}-2`, etc.) in one parameterized query.
+      const { data, error } = await db.from("orders").select("*, order_items(*)").like("id", `${orderId}%`);
       if (error) throw error;
-      return NextResponse.json({ order });
+      return NextResponse.json({ orders: data ?? [] });
     }
     if (billCode) {
-      const { data: order, error } = await db.from("orders").select("*, order_items(*)").eq("bill_code", billCode).single();
-      if (error) return NextResponse.json({ order: null });
-      return NextResponse.json({ order });
+      const { data, error } = await db.from("orders").select("*, order_items(*)").eq("bill_code", billCode);
+      if (error) throw error;
+      return NextResponse.json({ orders: data ?? [] });
     }
     // A caller must scope by florist or buyer — an unscoped request would leak every order in the marketplace
     if (!floristId && !buyerEmail) return NextResponse.json({ orders: [] });

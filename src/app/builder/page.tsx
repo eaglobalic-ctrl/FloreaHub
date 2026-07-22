@@ -227,6 +227,7 @@ export default function BuilderPage() {
               price: grandTotal,
               image: "",
               florist: "FloreaHub Builder",
+              floristId: null,
             });
             router.push("/checkout");
           }}
