@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { getAppUrl } from "@/lib/url";
 
 const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
   ? "https://dev.toyyibpay.com"
@@ -94,8 +95,8 @@ export async function POST(req: NextRequest) {
       billPriceSetting: "1",
       billPayorInfo: "1",
       billAmount: String(Math.round(amount * 100)),
-      billReturnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success`,
-      billCallbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/toyyibpay/callback`,
+      billReturnUrl: `${getAppUrl()}/checkout/success`,
+      billCallbackUrl: `${getAppUrl()}/api/toyyibpay/callback`,
       billExternalReferenceNo: orderId,
       billTo: name,
       billEmail: email,

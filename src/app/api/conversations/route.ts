@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { sendNewChatMessageEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/url";
 
 export async function GET(req: NextRequest) {
   try {
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
             const { data: florist } = await db.from("florists").select("name, email").eq("id", floristId).maybeSingle();
             const { data: buyer } = await db.from("users").select("name").eq("id", session.userId).maybeSingle();
             if (florist?.email) {
-              const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://floriahub.vercel.app";
+              const baseUrl = getAppUrl();
               await sendNewChatMessageEmail({
                 toEmail: florist.email,
                 toName: florist.name ?? "there",

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendPasswordResetEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/url";
 
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -21,8 +22,7 @@ export async function POST(req: NextRequest) {
 
       await db.from("users").update({ reset_token_hash: tokenHash, reset_token_expires_at: expiresAt }).eq("id", user.id);
 
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://floriahub.vercel.app";
-      const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+      const resetUrl = `${getAppUrl()}/reset-password?token=${token}`;
       // Awaited deliberately — Vercel can freeze the function the instant the
       // response is sent, so a fire-and-forget send() here is a coin flip
       await sendPasswordResetEmail({ name: user.name, email: user.email, resetUrl });

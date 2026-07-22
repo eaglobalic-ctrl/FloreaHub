@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { moderateMessage } from "@/lib/chatModeration";
 import { sendNewChatMessageEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/url";
 
 type Role = "buyer" | "florist";
 
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
     // recipient actually reads the thread and it can fire again.
     if (currentUnread === 0 && convo) {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://floriahub.vercel.app";
+        const baseUrl = getAppUrl();
         const preview = content?.trim() ? content.trim().slice(0, 140) : "📷 Sent a photo";
 
         if (otherRole === "florist") {

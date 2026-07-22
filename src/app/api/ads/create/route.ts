@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { moderateAdContent } from "@/lib/moderation";
+import { getAppUrl } from "@/lib/url";
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,8 +45,8 @@ export async function POST(req: NextRequest) {
       billPriceSetting: "1",
       billPayorInfo: "1",
       billAmount: String(Math.round(Number(price) * 100)),
-      billReturnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/ads?success=1`,
-      billCallbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/ads/callback`,
+      billReturnUrl: `${getAppUrl()}/dashboard/ads?success=1`,
+      billCallbackUrl: `${getAppUrl()}/api/ads/callback`,
       billExternalReferenceNo: adId,
       billTo: floristName,
       billEmail: "noreply@floreahub.com",

@@ -813,6 +813,14 @@ function SystemTab() {
         Environment: <strong className={data.config.toyyibpaySandbox ? "text-amber-600" : "text-emerald-600"}>{data.config.toyyibpaySandbox ? "ToyyibPay Sandbox" : "ToyyibPay Production"}</strong> · App URL: {data.config.appUrl ?? "not set"}
       </p>
 
+      {data.config.appUrlHasTrailingSlash && (
+        <Card className="mb-4 border-amber-200 bg-amber-50/40">
+          <p className="text-sm text-amber-800">
+            <strong>NEXT_PUBLIC_APP_URL has a trailing slash.</strong> The code now strips it automatically, but cleaning it up in Vercel (remove the trailing <code>/</code>) is still recommended to avoid confusion.
+          </p>
+        </Card>
+      )}
+
       <Card className="mb-4">
         <h3 className="font-semibold text-gray-900 mb-3 text-sm">Configuration</h3>
         <div className="space-y-2">

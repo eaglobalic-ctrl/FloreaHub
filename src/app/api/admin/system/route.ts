@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
         adminEmail: !!process.env.ADMIN_EMAIL || !!process.env.GMAIL_USER,
         adminEmailSource: process.env.ADMIN_EMAIL ? "ADMIN_EMAIL" : process.env.GMAIL_USER ? "GMAIL_USER (fallback)" : null,
         appUrl: process.env.NEXT_PUBLIC_APP_URL || null,
+        appUrlHasTrailingSlash: !!process.env.NEXT_PUBLIC_APP_URL?.endsWith("/"),
       },
       activity: {
         lastOrderAt: lastOrder.data?.created_at ?? null,
