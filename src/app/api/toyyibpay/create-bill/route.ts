@@ -5,6 +5,14 @@ const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
   ? "https://dev.toyyibpay.com"
   : "https://toyyibpay.com";
 
+// Platform commission on product orders — florists keep the rest via
+// ToyyibPay Split Payment. Ads/subscription payments never touch this route
+// (separate create-plan-bill/ads-create routes) so this is never applied
+// to 100%-company revenue.
+const COMMISSION_RATE = 0.02;
+
+type Item = { id: string; name: string; image: string; florist: string; floristId?: string | null; price: number; quantity: number };
+
 export async function POST(req: NextRequest) {
   try {
     const { amount, name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, notes } = await req.json();
@@ -14,6 +22,60 @@ export async function POST(req: NextRequest) {
     }
 
     const orderId = referenceNo || `FH-${Date.now()}`;
+    const db = getSupabaseAdmin();
+
+    // Group cart items per florist — a cart can span multiple sellers (like
+    // Shopee's combined checkout). Items with no floristId (e.g. the custom
+    // bouquet builder) fall into one "unassigned" group FloreaHub fulfills
+    // directly, never split.
+    const cartItems: Item[] = items ?? [];
+    const groups = new Map<string, Item[]>();
+    for (const item of cartItems) {
+      const key = item.floristId ?? "__none__";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(item);
+    }
+
+    const floristIds = Array.from(groups.keys()).filter(k => k !== "__none__");
+    const { data: florists } = floristIds.length
+      ? await db.from("florists").select("id, delivery_fee, toyyibpay_username").in("id", floristIds)
+      : { data: [] };
+    const floristById = new Map((florists ?? []).map(f => [f.id, f]));
+
+    const groupEntries = Array.from(groups.entries());
+    const multiSeller = groupEntries.length > 1;
+
+    // Per-group numbers, computed once and reused for both the split args
+    // sent to ToyyibPay and the order rows saved after payment is created.
+    const groupCalcs = groupEntries.map(([key, groupItems], i) => {
+      const florist = key === "__none__" ? null : floristById.get(key);
+      const subtotal = groupItems.reduce((s, it) => s + it.price * it.quantity, 0);
+      const deliveryFee = key === "__none__" ? 15 : Number(florist?.delivery_fee ?? 15);
+      const total = subtotal + deliveryFee;
+      const floristAmount = Math.round(total * (1 - COMMISSION_RATE) * 100) / 100;
+      return {
+        key, groupItems, i,
+        orderId: multiSeller ? `${orderId}-${i + 1}` : orderId,
+        floristId: key === "__none__" ? null : key,
+        subtotal, deliveryFee, total,
+        toyyibpayUsername: florist?.toyyibpay_username || null,
+        floristAmount,
+      };
+    });
+
+    // Only florists with a configured ToyyibPay username go into the split —
+    // anyone else's share simply stays with the platform account and needs
+    // manual payout later (tracked via orders.split_recipient being null
+    // while florist_id is set — surfaced in the admin financial dashboard).
+    const splitArgs = groupCalcs
+      .filter(g => g.floristId && g.toyyibpayUsername)
+      .map(g => ({ id: g.toyyibpayUsername as string, amount: g.floristAmount.toFixed(2) }));
+
+    for (const g of groupCalcs) {
+      if (g.floristId && !g.toyyibpayUsername) {
+        console.error(`Split payment: florist ${g.floristId} has no ToyyibPay username — RM${g.total} will need manual payout (order ${g.orderId})`);
+      }
+    }
 
     const params = new URLSearchParams({
       userSecretKey: process.env.TOYYIBPAY_SECRET_KEY,
@@ -29,6 +91,8 @@ export async function POST(req: NextRequest) {
       billTo: name,
       billEmail: email,
       billPhone: phone.replace(/[^0-9]/g, ""),
+      billSplitPayment: splitArgs.length > 0 ? "1" : "0",
+      billSplitPaymentArgs: splitArgs.length > 0 ? JSON.stringify(splitArgs) : "",
       billPaymentChannel: "2",
       billChargeToCustomer: "1",
     });
@@ -46,44 +110,18 @@ export async function POST(req: NextRequest) {
 
     const billCode = data[0].BillCode;
 
-    // Save order(s) to Supabase — one row per florist in the cart (a cart
-    // can span multiple sellers, like Shopee's combined checkout), sharing
-    // this bill_code as the group reference. Items with no floristId (e.g.
-    // the custom bouquet builder) fall into a single "unassigned" group
-    // fulfilled by FloreaHub directly, not any specific florist.
+    // Save order(s) to Supabase — one row per florist, sharing this
+    // bill_code as the group reference.
     try {
-      const db = getSupabaseAdmin();
-      type Item = { id: string; name: string; image: string; florist: string; floristId?: string | null; price: number; quantity: number };
-      const cartItems: Item[] = items ?? [];
-
-      const groups = new Map<string, Item[]>();
-      for (const item of cartItems) {
-        const key = item.floristId ?? "__none__";
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key)!.push(item);
-      }
-
-      const floristIds = Array.from(groups.keys()).filter(k => k !== "__none__");
-      const { data: florists } = floristIds.length
-        ? await db.from("florists").select("id, delivery_fee").in("id", floristIds)
-        : { data: [] };
-      const deliveryFeeByFlorist = new Map((florists ?? []).map(f => [f.id, Number(f.delivery_fee) || 0]));
-
-      const groupEntries = Array.from(groups.entries());
-      const multiSeller = groupEntries.length > 1;
-
-      for (let i = 0; i < groupEntries.length; i++) {
-        const [key, groupItems] = groupEntries[i];
-        const groupOrderId = multiSeller ? `${orderId}-${i + 1}` : orderId;
-        const groupSubtotal = groupItems.reduce((s, it) => s + it.price * it.quantity, 0);
-        const groupDeliveryFee = key === "__none__" ? 15 : (deliveryFeeByFlorist.get(key) ?? 15);
+      for (const g of groupCalcs) {
+        const wasSplit = splitArgs.some(s => s.id === g.toyyibpayUsername);
 
         await db.from("orders").insert({
-          id: groupOrderId,
-          florist_id: key === "__none__" ? null : key,
-          subtotal: groupSubtotal,
-          delivery_fee: groupDeliveryFee,
-          total: groupSubtotal + groupDeliveryFee,
+          id: g.orderId,
+          florist_id: g.floristId,
+          subtotal: g.subtotal,
+          delivery_fee: g.deliveryFee,
+          total: g.total,
           buyer_name: name,
           buyer_email: email,
           recipient_name: recipientName ?? name,
@@ -93,11 +131,13 @@ export async function POST(req: NextRequest) {
           bill_code: billCode,
           payment_status: "pending",
           status: "pending",
+          split_recipient: wasSplit ? g.toyyibpayUsername : null,
+          split_amount: wasSplit ? g.floristAmount : null,
         });
 
         await db.from("order_items").insert(
-          groupItems.map(item => ({
-            order_id: groupOrderId,
+          g.groupItems.map(item => ({
+            order_id: g.orderId,
             product_id: item.id ?? null,
             product_name: item.name,
             product_image: item.image ?? null,

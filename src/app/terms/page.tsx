@@ -17,7 +17,7 @@ const SECTIONS = [
   },
   {
     title: "Florist Terms",
-    content: `Registered florists agree to maintain accurate product listings, pricing, and availability. Florists must fulfil confirmed orders promptly and send a Real-Photo of each bouquet before dispatch. Florists are responsible for the quality and freshness of their products. FloreaHub charges a 5% platform fee on all completed transactions. Florists who receive 3 or more verified quality complaints may have their listing suspended pending review.`,
+    content: `Registered florists agree to maintain accurate product listings, pricing, and availability. Florists must fulfil confirmed orders promptly and send a Real-Photo of each bouquet before dispatch. Florists are responsible for the quality and freshness of their products. FloreaHub charges a 2% platform commission on completed product order transactions, deducted automatically via ToyyibPay Split Payment — the florist's share is paid directly to their own registered ToyyibPay account. Florists who receive 3 or more verified quality complaints may have their listing suspended pending review.`,
   },
   {
     title: "Payments and Refunds",

@@ -13,30 +13,35 @@ export async function POST(req: NextRequest) {
 
     const db = getSupabaseAdmin();
 
+    // A multi-seller checkout creates one order row per florist (ids like
+    // `${orderId}-1`, `${orderId}-2`, ...) sharing this reference — "%" also
+    // matches zero extra characters, so this covers the single-seller case too.
     if (statusId === "1" && orderId) {
       await db.from("orders").update({
         payment_status: "paid",
         status: "processing",
         bill_code: billCode,
-      }).eq("id", orderId);
+      }).like("id", `${orderId}%`);
 
       console.log("Order paid:", orderId);
 
-      // Fetch order and send confirmation email — awaited deliberately, since
-      // Vercel can freeze the function the instant a response is returned
+      // Fetch order(s) and send one consolidated confirmation email —
+      // awaited deliberately, since Vercel can freeze the function the
+      // instant a response is returned
       try {
-        const { data: order } = await db.from("orders").select("*, order_items(*)").eq("id", orderId).single();
-        if (order?.buyer_email) {
+        const { data: orders } = await db.from("orders").select("*, order_items(*)").like("id", `${orderId}%`);
+        const first = orders?.[0];
+        if (first?.buyer_email) {
           await sendOrderConfirmationEmail({
-            email: order.buyer_email,
-            name: order.buyer_name ?? order.recipient_name ?? "Customer",
-            orderId: order.id,
-            items: order.order_items ?? [],
-            subtotal: Number(order.subtotal) || 0,
-            deliveryFee: Number(order.delivery_fee) || 0,
-            total: Number(order.total) || 0,
-            deliveryAddress: order.delivery_address ?? undefined,
-            recipientName: order.recipient_name ?? undefined,
+            email: first.buyer_email,
+            name: first.buyer_name ?? first.recipient_name ?? "Customer",
+            orderId,
+            items: (orders ?? []).flatMap(o => o.order_items ?? []),
+            subtotal: (orders ?? []).reduce((s, o) => s + (Number(o.subtotal) || 0), 0),
+            deliveryFee: (orders ?? []).reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0),
+            total: (orders ?? []).reduce((s, o) => s + (Number(o.total) || 0), 0),
+            deliveryAddress: first.delivery_address ?? undefined,
+            recipientName: first.recipient_name ?? undefined,
           });
         }
       } catch (err) {
@@ -44,7 +49,7 @@ export async function POST(req: NextRequest) {
       }
 
     } else if (statusId === "3" && orderId) {
-      await db.from("orders").update({ payment_status: "failed" }).eq("id", orderId);
+      await db.from("orders").update({ payment_status: "failed" }).like("id", `${orderId}%`);
     }
 
     return NextResponse.json({ received: true });
