@@ -210,18 +210,17 @@ export default function OrdersPage() {
                   )}
 
                   {order.tracking_number && (
-                    order.tracking_number.startsWith("http") ? (
-                      <a href={order.tracking_number} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-1.5 text-xs font-semibold text-white rounded-lg px-3 py-2.5 mb-3" style={{ background: "var(--primary)" }}>
-                        <Truck size={13} /> Track {order.courier || "Delivery"} Live →
-                      </a>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 rounded-lg px-3 py-2 mb-3">
-                        <Truck size={12} className="text-gray-400 flex-shrink-0" />
-                        <span className="font-medium">{order.courier || "Courier"}</span>
-                        <span className="text-gray-400">tracking:</span>
-                        <span className="font-mono">{order.tracking_number}</span>
-                      </div>
-                    )
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3">
+                      <Truck size={12} className="text-gray-400 flex-shrink-0" />
+                      <span className="font-medium text-gray-600">{order.courier || "Courier"}</span>
+                      {order.tracking_number.startsWith("http") ? (
+                        <a href={order.tracking_number} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700 truncate">
+                          courier tracking link (opens {order.courier || "courier"} site)
+                        </a>
+                      ) : (
+                        <><span className="text-gray-400">tracking:</span><span className="font-mono">{order.tracking_number}</span></>
+                      )}
+                    </div>
                   )}
 
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">
