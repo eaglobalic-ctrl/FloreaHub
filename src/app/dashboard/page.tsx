@@ -563,9 +563,12 @@ export default function DashboardPage() {
           {tab === "orders" && (
             <motion.div variants={stagger} initial="hidden" animate="show">
               <motion.div variants={fadeUp} className="card-premium overflow-hidden">
-                <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">All Orders</h3>
-                  <span className="text-xs text-gray-500">{loadingOrders ? "..." : `${orders.length} orders`}</span>
+                <div className="p-5 border-b border-gray-100">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="font-semibold text-gray-900">All Orders</h3>
+                    <span className="text-xs text-gray-500">{loadingOrders ? "..." : `${orders.length} orders`}</span>
+                  </div>
+                  <p className="text-xs text-gray-400">Lalamove/Grab don&apos;t have a tracking number — paste their live tracking link instead (from the booking confirmation or driver app). Other couriers: enter the tracking number as usual.</p>
                 </div>
                 {loadingOrders ? (
                   <div className="p-5 space-y-1">{[...Array(6)].map((_, i) => <RowSkeleton key={i} />)}</div>
@@ -603,8 +606,8 @@ export default function DashboardPage() {
                               </td>
                               <td className="px-5 py-4">
                                 {o.tracking_number && !trackingDrafts[o.id] ? (
-                                  <button onClick={() => setTrackingDrafts(d => ({ ...d, [o.id]: draft }))} className="text-xs text-gray-600 hover:text-gray-900">
-                                    <span className="font-medium">{o.courier}</span>: {o.tracking_number} <Edit2 size={10} className="inline ml-1" />
+                                  <button onClick={() => setTrackingDrafts(d => ({ ...d, [o.id]: draft }))} className="text-xs text-gray-600 hover:text-gray-900 max-w-[160px] text-left">
+                                    <span className="font-medium">{o.courier}</span>: {o.tracking_number.startsWith("http") ? "live link saved" : o.tracking_number} <Edit2 size={10} className="inline ml-1" />
                                   </button>
                                 ) : (
                                   <div className="flex items-center gap-1.5">
@@ -618,8 +621,8 @@ export default function DashboardPage() {
                                     <input
                                       value={draft.trackingNumber}
                                       onChange={e => setTrackingDrafts(d => ({ ...d, [o.id]: { ...draft, trackingNumber: e.target.value } }))}
-                                      placeholder="Tracking no."
-                                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 w-24"
+                                      placeholder={draft.courier === "Lalamove" || draft.courier === "Grab" ? "Paste tracking link" : "Tracking no."}
+                                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 w-28"
                                     />
                                     <button onClick={() => handleSaveTracking(o.id)} disabled={updatingOrderId === o.id} className="text-xs px-2 py-1 rounded-lg text-white flex-shrink-0 disabled:opacity-50" style={{ background: "var(--primary)" }}>
                                       Save
