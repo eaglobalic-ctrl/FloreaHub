@@ -88,12 +88,25 @@ export async function POST(req: NextRequest) {
 
         for (const order of orders ?? []) {
           for (const item of order.order_items ?? []) {
-            if (!item.product_id) continue;
-            const { data: product } = await db.from("products").select("stock").eq("id", item.product_id).maybeSingle();
-            if (product) {
-              const newStock = Math.max(0, (Number(product.stock) || 0) - item.quantity);
-              const { error: stockError } = await db.from("products").update({ stock: newStock }).eq("id", item.product_id);
-              if (stockError) console.error("Stock update FAILED:", JSON.stringify({ productId: item.product_id, error: stockError }));
+            if (!item.product_id) {
+              await logSystemError("Stock decrement SKIPPED — order_item has no product_id", { orderId: order.id, itemName: item.product_name });
+              continue;
+            }
+            const { data: product, error: fetchError } = await db.from("products").select("stock").eq("id", item.product_id).maybeSingle();
+            if (fetchError) {
+              await logSystemError("Stock decrement FAILED — could not fetch product", { orderId: order.id, productId: item.product_id, error: fetchError });
+              continue;
+            }
+            if (!product) {
+              await logSystemError("Stock decrement SKIPPED — product not found", { orderId: order.id, productId: item.product_id });
+              continue;
+            }
+            const newStock = Math.max(0, (Number(product.stock) || 0) - item.quantity);
+            const { error: stockError } = await db.from("products").update({ stock: newStock }).eq("id", item.product_id);
+            if (stockError) {
+              await logSystemError("Stock decrement FAILED — update rejected", { orderId: order.id, productId: item.product_id, oldStock: product.stock, newStock, error: stockError });
+            } else {
+              console.log("Stock decremented:", JSON.stringify({ orderId: order.id, productId: item.product_id, oldStock: product.stock, newStock }));
             }
           }
 
@@ -112,7 +125,7 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (err) {
-        console.error("Stock/florist-notify error (non-blocking):", err);
+        await logSystemError("Stock/florist-notify block threw (non-blocking)", { orderId, billCode, error: String(err) });
       }
 
       // Post an "order placed" card into the buyer<->florist chat — was
