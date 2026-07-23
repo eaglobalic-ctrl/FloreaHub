@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { sendOrderAutoConfirmedEmail } from "@/lib/email";
 
 const GRACE_DAYS = 3;
 
@@ -20,13 +21,23 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await db
       .from("orders")
-      .update({ buyer_confirmed_at: new Date().toISOString() }, { count: "exact" })
+      .update({ buyer_confirmed_at: new Date().toISOString() })
       .eq("status", "delivered")
       .is("buyer_confirmed_at", null)
       .lte("delivered_at", cutoff)
-      .select("id");
+      .select("id, buyer_email, buyer_name, recipient_name");
 
     if (error) throw error;
+
+    for (const order of data ?? []) {
+      if (!order.buyer_email) continue;
+      await sendOrderAutoConfirmedEmail({
+        email: order.buyer_email,
+        name: order.buyer_name ?? order.recipient_name ?? "Customer",
+        orderId: order.id,
+      });
+    }
+
     return NextResponse.json({ ok: true, autoConfirmed: data?.length ?? 0 });
   } catch (err) {
     console.error("Auto-confirm cron error:", err);

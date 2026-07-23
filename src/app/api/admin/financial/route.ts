@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import { sendPayoutSentEmail } from "@/lib/email";
+
+// 2% platform commission applies only to the product subtotal — the
+// florist keeps the full delivery fee since they fulfil delivery themselves.
+const payoutOwed = (o: { subtotal: number; delivery_fee: number }) => Number(o.subtotal) * 0.98 + Number(o.delivery_fee);
 
 // Financial oversight — FASA 6.1. Escrow model (2026-07-23): payment
 // collects 100% to the platform account; only once the buyer confirms
@@ -45,11 +50,8 @@ export async function GET(req: NextRequest) {
     if (awaiting.error) throw awaiting.error;
     if (history.error) throw history.error;
 
-    // 2% platform commission applies only to the product subtotal — the
-    // florist keeps the full delivery fee since they fulfil delivery themselves.
-    const owed = (o: { subtotal: number; delivery_fee: number }) => Number(o.subtotal) * 0.98 + Number(o.delivery_fee);
-    const readyOwed = (ready.data ?? []).reduce((s, o) => s + owed(o), 0);
-    const historyPaid = (history.data ?? []).reduce((s, o) => s + owed(o), 0);
+    const readyOwed = (ready.data ?? []).reduce((s, o) => s + payoutOwed(o), 0);
+    const historyPaid = (history.data ?? []).reduce((s, o) => s + payoutOwed(o), 0);
 
     return NextResponse.json({
       readyForPayout: ready.data ?? [],
@@ -80,8 +82,23 @@ export async function PATCH(req: NextRequest) {
     if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
 
     const db = getSupabaseAdmin();
-    const { data: order, error } = await db.from("orders").update({ payout_completed_at: new Date().toISOString() }).eq("id", orderId).select().single();
+    const { data: order, error } = await db
+      .from("orders")
+      .update({ payout_completed_at: new Date().toISOString() })
+      .eq("id", orderId)
+      .select("*, florists(name, email)")
+      .single();
     if (error) throw error;
+
+    const florist = order?.florists as { name: string; email: string } | null;
+    if (florist?.email) {
+      await sendPayoutSentEmail({
+        email: florist.email,
+        name: florist.name,
+        orderId: order.id,
+        amount: payoutOwed(order),
+      });
+    }
 
     return NextResponse.json({ order });
   } catch (err) {

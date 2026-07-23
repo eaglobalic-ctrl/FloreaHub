@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import { sendOrderRefundedEmail } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   const session = getSession(req);
@@ -46,9 +47,18 @@ export async function PATCH(req: NextRequest) {
       .from("orders")
       .update({ payment_status: "refunded", status: "cancelled" })
       .eq("id", orderId)
-      .select()
+      .select("*")
       .single();
     if (error) throw error;
+
+    if (order?.buyer_email) {
+      await sendOrderRefundedEmail({
+        email: order.buyer_email,
+        name: order.buyer_name ?? order.recipient_name ?? "Customer",
+        orderId: order.id,
+        total: Number(order.total) || 0,
+      });
+    }
 
     return NextResponse.json({ order });
   } catch (err) {
