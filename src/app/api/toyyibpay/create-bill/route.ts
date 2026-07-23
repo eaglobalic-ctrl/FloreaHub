@@ -59,7 +59,9 @@ export async function POST(req: NextRequest) {
       const subtotal = groupItems.reduce((s, it) => s + it.price * it.quantity, 0);
       const deliveryFee = key === "__none__" ? 15 : Number(florist?.delivery_fee ?? 15);
       const total = subtotal + deliveryFee;
-      const floristAmount = Math.round(total * (1 - COMMISSION_RATE) * 100) / 100;
+      // Commission applies only to the product subtotal — the florist keeps
+      // the full delivery fee since they fulfil delivery themselves.
+      const floristAmount = Math.round((subtotal * (1 - COMMISSION_RATE) + deliveryFee) * 100) / 100;
       return {
         key, groupItems, i,
         orderId: multiSeller ? `${orderId}-${i + 1}` : orderId,

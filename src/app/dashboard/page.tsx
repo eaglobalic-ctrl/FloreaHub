@@ -37,6 +37,7 @@ const NAV = [
 
 type Order = {
   id: string; status: string; payment_status: string; total: number;
+  subtotal?: number; delivery_fee?: number;
   recipient_name?: string; created_at: string; florist_seen_at?: string | null;
   split_amount?: number | null; tracking_number?: string | null; courier?: string | null;
   buyer_confirmed_at?: string | null; payout_completed_at?: string | null;
@@ -293,9 +294,13 @@ export default function DashboardPage() {
     // Escrow model: FloreaHub holds 100% until the buyer confirms receipt,
     // then pays the florist out manually — this is everything paid but not
     // yet paid out, split into "still in escrow" vs "confirmed, awaiting payout".
+    // Payout owed = 98% of the product subtotal + the FULL delivery fee —
+    // the 2% platform commission applies only to the sale, never to
+    // delivery, which the florist fulfils themselves and keeps entirely.
+    const payoutOwed = (o: Order) => Number(o.subtotal ?? o.total) * 0.98 + Number(o.delivery_fee ?? 0);
     const unpaidOut = paidOrders.filter(o => !o.payout_completed_at);
-    const awaitingConfirmation = unpaidOut.filter(o => !o.buyer_confirmed_at).reduce((s, o) => s + Number(o.total) * 0.98, 0);
-    const readyForPayout = unpaidOut.filter(o => o.buyer_confirmed_at).reduce((s, o) => s + Number(o.total) * 0.98, 0);
+    const awaitingConfirmation = unpaidOut.filter(o => !o.buyer_confirmed_at).reduce((s, o) => s + payoutOwed(o), 0);
+    const readyForPayout = unpaidOut.filter(o => o.buyer_confirmed_at).reduce((s, o) => s + payoutOwed(o), 0);
     return [
       { label: "Revenue", value: `RM ${revenue.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "from paid orders", up: revenue > 0, icon: TrendingUp, color: "#2d6a4f" },
       { label: "In Escrow", value: `RM ${awaitingConfirmation.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "held until buyer confirms", up: awaitingConfirmation > 0, icon: Clock, color: "#b45309" },

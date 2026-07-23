@@ -184,10 +184,14 @@ function OverviewTab() {
 // ── Financial (6.1) ──────────────────────────────────────────────────────────
 
 type PayoutOrder = {
-  id: string; total: number; split_amount: number | null; created_at: string;
+  id: string; total: number; subtotal: number; delivery_fee: number; split_amount: number | null; created_at: string;
   delivered_at: string | null; buyer_confirmed_at: string | null;
   florists: { id: string; name: string; email: string; toyyibpay_username: string | null } | null;
 };
+
+// 2% platform commission applies only to the product subtotal — the
+// florist keeps the full delivery fee since they fulfil delivery themselves.
+const payoutOwed = (o: PayoutOrder) => Number(o.subtotal) * 0.98 + Number(o.delivery_fee);
 
 function FinancialTab() {
   const [data, setData] = useState<{
@@ -242,7 +246,7 @@ function FinancialTab() {
                   {!o.florists?.toyyibpay_username && <p className="text-xs text-amber-600 mt-1">No ToyyibPay username on file — pay via bank transfer instead</p>}
                 </div>
                 <div className="flex items-center gap-3">
-                  <p className="font-bold text-gray-900">{money(Number(o.total) * 0.98)}</p>
+                  <p className="font-bold text-gray-900">{money(payoutOwed(o))}</p>
                   <button onClick={() => markPaidOut(o.id)} disabled={payingOut === o.id} className="text-xs px-3 py-1.5 rounded-lg text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>
                     {payingOut === o.id ? "..." : "Mark Paid Out"}
                   </button>
@@ -271,7 +275,7 @@ function FinancialTab() {
                 <p className="font-medium text-gray-900 text-sm">{o.florists?.name ?? "Unknown florist"}</p>
                 <p className="text-xs text-gray-400">Order {o.id} · {o.delivered_at ? `delivered ${fmtDate(o.delivered_at)}` : "not yet delivered"}</p>
               </div>
-              <p className="font-semibold text-gray-500">{money(Number(o.total) * 0.98)}</p>
+              <p className="font-semibold text-gray-500">{money(payoutOwed(o))}</p>
             </div>
           ))}
         </div>

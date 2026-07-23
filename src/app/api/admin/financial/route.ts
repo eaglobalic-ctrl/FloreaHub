@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = getSupabaseAdmin();
-    const baseSelect = "id, total, split_amount, created_at, delivered_at, buyer_confirmed_at, florists(id, name, email, toyyibpay_username)";
+    const baseSelect = "id, total, subtotal, delivery_fee, split_amount, created_at, delivered_at, buyer_confirmed_at, florists(id, name, email, toyyibpay_username)";
 
     const [ready, awaiting] = await Promise.all([
       db.from("orders").select(baseSelect)
@@ -36,7 +36,9 @@ export async function GET(req: NextRequest) {
     if (ready.error) throw ready.error;
     if (awaiting.error) throw awaiting.error;
 
-    const owed = (o: { total: number }) => Number(o.total) * 0.98; // 2% platform commission
+    // 2% platform commission applies only to the product subtotal — the
+    // florist keeps the full delivery fee since they fulfil delivery themselves.
+    const owed = (o: { subtotal: number; delivery_fee: number }) => Number(o.subtotal) * 0.98 + Number(o.delivery_fee);
     const readyOwed = (ready.data ?? []).reduce((s, o) => s + owed(o), 0);
 
     return NextResponse.json({

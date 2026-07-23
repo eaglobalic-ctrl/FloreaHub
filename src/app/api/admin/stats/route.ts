@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const [users, florists, paidOrders, ads, subs] = await Promise.all([
       db.from("users").select("id", { count: "exact", head: true }),
       db.from("florists").select("id, status"),
-      db.from("orders").select("total").eq("payment_status", "paid"),
+      db.from("orders").select("total, subtotal").eq("payment_status", "paid"),
       db.from("ads").select("budget").neq("status", "pending"),
       db.from("subscriptions").select("amount").neq("status", "pending"),
     ]);
@@ -28,9 +28,12 @@ export async function GET(req: NextRequest) {
     }, {});
 
     const gmv = (paidOrders.data ?? []).reduce((s, o) => s + (Number(o.total) || 0), 0);
+    // Commission applies only to product subtotal, never to delivery fees —
+    // florists keep 100% of delivery since they fulfil it themselves.
+    const commissionableSubtotal = (paidOrders.data ?? []).reduce((s, o) => s + (Number(o.subtotal) || 0), 0);
     const adsRevenue = (ads.data ?? []).reduce((s, a) => s + (Number(a.budget) || 0), 0);
     const subscriptionRevenue = (subs.data ?? []).reduce((s, sb) => s + (Number(sb.amount) || 0), 0);
-    const commissionEarned = Math.round(gmv * COMMISSION_RATE * 100) / 100;
+    const commissionEarned = Math.round(commissionableSubtotal * COMMISSION_RATE * 100) / 100;
 
     return NextResponse.json({
       totalUsers: users.count ?? 0,
