@@ -449,8 +449,15 @@ function FloristsTab() {
 
 type AdminOrder = {
   id: string; status: string; payment_status: string; total: number; created_at: string;
+  delivered_at: string | null; buyer_confirmed_at: string | null; payout_completed_at: string | null;
   florists: { name: string } | null; order_items?: { product_name: string; quantity: number }[];
 };
+
+function StatusPill({ ok, okLabel, notLabel }: { ok: boolean; okLabel: string; notLabel: string }) {
+  return ok
+    ? <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-100 text-emerald-700"><Check size={11} /> {okLabel}</span>
+    : <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500"><Clock size={11} /> {notLabel}</span>;
+}
 
 function OrdersTab() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -476,22 +483,52 @@ function OrdersTab() {
     setBusy(null);
   };
 
+  const paidOrders = orders.filter(o => o.payment_status === "paid");
+  const tally = {
+    total: paidOrders.length,
+    delivered: paidOrders.filter(o => !!o.delivered_at).length,
+    confirmed: paidOrders.filter(o => !!o.buyer_confirmed_at).length,
+    paidOut: paidOrders.filter(o => !!o.payout_completed_at).length,
+  };
+
   return (
     <div>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Orders</h2>
       <p className="text-sm text-gray-500 mb-6">Platform-wide order oversight. Showing latest 100.</p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {[
+          { label: "Paid Orders", value: tally.total, color: "text-gray-900" },
+          { label: "Seller Delivered", value: tally.delivered, color: "text-blue-600" },
+          { label: "Buyer Confirmed", value: tally.confirmed, color: "text-emerald-600" },
+          { label: "Paid Out", value: tally.paidOut, color: "text-amber-600" },
+        ].map(s => (
+          <div key={s.label} className="card-premium p-4">
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
       {loading ? <Loading /> : orders.length === 0 ? <EmptyState icon={ShoppingBag} text="No orders yet." /> : (
         <div className="space-y-3">
           {orders.map(o => (
             <Card key={o.id}>
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <p className="font-mono text-xs text-gray-400">{o.id}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${o.payment_status === "paid" ? "bg-emerald-100 text-emerald-700" : o.payment_status === "refunded" ? "bg-gray-200 text-gray-600" : o.payment_status === "failed" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`}>{o.payment_status}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 capitalize">{o.status}</span>
                   </div>
-                  <p className="text-sm text-gray-700">{o.florists?.name ?? "FloreaHub (builder/unassigned)"} · {o.order_items?.length ?? 0} item(s) · {fmtDate(o.created_at)}</p>
+                  <p className="text-sm text-gray-700 mb-1.5">{o.florists?.name ?? "FloreaHub (builder/unassigned)"} · {o.order_items?.length ?? 0} item(s) · {fmtDate(o.created_at)}</p>
+                  {o.payment_status === "paid" && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusPill ok={!!o.delivered_at} okLabel={`Seller: Delivered ${fmtDate(o.delivered_at)}`} notLabel="Seller: Not delivered yet" />
+                      <StatusPill ok={!!o.buyer_confirmed_at} okLabel={`Buyer: Confirmed ${fmtDate(o.buyer_confirmed_at)}`} notLabel="Buyer: Not confirmed yet" />
+                      <StatusPill ok={!!o.payout_completed_at} okLabel="Payout: Done" notLabel="Payout: Pending" />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="font-bold text-gray-900">{money(o.total)}</p>
