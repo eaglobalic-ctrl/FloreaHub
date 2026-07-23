@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, Flower2, ShoppingCart, Search, User, LayoutDashboard, ShoppingBag, LogOut, ChevronDown, MessageCircle } from "lucide-react";
 import { getCart } from "@/lib/cart";
+import NotificationBell from "@/components/NotificationBell";
 
 type StoredUser = { id: string; email: string; name: string; role: string };
 type StoredFlorist = { id: string; name: string; status: string };
@@ -144,17 +145,10 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Messages */}
-            {user && (
-              <Link href="/messages" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
-                <MessageCircle size={18} />
-                {unreadChats > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
-                    {unreadChats > 9 ? "9+" : unreadChats}
-                  </span>
-                )}
-              </Link>
-            )}
+            {/* Notifications — replaces the old standalone chat icon; chat
+                messages now show up as one notification type alongside
+                order/payment/review updates, for both buyer and seller. */}
+            {user && <NotificationBell />}
 
             {/* Cart — every account can shop, sellers included */}
             <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all">
@@ -247,16 +241,7 @@ export default function Navbar() {
             <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 text-gray-600 hover:text-gray-900">
               <Search size={20} />
             </button>
-            {user && (
-              <Link href="/messages" className="relative p-2 text-gray-600 hover:text-gray-900">
-                <MessageCircle size={20} />
-                {unreadChats > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[10px] font-bold flex items-center justify-center" style={{ background: "var(--primary)" }}>
-                    {unreadChats > 9 ? "9+" : unreadChats}
-                  </span>
-                )}
-              </Link>
-            )}
+            {user && <NotificationBell />}
             <Link href="/checkout" className="relative p-2 text-gray-600 hover:text-gray-900">
               <ShoppingCart size={20} />
               {cartCount > 0 && (

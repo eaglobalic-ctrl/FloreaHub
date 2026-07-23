@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import { sendOrderRefundedEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const session = getSession(req);
@@ -58,6 +59,9 @@ export async function PATCH(req: NextRequest) {
         orderId: order.id,
         total: Number(order.total) || 0,
       });
+    }
+    if (order?.user_id) {
+      await notify({ userId: order.user_id, type: "refund", title: "Order refunded", body: `RM${(Number(order.total) || 0).toFixed(2)} for order ${order.id} has been refunded.`, link: "/orders" });
     }
 
     return NextResponse.json({ order });

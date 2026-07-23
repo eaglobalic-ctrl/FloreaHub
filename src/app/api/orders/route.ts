@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { sendOrderStatusUpdateEmail, sendBuyerConfirmedReceiptEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,13 +93,17 @@ export async function PATCH(req: NextRequest) {
       if (order.status !== "delivered") return NextResponse.json({ error: "Order isn't marked delivered yet" }, { status: 400 });
       if (order.buyer_confirmed_at) return NextResponse.json({ ok: true, alreadyConfirmed: true });
 
-      const { data: updated, error } = await db.from("orders").update({ buyer_confirmed_at: new Date().toISOString() }).eq("id", orderId).select("*, florists(name, email)").single();
+      const { data: updated, error } = await db.from("orders").update({ buyer_confirmed_at: new Date().toISOString() }).eq("id", orderId).select("*, florists(name, email, user_id)").single();
       if (error) throw error;
 
-      const florist = updated?.florists as { name: string; email: string } | null;
+      const florist = updated?.florists as { name: string; email: string; user_id: string } | null;
       if (florist?.email) {
         sendBuyerConfirmedReceiptEmail({ email: florist.email, name: florist.name, orderId: updated.id })
           .catch(err => console.error("Buyer-confirmed-receipt email error (non-blocking):", err));
+      }
+      if (florist?.user_id) {
+        notify({ userId: florist.user_id, type: "order", title: "Buyer confirmed receipt!", body: `Order ${updated.id} is ready for payout.`, link: "/dashboard?tab=orders" })
+          .catch(err => console.error("Buyer-confirmed-receipt notify error (non-blocking):", err));
       }
 
       return NextResponse.json({ order: updated });
@@ -158,6 +163,16 @@ export async function PATCH(req: NextRequest) {
         status: nextStatus,
         floristName: florist.name,
       }).catch(err => console.error("Order status email error (non-blocking):", err));
+    }
+    if (nextStatus && updated?.user_id) {
+      const STATUS_TITLE: Record<string, string> = {
+        processing: "Florist is preparing your order",
+        ready: "Your order is ready for delivery",
+        delivering: "Your order is on the way!",
+        delivered: "Your order has been delivered!",
+      };
+      notify({ userId: updated.user_id, type: "order", title: STATUS_TITLE[nextStatus] ?? "Order updated", body: `${florist.name} — order ${updated.id}`, link: "/orders" })
+        .catch(err => console.error("Order status notify error (non-blocking):", err));
     }
 
     return NextResponse.json({ order: updated });

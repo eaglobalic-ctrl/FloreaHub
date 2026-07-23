@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import { sendPayoutSentEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 // 2% platform commission applies only to the product subtotal — the
 // florist keeps the full delivery fee since they fulfil delivery themselves.
@@ -86,18 +87,22 @@ export async function PATCH(req: NextRequest) {
       .from("orders")
       .update({ payout_completed_at: new Date().toISOString() })
       .eq("id", orderId)
-      .select("*, florists(name, email)")
+      .select("*, florists(name, email, user_id)")
       .single();
     if (error) throw error;
 
-    const florist = order?.florists as { name: string; email: string } | null;
+    const florist = order?.florists as { name: string; email: string; user_id: string } | null;
+    const amount = payoutOwed(order);
     if (florist?.email) {
       await sendPayoutSentEmail({
         email: florist.email,
         name: florist.name,
         orderId: order.id,
-        amount: payoutOwed(order),
+        amount,
       });
+    }
+    if (florist?.user_id) {
+      await notify({ userId: florist.user_id, type: "payout", title: "Payout sent!", body: `RM${amount.toFixed(2)} for order ${order.id} has been sent.`, link: "/dashboard?tab=orders" });
     }
 
     return NextResponse.json({ order });

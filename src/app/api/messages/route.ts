@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { moderateMessage } from "@/lib/chatModeration";
 import { sendNewChatMessageEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 import { getAppUrl } from "@/lib/url";
 
 type Role = "buyer" | "florist";
@@ -124,6 +125,9 @@ export async function POST(req: NextRequest) {
               conversationUrl: `${baseUrl}/dashboard`,
             });
           }
+          if (florist?.user_id) {
+            await notify({ userId: florist.user_id, type: "chat", title: `New message from ${buyer?.name ?? "a buyer"}`, body: preview, link: "/dashboard?tab=messages" });
+          }
         } else {
           const { data: buyer } = await db.from("users").select("name, email").eq("id", convo.buyer_id).maybeSingle();
           const { data: florist } = await db.from("florists").select("name").eq("id", convo.florist_id).maybeSingle();
@@ -136,6 +140,7 @@ export async function POST(req: NextRequest) {
               conversationUrl: `${baseUrl}/messages`,
             });
           }
+          await notify({ userId: convo.buyer_id, type: "chat", title: `New message from ${florist?.name ?? "the shop"}`, body: preview, link: "/messages" });
         }
       } catch (emailErr) {
         console.error("Chat notification email error (non-blocking):", emailErr);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendOrderAutoConfirmedEmail } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 const GRACE_DAYS = 3;
 
@@ -25,17 +26,21 @@ export async function GET(req: NextRequest) {
       .eq("status", "delivered")
       .is("buyer_confirmed_at", null)
       .lte("delivered_at", cutoff)
-      .select("id, buyer_email, buyer_name, recipient_name");
+      .select("id, user_id, buyer_email, buyer_name, recipient_name");
 
     if (error) throw error;
 
     for (const order of data ?? []) {
-      if (!order.buyer_email) continue;
-      await sendOrderAutoConfirmedEmail({
-        email: order.buyer_email,
-        name: order.buyer_name ?? order.recipient_name ?? "Customer",
-        orderId: order.id,
-      });
+      if (order.buyer_email) {
+        await sendOrderAutoConfirmedEmail({
+          email: order.buyer_email,
+          name: order.buyer_name ?? order.recipient_name ?? "Customer",
+          orderId: order.id,
+        });
+      }
+      if (order.user_id) {
+        await notify({ userId: order.user_id, type: "order", title: "Order auto-confirmed as received", body: `No response in 3 days, so order ${order.id} was marked received. Reply if that's wrong.`, link: "/orders" });
+      }
     }
 
     return NextResponse.json({ ok: true, autoConfirmed: data?.length ?? 0 });

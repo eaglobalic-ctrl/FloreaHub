@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendOrderConfirmationEmail, sendNewOrderNotificationToFlorist } from "@/lib/email";
 import { logSystemError } from "@/lib/systemLog";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
             recipientName: first.recipient_name ?? undefined,
           });
         }
+        if (first?.user_id) {
+          const total = (orders ?? []).reduce((s, o) => s + (Number(o.total) || 0), 0);
+          await notify({ userId: first.user_id, type: "order", title: "Order confirmed!", body: `Your order for RM${total.toFixed(2)} has been placed. The florist will start preparing it.`, link: "/orders" });
+        }
       } catch (err) {
         console.error("Email fetch error:", err);
       }
@@ -83,8 +88,8 @@ export async function POST(req: NextRequest) {
       // know a paid order is waiting — neither happened anywhere before this.
       try {
         const { data: orders } = billCode
-          ? await db.from("orders").select("*, order_items(*), florists(name, email)").eq("bill_code", billCode).not("florist_id", "is", null)
-          : await db.from("orders").select("*, order_items(*), florists(name, email)").like("id", `${orderId}%`).not("florist_id", "is", null);
+          ? await db.from("orders").select("*, order_items(*), florists(name, email, user_id)").eq("bill_code", billCode).not("florist_id", "is", null)
+          : await db.from("orders").select("*, order_items(*), florists(name, email, user_id)").like("id", `${orderId}%`).not("florist_id", "is", null);
 
         for (const order of orders ?? []) {
           for (const item of order.order_items ?? []) {
@@ -110,7 +115,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          const florist = order.florists as { name: string; email: string } | null;
+          const florist = order.florists as { name: string; email: string; user_id: string } | null;
           if (florist?.email) {
             await sendNewOrderNotificationToFlorist({
               email: florist.email,
@@ -122,6 +127,9 @@ export async function POST(req: NextRequest) {
               deliveryAddress: order.delivery_address ?? undefined,
               deliveryDate: order.delivery_date ?? undefined,
             });
+          }
+          if (florist?.user_id) {
+            await notify({ userId: florist.user_id, type: "order", title: "New order received!", body: `RM${(Number(order.total) || 0).toFixed(2)} — payment confirmed, start preparing.`, link: "/dashboard?tab=orders" });
           }
         }
       } catch (err) {
