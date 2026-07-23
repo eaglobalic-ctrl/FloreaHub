@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
     const db = getSupabaseAdmin();
     const baseSelect = "id, total, subtotal, delivery_fee, split_amount, created_at, delivered_at, buyer_confirmed_at, florists(id, name, email, toyyibpay_username)";
 
-    const [ready, awaiting] = await Promise.all([
+    const historySelect = `${baseSelect}, payout_completed_at`;
+
+    const [ready, awaiting, history] = await Promise.all([
       db.from("orders").select(baseSelect)
         .not("florist_id", "is", null)
         .eq("payment_status", "paid")
@@ -32,14 +34,22 @@ export async function GET(req: NextRequest) {
         .is("buyer_confirmed_at", null)
         .order("created_at", { ascending: false })
         .limit(100),
+      db.from("orders").select(historySelect)
+        .not("florist_id", "is", null)
+        .eq("payment_status", "paid")
+        .not("payout_completed_at", "is", null)
+        .order("payout_completed_at", { ascending: false })
+        .limit(100),
     ]);
     if (ready.error) throw ready.error;
     if (awaiting.error) throw awaiting.error;
+    if (history.error) throw history.error;
 
     // 2% platform commission applies only to the product subtotal — the
     // florist keeps the full delivery fee since they fulfil delivery themselves.
     const owed = (o: { subtotal: number; delivery_fee: number }) => Number(o.subtotal) * 0.98 + Number(o.delivery_fee);
     const readyOwed = (ready.data ?? []).reduce((s, o) => s + owed(o), 0);
+    const historyPaid = (history.data ?? []).reduce((s, o) => s + owed(o), 0);
 
     return NextResponse.json({
       readyForPayout: ready.data ?? [],
@@ -47,6 +57,9 @@ export async function GET(req: NextRequest) {
       readyForPayoutOwed: Math.round(readyOwed * 100) / 100,
       awaitingConfirmation: awaiting.data ?? [],
       awaitingConfirmationCount: awaiting.data?.length ?? 0,
+      payoutHistory: history.data ?? [],
+      payoutHistoryCount: history.data?.length ?? 0,
+      payoutHistoryTotal: Math.round(historyPaid * 100) / 100,
     });
   } catch (err) {
     console.error("Admin financial error:", err);

@@ -185,7 +185,7 @@ function OverviewTab() {
 
 type PayoutOrder = {
   id: string; total: number; subtotal: number; delivery_fee: number; split_amount: number | null; created_at: string;
-  delivered_at: string | null; buyer_confirmed_at: string | null;
+  delivered_at: string | null; buyer_confirmed_at: string | null; payout_completed_at?: string | null;
   florists: { id: string; name: string; email: string; toyyibpay_username: string | null } | null;
 };
 
@@ -197,6 +197,7 @@ function FinancialTab() {
   const [data, setData] = useState<{
     readyForPayout: PayoutOrder[]; readyForPayoutCount: number; readyForPayoutOwed: number;
     awaitingConfirmation: PayoutOrder[]; awaitingConfirmationCount: number;
+    payoutHistory: PayoutOrder[]; payoutHistoryCount: number; payoutHistoryTotal: number;
   } | null>(null);
   const [payingOut, setPayingOut] = useState<string | null>(null);
 
@@ -268,7 +269,7 @@ function FinancialTab() {
       </Card>
 
       {data.awaitingConfirmation.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 mb-8">
           {data.awaitingConfirmation.map(o => (
             <div key={o.id} className="card-premium p-4 flex items-center justify-between gap-4 flex-wrap">
               <div>
@@ -276,6 +277,32 @@ function FinancialTab() {
                 <p className="text-xs text-gray-400">Order {o.id} · {o.delivered_at ? `delivered ${fmtDate(o.delivered_at)}` : "not yet delivered"}</p>
               </div>
               <p className="font-semibold text-gray-500">{money(payoutOwed(o))}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Card className="mb-4 border-gray-200 bg-gray-50/60">
+        <div className="flex items-center gap-3 mb-1">
+          <Check size={18} className="text-gray-500" />
+          <h3 className="font-semibold text-gray-900">Payout History</h3>
+        </div>
+        <p className="text-sm text-gray-600">
+          {data.payoutHistoryCount} order{data.payoutHistoryCount === 1 ? "" : "s"} already paid out. Total: <strong>{money(data.payoutHistoryTotal)}</strong>.
+        </p>
+      </Card>
+
+      {data.payoutHistory.length === 0 ? (
+        <EmptyState icon={Check} text="No payouts completed yet." />
+      ) : (
+        <div className="space-y-2">
+          {data.payoutHistory.map(o => (
+            <div key={o.id} className="card-premium p-4 flex items-center justify-between gap-4 flex-wrap opacity-75">
+              <div>
+                <p className="font-medium text-gray-900 text-sm">{o.florists?.name ?? "Unknown florist"}</p>
+                <p className="text-xs text-gray-400">Order {o.id} · paid out {fmtDateTime(o.payout_completed_at)}</p>
+              </div>
+              <p className="font-semibold text-gray-700">{money(payoutOwed(o))}</p>
             </div>
           ))}
         </div>
