@@ -5,21 +5,25 @@ import { toast } from "@/components/Toast";
 
 const DISMISS_KEY = "floreahub_testimonial_dismissed";
 
+// "Nanti" only skips the full nagging card on future visits — it never
+// removes the ability to leave a testimonial. Once collapsed, a small
+// permanent link stays clickable so someone who said "later" can still
+// come back and submit whenever they actually want to.
+type Stage = "card" | "collapsed" | "form" | "done";
+
 export default function TestimonialPrompt({ context }: { context: "buyer" | "seller" }) {
-  const [dismissed, setDismissed] = useState(true);
-  const [open, setOpen] = useState(false);
+  const [stage, setStage] = useState<Stage>("collapsed");
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
-    setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
+    setStage(localStorage.getItem(DISMISS_KEY) === "1" ? "collapsed" : "card");
   }, []);
 
   const dismiss = () => {
     localStorage.setItem(DISMISS_KEY, "1");
-    setDismissed(true);
+    setStage("collapsed");
   };
 
   const submit = async () => {
@@ -33,21 +37,27 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
       });
       const data = await res.json();
       if (data.error) { toast.error(data.error); return; }
-      setDone(true);
       localStorage.setItem(DISMISS_KEY, "1");
+      setStage("done");
     } catch { toast.error("Gagal hantar."); }
     setSubmitting(false);
   };
 
-  if (dismissed) return null;
+  if (stage === "collapsed") {
+    return (
+      <button onClick={() => setStage("form")} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-4">
+        <MessageSquarePlus size={13} /> Bagi testimoni tentang FloreaHub
+      </button>
+    );
+  }
 
   return (
     <div className="card-premium p-5 mb-6 border-rose-100 bg-rose-50/40">
-      {done ? (
+      {stage === "done" ? (
         <div className="flex items-center gap-3 text-sm text-emerald-700">
           <Check size={18} /> Terima kasih! Testimoni anda akan disemak sebelum dipaparkan.
         </div>
-      ) : !open ? (
+      ) : stage === "card" ? (
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
             <MessageSquarePlus size={20} className="text-rose-500 flex-shrink-0" />
@@ -59,7 +69,7 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
             </div>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
-            <button onClick={() => setOpen(true)} className="text-xs px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--primary)" }}>
+            <button onClick={() => setStage("form")} className="text-xs px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--primary)" }}>
               Tulis Testimoni
             </button>
             <button onClick={dismiss} className="text-xs text-gray-400 hover:text-gray-600">Nanti</button>
@@ -85,7 +95,7 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
             <button onClick={submit} disabled={submitting} className="text-xs px-4 py-2 rounded-lg text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>
               {submitting ? "..." : "Hantar"}
             </button>
-            <button onClick={() => setOpen(false)} className="text-xs text-gray-400 hover:text-gray-600">Batal</button>
+            <button onClick={() => setStage(localStorage.getItem(DISMISS_KEY) === "1" ? "collapsed" : "card")} className="text-xs text-gray-400 hover:text-gray-600">Batal</button>
           </div>
         </div>
       )}
