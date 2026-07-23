@@ -6,6 +6,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { fadeUp, stagger } from "@/lib/animations";
+import { toast } from "@/components/Toast";
 
 type Order = {
   id: string;
@@ -18,7 +19,7 @@ type Order = {
   tracking_number?: string | null;
   courier?: string | null;
   buyer_confirmed_at?: string | null;
-  order_items?: { product_name: string; florist_name: string; price: number; quantity: number; product_image?: string }[];
+  order_items?: { product_id?: string | null; product_name: string; florist_name: string; price: number; quantity: number; product_image?: string }[];
 };
 
 function ReviewForm({ onSubmit, onCancel }: { onSubmit: (rating: number, comment: string) => Promise<void>; onCancel: () => void }) {
@@ -123,6 +124,10 @@ export default function OrdersPage() {
       .then(d => {
         if (!d.user) { setLoading(false); return; }
         setUser(d.user);
+        fetch("/api/reviews?mine=1")
+          .then(r => r.json())
+          .then(rd => setReviewedOrderIds(new Set((rd.reviews ?? []).map((r: { order_id: string }) => r.order_id).filter(Boolean))))
+          .catch(() => {});
         return fetch(`/api/orders?buyerEmail=${encodeURIComponent(d.user.email)}`)
           .then(r => r.json())
           .then(od => setOrders(od.orders ?? []))
@@ -137,13 +142,17 @@ export default function OrdersPage() {
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ floristId: order.florist_id, orderId: order.id, rating, comment }),
+        body: JSON.stringify({ floristId: order.florist_id, productId: order.order_items?.[0]?.product_id ?? null, orderId: order.id, rating, comment }),
       });
+      const data = await res.json();
       if (res.ok) {
         setReviewedOrderIds(prev => new Set(prev).add(order.id));
         setReviewingOrderId(null);
+      } else {
+        toast.error(data.error || "Failed to submit review.");
+        if (res.status === 409) setReviewedOrderIds(prev => new Set(prev).add(order.id));
       }
-    } catch { /* ignore */ }
+    } catch { toast.error("Failed to submit review."); }
   };
 
   if (!user) {

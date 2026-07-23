@@ -31,6 +31,11 @@ type RelatedProduct = {
   rating: number; badge?: string;
 };
 
+type ProductReview = {
+  id: string; rating: number; comment?: string | null; created_at: string;
+  users?: { name: string; avatar_url?: string } | null;
+};
+
 const BADGE_STYLES: Record<string, string> = {
   Bestseller: "bg-amber-50 text-amber-700 border-amber-200",
   Premium:    "bg-purple-50 text-purple-700 border-purple-200",
@@ -49,6 +54,7 @@ export default function ProductDetailClient() {
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<RelatedProduct[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
   const [wishlisted, setWishlisted] = useState(false);
@@ -68,6 +74,11 @@ export default function ProductDetailClient() {
       })
       .catch(() => setProduct(null))
       .finally(() => setLoading(false));
+
+    fetch(`/api/reviews?productId=${id}`)
+      .then(r => r.json())
+      .then(rd => setReviews(rd.reviews ?? []))
+      .catch(() => setReviews([]));
   }, [id]);
 
   const handleAddToCart = () => {
@@ -344,6 +355,33 @@ export default function ProductDetailClient() {
               </div>
             )}
           </motion.div>
+        </div>
+
+        {/* Reviews */}
+        <div className="mb-12">
+          <h2 className="text-lg font-bold text-gray-900 mb-5">Customer Reviews {reviews.length > 0 && `(${reviews.length})`}</h2>
+          {reviews.length === 0 ? (
+            <p className="text-sm text-gray-400">No reviews yet for this product.</p>
+          ) : (
+            <div className="space-y-4">
+              {reviews.slice(0, 8).map(r => (
+                <div key={r.id} className="card-premium p-4">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="font-medium text-gray-900 text-sm">{r.users?.name ?? "Anonymous"}</span>
+                    <div className="flex items-center gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} size={11} className={i < r.rating ? "text-amber-400" : "text-gray-200"} fill="currentColor" />
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-400 ml-auto flex-shrink-0">
+                      {new Date(r.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
+                  {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Related products */}
