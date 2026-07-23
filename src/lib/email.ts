@@ -400,10 +400,10 @@ export async function sendFloristApprovedEmail({ name, email }: { name: string; 
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0 0 8px;font-weight:600;color:#1e40af;font-size:14px;">Important — how you get paid</p>
         <p style="margin:0 0 10px;color:#1e3a8a;font-size:13px;line-height:1.7;">
-          FloreaHub pays florists directly via ToyyibPay Split Payment — your share of every sale goes straight to your own ToyyibPay account (FloreaHub automatically takes a small commission). You need to set this up before you can receive order payments — go to <strong>Dashboard → Payout Setup</strong> to enter your ToyyibPay username.
+          FloreaHub collects 100% of each order upfront and holds it until the buyer confirms they received it (or automatically after 3 days). Once confirmed, our team pays out your share — 98% of the sale, plus 100% of the delivery fee — via bank transfer or ToyyibPay.
         </p>
         <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.7;">
-          <strong>Note:</strong> when an order is paid, your share will first show as <strong>Pending</strong> in your ToyyibPay account — it takes 1-4 business days to settle before it can be withdrawn. This is normal, not a sign of a problem.
+          <strong>Tip:</strong> add your ToyyibPay username in <strong>Dashboard → Payout Setup</strong> for the fastest payout option — without it, payouts go via manual bank transfer, which can take a little longer.
         </p>
       </div>
       <a href="https://floriahub.vercel.app/login" style="display:block;background:#2d6a4f;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Log In &amp; Start Selling</a>
@@ -567,8 +567,8 @@ export async function sendCommissionUpdateEmail({ name, email }: { name: string;
         <p style="margin:0;color:#1e3a8a;font-size:13px;line-height:1.6;">Down from the previous rate. Your share of every sale is now bigger.</p>
       </div>
       <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:20px;margin-bottom:24px;">
-        <p style="margin:0 0 6px;font-weight:600;color:#166534;font-size:14px;">2. Automatic payment straight to your account</p>
-        <p style="margin:0;color:#15803d;font-size:13px;line-height:1.6;">FloreaHub now uses ToyyibPay Split Payment — your share (98%) is sent straight to your ToyyibPay account every time an order is paid, no need to wait for a manual payout. If you haven't set up your ToyyibPay account yet, go to <strong>Dashboard → Settings → Payout Setup</strong> to do it now.</p>
+        <p style="margin:0 0 6px;font-weight:600;color:#166534;font-size:14px;">2. Payment is held until the buyer confirms receipt, then paid out to you</p>
+        <p style="margin:0;color:#15803d;font-size:13px;line-height:1.6;">FloreaHub collects 100% of each order upfront and holds it until the buyer confirms they received it (or automatically after 3 days). Once confirmed, our team pays out your share (98% of the sale, plus 100% of the delivery fee) via bank transfer or ToyyibPay. Add your ToyyibPay username in <strong>Dashboard → Settings → Payout Setup</strong> for the fastest payout option.</p>
       </div>
       <a href="https://floriahub.vercel.app/dashboard" style="display:block;background:#1e40af;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">Check Dashboard</a>
     </div>
@@ -655,9 +655,9 @@ export async function sendPayoutSetupReminderEmail({ name, email }: { name: stri
       <p style="margin:12px 0 0;color:rgba(255,255,255,.85);font-size:13px;">Payout Setup Needed</p>
     </div>
     <div style="padding:32px;">
-      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111827;">You have an order, but payout isn't set up yet</h2>
+      <h2 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111827;">You have an order, but ToyyibPay payout isn't set up yet</h2>
       <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
-        Hi ${name.split(" ")[0]}, we noticed your shop has received an order but your ToyyibPay account for payouts hasn't been set up yet. Your share of this sale can't be sent until this is resolved.
+        Hi ${name.split(" ")[0]}, we noticed your shop has received an order but your ToyyibPay account for payouts hasn't been set up yet. Once the buyer confirms receipt, we can still pay out your share via bank transfer — but adding your ToyyibPay username makes it faster.
       </p>
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:20px;margin-bottom:24px;">
         <p style="margin:0;color:#78350f;font-size:14px;line-height:1.6;">
