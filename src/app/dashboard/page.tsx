@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import {
   Flower2, LayoutDashboard, Package, ShoppingBag, Star, Settings,
   TrendingUp, Clock, CheckCircle, AlertCircle, Plus, ArrowRight,
-  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2, MessageCircle, Edit2
+  ChevronUp, Bell, LogOut, Menu, Megaphone, Loader2, Store, X, Save, Trash2, MessageCircle, Edit2, DollarSign
 } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
@@ -39,6 +39,7 @@ type Order = {
   id: string; status: string; payment_status: string; total: number;
   recipient_name?: string; created_at: string; florist_seen_at?: string | null;
   split_amount?: number | null; tracking_number?: string | null; courier?: string | null;
+  buyer_confirmed_at?: string | null; payout_completed_at?: string | null;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number }[];
 };
 
@@ -289,15 +290,16 @@ export default function DashboardPage() {
     const pendingOrders = orders.filter(o => o.status === "pending");
     const completedOrders = orders.filter(o => o.status === "delivered");
     const revenue = paidOrders.reduce((s, o) => s + Number(o.total), 0);
-    // ToyyibPay settles a paid split within 1-4 business days — this is what
-    // "floating"/pending payments in your ToyyibPay dashboard corresponds to.
-    const fourDaysAgo = Date.now() - 4 * 24 * 60 * 60 * 1000;
-    const pendingSettlement = paidOrders
-      .filter(o => new Date(o.created_at).getTime() >= fourDaysAgo)
-      .reduce((s, o) => s + (o.split_amount != null ? Number(o.split_amount) : Number(o.total) * 0.98), 0);
+    // Escrow model: FloreaHub holds 100% until the buyer confirms receipt,
+    // then pays the florist out manually — this is everything paid but not
+    // yet paid out, split into "still in escrow" vs "confirmed, awaiting payout".
+    const unpaidOut = paidOrders.filter(o => !o.payout_completed_at);
+    const awaitingConfirmation = unpaidOut.filter(o => !o.buyer_confirmed_at).reduce((s, o) => s + Number(o.total) * 0.98, 0);
+    const readyForPayout = unpaidOut.filter(o => o.buyer_confirmed_at).reduce((s, o) => s + Number(o.total) * 0.98, 0);
     return [
       { label: "Revenue", value: `RM ${revenue.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "from paid orders", up: revenue > 0, icon: TrendingUp, color: "#2d6a4f" },
-      { label: "Pending Settlement", value: `RM ${pendingSettlement.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "est., settles in 1-4 days", up: pendingSettlement > 0, icon: Clock, color: "#b45309" },
+      { label: "In Escrow", value: `RM ${awaitingConfirmation.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "held until buyer confirms", up: awaitingConfirmation > 0, icon: Clock, color: "#b45309" },
+      { label: "Ready for Payout", value: `RM ${readyForPayout.toLocaleString("en-MY", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "confirmed, payout pending", up: readyForPayout > 0, icon: DollarSign, color: "#2d6a4f" },
       { label: "Pending Orders", value: String(pendingOrders.length), change: `${orders.length} total`, up: pendingOrders.length > 0, icon: Clock, color: "#f59e0b" },
       { label: "Completed", value: String(completedOrders.length), change: "delivered", up: completedOrders.length > 0, icon: CheckCircle, color: "#3b82f6" },
       { label: "Products", value: String(products.length), change: "in catalogue", up: true, icon: Package, color: "#b5294e" },
@@ -486,9 +488,9 @@ export default function DashboardPage() {
           {tab === "overview" && (
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
               {/* Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {loadingOrders && loadingProducts ? (
-                  [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)
+                  [...Array(6)].map((_, i) => <StatCardSkeleton key={i} />)
                 ) : (
                   stats.map(({ label, value, change, up, icon: Icon, color }) => (
                     <motion.div key={label} variants={fadeUp} className="card-premium p-5">

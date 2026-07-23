@@ -183,50 +183,96 @@ function OverviewTab() {
 
 // ── Financial (6.1) ──────────────────────────────────────────────────────────
 
-type PendingPayoutOrder = {
+type PayoutOrder = {
   id: string; total: number; split_amount: number | null; created_at: string;
+  delivered_at: string | null; buyer_confirmed_at: string | null;
   florists: { id: string; name: string; email: string; toyyibpay_username: string | null } | null;
 };
 
 function FinancialTab() {
-  const [data, setData] = useState<{ pendingManualPayout: PendingPayoutOrder[]; pendingManualPayoutCount: number; pendingManualPayoutOwed: number } | null>(null);
+  const [data, setData] = useState<{
+    readyForPayout: PayoutOrder[]; readyForPayoutCount: number; readyForPayoutOwed: number;
+    awaitingConfirmation: PayoutOrder[]; awaitingConfirmationCount: number;
+  } | null>(null);
+  const [payingOut, setPayingOut] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/admin/financial").then(r => r.json()).then(setData).catch(() => setData(null));
-  }, []);
+  const load = () => fetch("/api/admin/financial").then(r => r.json()).then(setData).catch(() => setData(null));
+  useEffect(() => { load(); }, []);
+
+  const markPaidOut = async (orderId: string) => {
+    if (!confirm("Confirm you've ALREADY sent this money to the florist (bank transfer/DuitNow) — this only records it, it doesn't move any money.")) return;
+    setPayingOut(orderId);
+    try {
+      const res = await fetch("/api/admin/financial", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId }) });
+      const d = await res.json();
+      if (d.error) { toast.error(d.error); return; }
+      toast.success("Marked as paid out.");
+      load();
+    } catch { toast.error("Failed."); }
+    setPayingOut(null);
+  };
 
   if (!data) return <Loading />;
 
   return (
     <div>
       <h2 className="text-xl font-bold text-gray-900 mb-1">Financial Dashboard</h2>
-      <p className="text-sm text-gray-500 mb-6">Split payment health — orders that couldn't auto-pay a florist.</p>
+      <p className="text-sm text-gray-500 mb-6">Escrow model — 100% collects to the platform, florists are paid out manually once the buyer confirms receipt.</p>
 
-      <Card className="mb-6 border-amber-200 bg-amber-50/40">
+      <Card className="mb-6 border-emerald-200 bg-emerald-50/40">
         <div className="flex items-center gap-3 mb-1">
-          <Ban size={18} className="text-amber-600" />
-          <h3 className="font-semibold text-gray-900">Manual Payout Needed</h3>
+          <DollarSign size={18} className="text-emerald-600" />
+          <h3 className="font-semibold text-gray-900">Ready for Payout</h3>
         </div>
-        <p className="text-sm text-gray-600 mb-2">
-          {data.pendingManualPayoutCount} order{data.pendingManualPayoutCount === 1 ? "" : "s"} paid but never split — usually because the florist hasn't finished ToyyibPay payout setup. Total owed: <strong>{money(data.pendingManualPayoutOwed)}</strong>.
+        <p className="text-sm text-gray-600">
+          {data.readyForPayoutCount} order{data.readyForPayoutCount === 1 ? "" : "s"} confirmed received by buyer — pay these out. Total owed: <strong>{money(data.readyForPayoutOwed)}</strong>.
         </p>
       </Card>
 
-      {data.pendingManualPayout.length === 0 ? (
-        <EmptyState icon={Check} text="No pending manual payouts — every paid order split correctly." />
+      {data.readyForPayout.length === 0 ? (
+        <EmptyState icon={Check} text="Nothing ready for payout right now." />
       ) : (
-        <div className="space-y-3">
-          {data.pendingManualPayout.map(o => (
+        <div className="space-y-3 mb-8">
+          {data.readyForPayout.map(o => (
             <Card key={o.id}>
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{o.florists?.name ?? "Unknown florist"}</p>
-                  <p className="text-xs text-gray-400">{o.florists?.email} · Order {o.id} · {fmtDate(o.created_at)}</p>
-                  {!o.florists?.toyyibpay_username && <p className="text-xs text-amber-600 mt-1">No ToyyibPay username on file</p>}
+                  <p className="text-xs text-gray-400">{o.florists?.email} · Order {o.id} · confirmed {fmtDate(o.buyer_confirmed_at)}</p>
+                  {!o.florists?.toyyibpay_username && <p className="text-xs text-amber-600 mt-1">No ToyyibPay username on file — pay via bank transfer instead</p>}
                 </div>
-                <p className="font-bold text-gray-900">{money(Number(o.total) * 0.98)}</p>
+                <div className="flex items-center gap-3">
+                  <p className="font-bold text-gray-900">{money(Number(o.total) * 0.98)}</p>
+                  <button onClick={() => markPaidOut(o.id)} disabled={payingOut === o.id} className="text-xs px-3 py-1.5 rounded-lg text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>
+                    {payingOut === o.id ? "..." : "Mark Paid Out"}
+                  </button>
+                </div>
               </div>
             </Card>
+          ))}
+        </div>
+      )}
+
+      <Card className="mb-4 border-amber-200 bg-amber-50/40">
+        <div className="flex items-center gap-3 mb-1">
+          <Clock size={18} className="text-amber-600" />
+          <h3 className="font-semibold text-gray-900">Awaiting Buyer Confirmation</h3>
+        </div>
+        <p className="text-sm text-gray-600">
+          {data.awaitingConfirmationCount} paid order{data.awaitingConfirmationCount === 1 ? "" : "s"} not yet delivered or not yet confirmed by the buyer — not payable yet. Auto-confirms 3 days after delivery if the buyer doesn't act.
+        </p>
+      </Card>
+
+      {data.awaitingConfirmation.length > 0 && (
+        <div className="space-y-2">
+          {data.awaitingConfirmation.map(o => (
+            <div key={o.id} className="card-premium p-4 flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="font-medium text-gray-900 text-sm">{o.florists?.name ?? "Unknown florist"}</p>
+                <p className="text-xs text-gray-400">Order {o.id} · {o.delivered_at ? `delivered ${fmtDate(o.delivered_at)}` : "not yet delivered"}</p>
+              </div>
+              <p className="font-semibold text-gray-500">{money(Number(o.total) * 0.98)}</p>
+            </div>
           ))}
         </div>
       )}

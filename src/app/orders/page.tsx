@@ -17,6 +17,7 @@ type Order = {
   florist_id?: string;
   tracking_number?: string | null;
   courier?: string | null;
+  buyer_confirmed_at?: string | null;
   order_items?: { product_name: string; florist_name: string; price: number; quantity: number; product_image?: string }[];
 };
 
@@ -98,6 +99,23 @@ export default function OrdersPage() {
   const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
   const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+
+  const handleConfirmReceipt = async (orderId: string) => {
+    setConfirmingId(orderId);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, confirmReceipt: true }),
+      });
+      const data = await res.json();
+      if (data.error) return;
+      setOrders(list => list.map(o => o.id === orderId ? { ...o, buyer_confirmed_at: new Date().toISOString() } : o));
+    } finally {
+      setConfirmingId(null);
+    }
+  };
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -221,6 +239,20 @@ export default function OrdersPage() {
                         <><span className="text-gray-400">tracking:</span><span className="font-mono">{order.tracking_number}</span></>
                       )}
                     </div>
+                  )}
+
+                  {order.status === "delivered" && !order.buyer_confirmed_at && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
+                      <p className="text-xs text-amber-800 mb-2">Dah terima pesanan ni? Sahkan supaya florist boleh terima bayaran.</p>
+                      <button onClick={() => handleConfirmReceipt(order.id)} disabled={confirmingId === order.id} className="btn-primary text-xs py-2 px-4 w-full justify-center disabled:opacity-60">
+                        {confirmingId === order.id ? "Confirming..." : "Confirm Received"}
+                      </button>
+                    </div>
+                  )}
+                  {order.buyer_confirmed_at && (
+                    <p className="flex items-center gap-1.5 text-xs text-emerald-600 mb-3">
+                      <CheckCircle size={12} /> Receipt confirmed
+                    </p>
                   )}
 
                   <div className="flex items-center justify-between pt-3 border-t border-gray-100">

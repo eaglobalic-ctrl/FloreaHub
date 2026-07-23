@@ -70,23 +70,15 @@ export async function POST(req: NextRequest) {
       };
     });
 
-    // SPLIT PAYMENT RE-ENABLED (2026-07-23, by explicit request) — this
-    // exact args format (id + amount-in-cents) already got
-    // `{"Status":"Error","msg":"Split Payment Error"}` from ToyyibPay once
-    // (2026-07-22), which rejects the WHOLE bill, not just the split — the
-    // billSplitPaymentArgs field structure (id vs userSecretKey) is still
-    // unconfirmed with ToyyibPay support. If this reproduces the same
-    // rejection, check the Admin Panel Error Log immediately — every
-    // florist order will fail to pay until it's turned off again.
-    const splitArgs = groupCalcs
-      .filter(g => g.floristId && g.toyyibpayUsername)
-      .map(g => ({ id: g.toyyibpayUsername as string, amount: String(Math.round(g.floristAmount * 100)) }));
-
-    for (const g of groupCalcs) {
-      if (g.floristId && !g.toyyibpayUsername) {
-        console.error(`Split payment: florist ${g.floristId} has no ToyyibPay username — RM${g.total} will need manual payout (order ${g.orderId})`);
-      }
-    }
+    // SPLIT PAYMENT OFF BY DESIGN (2026-07-23) — switched to an escrow
+    // model (Shopee-style): 100% collects to the platform account, buyer
+    // confirms receipt (or auto-confirms after a grace period), THEN the
+    // order is flagged for florist payout. Auto-splitting at payment time
+    // is fundamentally incompatible with holding funds until confirmed
+    // receipt — once ToyyibPay splits, that money is gone from our control
+    // immediately, there's nothing left to "hold". This is not a fallback
+    // for the earlier "Split Payment Error" — it's the intended design now.
+    const splitArgs: { id: string; amount: string }[] = [];
 
     const params = new URLSearchParams({
       userSecretKey: process.env.TOYYIBPAY_SECRET_KEY,

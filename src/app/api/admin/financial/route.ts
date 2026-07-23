@@ -3,8 +3,10 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 
-// Financial oversight — FASA 6.1, flagged in the plan as the most urgent
-// admin panel piece once split payment (FASA 3) went live.
+// Financial oversight — FASA 6.1. Escrow model (2026-07-23): payment
+// collects 100% to the platform account; only once the buyer confirms
+// receipt (or the auto-confirm cron does, after a grace period) is an
+// order actually ready for the admin to pay the florist out manually.
 export async function GET(req: NextRequest) {
   const session = getSession(req);
   if (!session || !isAdminEmail(session.email)) {
@@ -13,30 +15,62 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = getSupabaseAdmin();
+    const baseSelect = "id, total, split_amount, created_at, delivered_at, buyer_confirmed_at, florists(id, name, email, toyyibpay_username)";
 
-    // Orders that SHOULD have split to a florist but couldn't — florist_id
-    // is set (this is a marketplace order, not a builder/company one),
-    // payment went through, but split_recipient never got filled in
-    // (usually because that florist never finished ToyyibPay payout setup).
-    const { data: pendingPayout, error } = await db
-      .from("orders")
-      .select("id, total, split_amount, created_at, florists(id, name, email, toyyibpay_username)")
-      .not("florist_id", "is", null)
-      .eq("payment_status", "paid")
-      .is("split_recipient", null)
-      .order("created_at", { ascending: false })
-      .limit(100);
-    if (error) throw error;
+    const [ready, awaiting] = await Promise.all([
+      db.from("orders").select(baseSelect)
+        .not("florist_id", "is", null)
+        .eq("payment_status", "paid")
+        .is("payout_completed_at", null)
+        .not("buyer_confirmed_at", "is", null)
+        .order("buyer_confirmed_at", { ascending: true })
+        .limit(100),
+      db.from("orders").select(baseSelect)
+        .not("florist_id", "is", null)
+        .eq("payment_status", "paid")
+        .is("payout_completed_at", null)
+        .is("buyer_confirmed_at", null)
+        .order("created_at", { ascending: false })
+        .limit(100),
+    ]);
+    if (ready.error) throw ready.error;
+    if (awaiting.error) throw awaiting.error;
 
-    const owedTotal = (pendingPayout ?? []).reduce((s, o) => s + (Number(o.total) || 0) * 0.98, 0);
+    const owed = (o: { total: number }) => Number(o.total) * 0.98; // 2% platform commission
+    const readyOwed = (ready.data ?? []).reduce((s, o) => s + owed(o), 0);
 
     return NextResponse.json({
-      pendingManualPayout: pendingPayout ?? [],
-      pendingManualPayoutCount: pendingPayout?.length ?? 0,
-      pendingManualPayoutOwed: Math.round(owedTotal * 100) / 100,
+      readyForPayout: ready.data ?? [],
+      readyForPayoutCount: ready.data?.length ?? 0,
+      readyForPayoutOwed: Math.round(readyOwed * 100) / 100,
+      awaitingConfirmation: awaiting.data ?? [],
+      awaitingConfirmationCount: awaiting.data?.length ?? 0,
     });
   } catch (err) {
     console.error("Admin financial error:", err);
+    return NextResponse.json({ error: "Failed" }, { status: 500 });
+  }
+}
+
+// Admin marks an order as manually paid out (bank transfer/DuitNow done
+// outside the app — there's no automated disbursement API wired up).
+export async function PATCH(req: NextRequest) {
+  const session = getSession(req);
+  if (!session || !isAdminEmail(session.email)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    const { orderId } = await req.json();
+    if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+
+    const db = getSupabaseAdmin();
+    const { data: order, error } = await db.from("orders").update({ payout_completed_at: new Date().toISOString() }).eq("id", orderId).select().single();
+    if (error) throw error;
+
+    return NextResponse.json({ order });
+  } catch (err) {
+    console.error("Admin mark-payout error:", err);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }

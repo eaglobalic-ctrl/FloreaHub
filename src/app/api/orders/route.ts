@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest) {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { orderId, status, markSeenFloristId, trackingNumber, courier } = await req.json();
+    const { orderId, status, markSeenFloristId, trackingNumber, courier, confirmReceipt } = await req.json();
 
     // Bulk "I've seen my new orders" — clears the dashboard's new-orders
     // badge, same idea as clearing a chat's unread count on open.
@@ -78,6 +78,23 @@ export async function PATCH(req: NextRequest) {
       if (!florist) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       await db.from("orders").update({ florist_seen_at: new Date().toISOString() }).eq("florist_id", markSeenFloristId).is("florist_seen_at", null);
       return NextResponse.json({ ok: true });
+    }
+
+    // Buyer confirms receipt — escrow gate: this (or the auto-confirm cron
+    // after a grace period) is what flags an order ready for florist payout.
+    // Separate check from below since this is the BUYER acting, not the florist.
+    if (confirmReceipt) {
+      if (!orderId) return NextResponse.json({ error: "Missing orderId" }, { status: 400 });
+      const db = getSupabaseAdmin();
+      const { data: order } = await db.from("orders").select("id, user_id, status, buyer_confirmed_at").eq("id", orderId).maybeSingle();
+      if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      if (order.user_id !== session.userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      if (order.status !== "delivered") return NextResponse.json({ error: "Order isn't marked delivered yet" }, { status: 400 });
+      if (order.buyer_confirmed_at) return NextResponse.json({ ok: true, alreadyConfirmed: true });
+
+      const { data: updated, error } = await db.from("orders").update({ buyer_confirmed_at: new Date().toISOString() }).eq("id", orderId).select().single();
+      if (error) throw error;
+      return NextResponse.json({ order: updated });
     }
 
     if (!orderId) {
@@ -114,6 +131,7 @@ export async function PATCH(req: NextRequest) {
 
     const update: Record<string, unknown> = {};
     if (nextStatus) update.status = nextStatus;
+    if (nextStatus === "delivered") update.delivered_at = new Date().toISOString();
     if (trackingNumber !== undefined) update.tracking_number = trackingNumber || null;
     if (courier !== undefined) update.courier = courier || null;
 
