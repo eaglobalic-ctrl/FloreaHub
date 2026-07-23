@@ -11,21 +11,43 @@ export function pushSupported(): boolean {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
 }
 
+// iPhone/iPad only support Web Push from a site that's been "Added to Home
+// Screen" and opened from that icon (iOS 16.4+) — never from a normal
+// Safari tab, no matter what permission is granted. Chrome on iOS is just
+// Safari underneath (Apple's WebKit policy), so this applies there too.
+export function isIos(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = window.navigator.userAgent;
+  const isAppleTouch = /iPad|iPhone|iPod/.test(ua);
+  // iPadOS 13+ reports as "Macintosh" but is still touch-only, unlike a real Mac.
+  const isIpadOsAsMac = ua.includes("Macintosh") && navigator.maxTouchPoints > 1;
+  return isAppleTouch || isIpadOsAsMac;
+}
+
+export function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(display-mode: standalone)").matches
+    || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
 export async function getPushPermissionState(): Promise<NotificationPermission | "unsupported"> {
   if (!pushSupported()) return "unsupported";
   return Notification.permission;
 }
 
+export type EnablePushResult = { ok: true } | { ok: false; reason: "ios-not-installed" | "unsupported" | "not-configured" | "permission-denied" };
+
 // Registers the push-only service worker, asks for permission if needed,
 // subscribes, and saves the subscription server-side. Safe to call
 // repeatedly — re-subscribing with the same keys is a no-op on most browsers.
-export async function enablePushNotifications(): Promise<boolean> {
-  if (!pushSupported()) return false;
+export async function enablePushNotifications(): Promise<EnablePushResult> {
+  if (isIos() && !isStandalone()) return { ok: false, reason: "ios-not-installed" };
+  if (!pushSupported()) return { ok: false, reason: "unsupported" };
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!vapidKey) return false;
+  if (!vapidKey) return { ok: false, reason: "not-configured" };
 
   const permission = await Notification.requestPermission();
-  if (permission !== "granted") return false;
+  if (permission !== "granted") return { ok: false, reason: "permission-denied" };
 
   const registration = await navigator.serviceWorker.register("/sw-push.js");
   await navigator.serviceWorker.ready;
@@ -44,7 +66,7 @@ export async function enablePushNotifications(): Promise<boolean> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
   });
-  return true;
+  return { ok: true };
 }
 
 export async function disablePushNotifications(): Promise<void> {

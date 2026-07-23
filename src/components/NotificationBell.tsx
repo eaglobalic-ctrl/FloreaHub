@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Bell, Package, MessageCircle, DollarSign, Star, CheckCircle, RotateCcw } from "lucide-react";
-import { enablePushNotifications, getPushPermissionState } from "@/lib/push-client";
+import { enablePushNotifications, getPushPermissionState, isIos, isStandalone } from "@/lib/push-client";
 
 type Notification = { id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string };
 
@@ -29,6 +29,7 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pushState, setPushState] = useState<NotificationPermission | "unsupported">("default");
+  const [showIosHint, setShowIosHint] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   const load = () => {
@@ -46,6 +47,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     getPushPermissionState().then(setPushState);
+    if (isIos() && !isStandalone()) setShowIosHint(true);
   }, []);
 
   useEffect(() => {
@@ -69,8 +71,15 @@ export default function NotificationBell() {
   };
 
   const handleEnablePush = async () => {
-    const ok = await enablePushNotifications();
-    setPushState(ok ? "granted" : "denied");
+    const result = await enablePushNotifications();
+    if (result.ok) {
+      setPushState("granted");
+      setShowIosHint(false);
+    } else if (result.reason === "ios-not-installed") {
+      setShowIosHint(true);
+    } else {
+      setPushState("denied");
+    }
   };
 
   return (
@@ -102,7 +111,12 @@ export default function NotificationBell() {
               )}
             </div>
 
-            {pushState === "default" && (
+            {showIosHint && pushState !== "granted" ? (
+              <div className="px-4 py-2.5 text-xs text-gray-600 bg-amber-50 border-b border-gray-50">
+                <p className="font-medium text-amber-800 mb-1">On iPhone/iPad, install FloreaHub first:</p>
+                <p>Tap the Share button <span className="font-mono">⬆</span> in Safari → <strong>Add to Home Screen</strong> → open FloreaHub from that icon, then enable notifications from there.</p>
+              </div>
+            ) : pushState === "default" && (
               <button onClick={handleEnablePush} className="w-full text-left px-4 py-2.5 text-xs text-gray-600 bg-rose-50/60 hover:bg-rose-50 border-b border-gray-50 flex items-center gap-2">
                 <Bell size={13} className="text-rose-500 flex-shrink-0" />
                 Enable notifications to get alerts even when you're not on the site
