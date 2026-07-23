@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "motion/react";
 import { Mail, Phone, MapPin, Clock, Send, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { fadeUp, stagger } from "@/lib/animations";
-import { getRecaptchaToken } from "@/lib/recaptcha-client";
+import RecaptchaWidget, { type RecaptchaWidgetHandle } from "@/components/RecaptchaWidget";
 
 const TOPICS = ["General Enquiry", "Order Issue", "Florist Registration", "Partnership", "Technical Support", "Billing"];
 
@@ -14,23 +14,29 @@ export default function ContactPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const recaptchaRef = useRef<RecaptchaWidgetHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const recaptchaToken = await getRecaptchaToken("contact");
+      const recaptchaToken = recaptchaRef.current?.getToken();
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) {
+        setError("Please complete the captcha.");
+        return;
+      }
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, recaptchaToken }),
       });
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
+      if (data.error) { setError(data.error); recaptchaRef.current?.reset(); return; }
       setSent(true);
     } catch {
       setError("Network error. Please try again.");
+      recaptchaRef.current?.reset();
     } finally {
       setLoading(false);
     }
@@ -111,6 +117,7 @@ export default function ContactPage() {
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Message *</label>
                       <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={5} placeholder="Tell us how we can help..." className="input-premium w-full resize-none" required />
                     </div>
+                    <RecaptchaWidget ref={recaptchaRef} />
                     {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 p-3 rounded-xl">{error}</p>}
                     <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3.5">
                       {loading

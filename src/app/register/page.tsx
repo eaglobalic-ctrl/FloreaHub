@@ -1,11 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Flower2, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, AlertCircle, Store, ShoppingBag } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
-import { getRecaptchaToken } from "@/lib/recaptcha-client";
+import RecaptchaWidget, { type RecaptchaWidgetHandle } from "@/components/RecaptchaWidget";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,21 +15,26 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const recaptchaRef = useRef<RecaptchaWidgetHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const recaptchaToken = await getRecaptchaToken("register");
+      const recaptchaToken = recaptchaRef.current?.getToken();
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) {
+        setError("Please complete the captcha.");
+        return;
+      }
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, email: form.email, role, password: form.password, recaptchaToken }),
       });
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      if (data.existed) { setError("This email is already registered. Please sign in instead."); return; }
+      if (data.error) { setError(data.error); recaptchaRef.current?.reset(); return; }
+      if (data.existed) { setError("This email is already registered. Please sign in instead."); recaptchaRef.current?.reset(); return; }
       // A session cookie is set server-side for non-pending accounts — just refresh the navbar
       if (data.user.status !== "pending") {
         window.dispatchEvent(new Event("user-updated"));
@@ -37,6 +42,7 @@ export default function RegisterPage() {
       setDone(true);
     } catch {
       setError("Something went wrong. Please try again.");
+      recaptchaRef.current?.reset();
     } finally {
       setLoading(false);
     }
@@ -205,6 +211,7 @@ export default function RegisterPage() {
                         <Link href="/privacy" className="underline" style={{ color: "var(--primary)" }}>Privacy Policy</Link>
                       </span>
                     </label>
+                    <RecaptchaWidget ref={recaptchaRef} />
                     {error && (
                       <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
                         <AlertCircle size={14} className="flex-shrink-0" />

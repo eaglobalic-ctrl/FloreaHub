@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const { email, password, recaptchaToken } = await req.json();
     if (!email || !password) return NextResponse.json({ error: "Email and password required" }, { status: 400 });
 
-    if (!(await verifyRecaptcha(recaptchaToken, "login"))) {
+    if (!(await verifyRecaptcha(recaptchaToken))) {
       return NextResponse.json({ error: "Verification failed — please try again" }, { status: 400 });
     }
 

@@ -1,8 +1,5 @@
-// Server-side verification for Google reCAPTCHA v3. Score ranges 0.0 (bot)
-// to 1.0 (human) — 0.5 is Google's own suggested default threshold.
-const SCORE_THRESHOLD = 0.5;
-
-export async function verifyRecaptcha(token: string | undefined, expectedAction: string): Promise<boolean> {
+// Server-side verification for Google reCAPTCHA v2 ("I'm not a robot" checkbox).
+export async function verifyRecaptcha(token: string | undefined): Promise<boolean> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
   // If reCAPTCHA isn't configured, don't block the form — treat it as
   // not-yet-set-up rather than silently locking everyone out.
@@ -16,7 +13,7 @@ export async function verifyRecaptcha(token: string | undefined, expectedAction:
       body: new URLSearchParams({ secret: secretKey, response: token }),
     });
     const data = await res.json();
-    return !!data.success && data.action === expectedAction && (data.score ?? 0) >= SCORE_THRESHOLD;
+    return !!data.success;
   } catch (err) {
     console.error("reCAPTCHA verify error:", err);
     // Network hiccup talking to Google shouldn't be the reason a real

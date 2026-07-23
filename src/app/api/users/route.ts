@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     if (!email || !name) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     if (!password || password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
 
-    if (!(await verifyRecaptcha(recaptchaToken, "register"))) {
+    if (!(await verifyRecaptcha(recaptchaToken))) {
       return NextResponse.json({ error: "Verification failed — please try again" }, { status: 400 });
     }
 

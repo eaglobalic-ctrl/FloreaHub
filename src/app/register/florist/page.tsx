@@ -1,10 +1,10 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText, AlertCircle, Wallet, ExternalLink } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
-import { getRecaptchaToken } from "@/lib/recaptcha-client";
+import RecaptchaWidget, { type RecaptchaWidgetHandle } from "@/components/RecaptchaWidget";
 
 const STEPS = ["Business Info", "Shop Details", "Specialties", "Payout Setup", "Done"];
 const SPECIALTIES = ["Wedding", "Birthday", "Anniversary", "Corporate", "Sympathy", "Luxury", "Custom", "Subscription", "Daily", "Bridal"];
@@ -24,6 +24,7 @@ export default function FloristRegisterPage() {
     bio: "",
     toyyibpayUsername: "",
   });
+  const recaptchaRef = useRef<RecaptchaWidgetHandle>(null);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -72,7 +73,11 @@ export default function FloristRegisterPage() {
       }
 
       // Not signed in — create the account first, then submit the shop application under it
-      const recaptchaToken = await getRecaptchaToken("register");
+      const recaptchaToken = recaptchaRef.current?.getToken();
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) {
+        setError("Please complete the captcha.");
+        return;
+      }
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,12 +91,13 @@ export default function FloristRegisterPage() {
         }),
       });
       const data = await res.json();
-      if (data.error) { setError(data.error); return; }
-      if (data.existed) { setError("This email is already registered. Please sign in first, then apply from your existing account."); return; }
+      if (data.error) { setError(data.error); recaptchaRef.current?.reset(); return; }
+      if (data.existed) { setError("This email is already registered. Please sign in first, then apply from your existing account."); recaptchaRef.current?.reset(); return; }
 
       if (await submitApplication()) setStep(4);
     } catch {
       setError("There was a problem submitting your application. Please try again.");
+      recaptchaRef.current?.reset();
     } finally {
       setLoading(false);
     }
@@ -287,6 +293,7 @@ export default function FloristRegisterPage() {
                 <input value={form.toyyibpayUsername} onChange={e => set("toyyibpayUsername", e.target.value)} placeholder="e.g. bloomandco" className="input-premium w-full" />
                 <p className="text-xs text-gray-400 mt-1.5">Leave blank to skip — you can add this later from Dashboard → Payout Setup.</p>
               </div>
+              {!loggedIn && <div className="mt-5"><RecaptchaWidget ref={recaptchaRef} /></div>}
             </motion.div>
           )}
 

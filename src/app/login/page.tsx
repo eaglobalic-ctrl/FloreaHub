@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { Flower2, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { isAdminEmail } from "@/lib/admin";
-import { getRecaptchaToken } from "@/lib/recaptcha-client";
+import RecaptchaWidget, { type RecaptchaWidgetHandle } from "@/components/RecaptchaWidget";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,13 +14,18 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const recaptchaRef = useRef<RecaptchaWidgetHandle>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const recaptchaToken = await getRecaptchaToken("login");
+      const recaptchaToken = recaptchaRef.current?.getToken();
+      if (process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && !recaptchaToken) {
+        setError("Please complete the captcha.");
+        return;
+      }
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -29,6 +34,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!data.user) {
         setError(data.error || "No account found with this email. Please register first.");
+        recaptchaRef.current?.reset();
         return;
       }
       const isSeller = data.user.role === "florist" || data.user.role === "seller";
@@ -36,6 +42,7 @@ export default function LoginPage() {
       router.push(isAdminEmail(data.user.email) ? "/admin" : isSeller ? "/dashboard" : "/");
     } catch {
       setError("Something went wrong. Please try again.");
+      recaptchaRef.current?.reset();
     } finally {
       setLoading(false);
     }
@@ -138,6 +145,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              <RecaptchaWidget ref={recaptchaRef} />
               {error && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
                   <AlertCircle size={14} className="flex-shrink-0" />

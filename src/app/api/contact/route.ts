@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    if (!(await verifyRecaptcha(recaptchaToken, "contact"))) {
+    if (!(await verifyRecaptcha(recaptchaToken))) {
       return NextResponse.json({ error: "Verification failed — please try again" }, { status: 400 });
     }
 
