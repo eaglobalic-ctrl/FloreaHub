@@ -233,43 +233,17 @@ export default function OrdersPage() {
                   </div>
 
                   {order.order_items && order.order_items.length > 0 && (
-                    <div className="space-y-3 mb-4">
-                      {order.order_items.map((item, i) => {
-                        const key = reviewKey(order.id, item.product_id);
-                        const canReview = order.status === "delivered" && order.florist_id && item.product_id;
-                        return (
-                          <div key={i}>
-                            <div className="flex items-center justify-between text-sm">
-                              <div>
-                                <span className="font-medium text-gray-800">{item.product_name}</span>
-                                <span className="text-gray-400 mx-1.5">×{item.quantity}</span>
-                                <span className="text-xs text-gray-400">{item.florist_name}</span>
-                              </div>
-                              <span className="font-semibold text-gray-700">RM{(item.price * item.quantity).toFixed(2)}</span>
-                            </div>
-                            {canReview && (
-                              reviewedKeys.has(key) ? (
-                                <p className="mt-1.5 text-xs text-emerald-600 flex items-center gap-1.5">
-                                  <Star size={12} className="fill-emerald-600" /> Terima kasih atas review anda!
-                                </p>
-                              ) : reviewingKey === key ? (
-                                <ReviewForm
-                                  onSubmit={(rating, comment) => submitReview(order, item.product_id, rating, comment)}
-                                  onCancel={() => setReviewingKey(null)}
-                                />
-                              ) : (
-                                <button
-                                  onClick={() => setReviewingKey(key)}
-                                  className="mt-1.5 text-xs font-medium flex items-center gap-1.5 hover:opacity-80"
-                                  style={{ color: "var(--primary)" }}
-                                >
-                                  <Star size={12} /> Review this product
-                                </button>
-                              )
-                            )}
+                    <div className="space-y-2 mb-4">
+                      {order.order_items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <div>
+                            <span className="font-medium text-gray-800">{item.product_name}</span>
+                            <span className="text-gray-400 mx-1.5">×{item.quantity}</span>
+                            <span className="text-xs text-gray-400">{item.florist_name}</span>
                           </div>
-                        );
-                      })}
+                          <span className="font-semibold text-gray-700">RM{(item.price * item.quantity).toFixed(2)}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -312,6 +286,41 @@ export default function OrdersPage() {
                       <p className="font-bold text-gray-900" style={{ color: "var(--primary)" }}>RM{Number(order.total).toFixed(2)}</p>
                     </div>
                   </div>
+
+                  {(() => {
+                    const reviewableItems = (order.order_items ?? []).filter(item => item.product_id);
+                    if (order.status !== "delivered" || !order.florist_id || reviewableItems.length === 0) return null;
+                    const multi = reviewableItems.length > 1;
+                    return (
+                      <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                        {reviewableItems.map((item, i) => {
+                          const key = reviewKey(order.id, item.product_id);
+                          return reviewedKeys.has(key) ? (
+                            <p key={i} className="text-xs text-emerald-600 flex items-center gap-1.5">
+                              <Star size={13} className="fill-emerald-600" /> Terima kasih atas review anda untuk {item.product_name}!
+                            </p>
+                          ) : reviewingKey === key ? (
+                            <div key={i}>
+                              {multi && <p className="text-xs text-gray-500 mb-1.5">Review: {item.product_name}</p>}
+                              <ReviewForm
+                                onSubmit={(rating, comment) => submitReview(order, item.product_id, rating, comment)}
+                                onCancel={() => setReviewingKey(null)}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              key={i}
+                              onClick={() => setReviewingKey(key)}
+                              className="w-full text-left text-xs font-medium flex items-center gap-1.5 hover:opacity-80"
+                              style={{ color: "var(--primary)" }}
+                            >
+                              <Star size={13} /> {multi ? `Review ${item.product_name}` : "Leave a Review"}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </motion.div>
               ))}
             </motion.div>
