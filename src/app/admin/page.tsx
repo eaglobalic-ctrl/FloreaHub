@@ -5,6 +5,7 @@ import {
   Check, X, Clock, Users, Store, Mail, MapPin, Phone, ShieldCheck, LogOut,
   LayoutDashboard, DollarSign, ShoppingBag, Package, Star, MessageCircle,
   Megaphone, CreditCard, Activity, Loader2, Ban, Trash2, Edit2, Save, TrendingUp, AlertTriangle,
+  MessageSquarePlus,
 } from "lucide-react";
 import Link from "next/link";
 import { fadeUp, stagger } from "@/lib/animations";
@@ -19,6 +20,7 @@ const NAV = [
   { id: "users", label: "Users", icon: Users },
   { id: "products", label: "Products", icon: Package },
   { id: "reviews", label: "Reviews", icon: Star },
+  { id: "testimonials", label: "Testimonials", icon: MessageSquarePlus },
   { id: "chat", label: "Chat Moderation", icon: MessageCircle },
   { id: "ads", label: "Ads", icon: Megaphone },
   { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
@@ -119,6 +121,7 @@ export default function AdminPage() {
           {tab === "users" && <UsersTab />}
           {tab === "products" && <ProductsTab />}
           {tab === "reviews" && <ReviewsTab />}
+          {tab === "testimonials" && <TestimonialsTab />}
           {tab === "chat" && <ChatModerationTab />}
           {tab === "ads" && <AdsTab />}
           {tab === "subscriptions" && <SubscriptionsTab />}
@@ -724,6 +727,106 @@ function ReviewsTab() {
                 <button onClick={() => handleDelete(r.id)} disabled={busy === r.id} className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"><Trash2 size={15} /></button>
               </div>
             </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Testimonials (platform-level, separate from florist/product reviews) ────
+
+type Testimonial = { id: string; user_id: string; role: string; name: string; rating: number; comment: string; approved: boolean; created_at: string };
+
+function TestimonialsTab() {
+  const [items, setItems] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"pending" | "approved" | "all">("pending");
+
+  const load = useCallback(() => {
+    setLoading(true);
+    // The public GET only returns approved testimonials — admin needs to see
+    // pending ones too, so this reads straight from Supabase via a dedicated
+    // admin-only fetch would be ideal, but reusing the reviews-style pattern
+    // (fetch all, filter client-side) keeps this consistent with the rest
+    // of the admin panel. approved=false rows are only ever visible here.
+    fetch("/api/admin/testimonials").then(r => r.json()).then(d => setItems(d.testimonials ?? [])).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const setApproved = async (id: string, approved: boolean) => {
+    setBusy(id);
+    try {
+      const res = await fetch("/api/testimonials", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ testimonialId: id, approved }) });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      setItems(prev => prev.map(t => t.id === id ? { ...t, approved } : t));
+      toast.success(approved ? "Published to homepage." : "Unpublished.");
+    } catch { toast.error("Failed."); }
+    setBusy(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this testimonial permanently?")) return;
+    setBusy(id);
+    try {
+      const res = await fetch("/api/testimonials", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ testimonialId: id }) });
+      const data = await res.json();
+      if (data.error) { toast.error(data.error); return; }
+      setItems(prev => prev.filter(t => t.id !== id));
+      toast.success("Deleted.");
+    } catch { toast.error("Failed."); }
+    setBusy(null);
+  };
+
+  const filtered = items.filter(t => filter === "all" || (filter === "pending" ? !t.approved : t.approved));
+  const pendingCount = items.filter(t => !t.approved).length;
+
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Testimonials</h2>
+      <p className="text-sm text-gray-500 mb-6">Buyer & seller feedback about FloreaHub itself — approve before it shows on the homepage.</p>
+
+      <div className="flex gap-2 mb-6">
+        {(["pending", "approved", "all"] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition-all ${filter === f ? "text-white shadow-sm" : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"}`} style={filter === f ? { background: "var(--primary)" } : {}}>
+            {f} {f === "pending" && pendingCount > 0 && `(${pendingCount})`}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <Loading /> : filtered.length === 0 ? (
+        <EmptyState icon={MessageSquarePlus} text="Nothing here." />
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(t => (
+            <Card key={t.id}>
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <p className="font-medium text-gray-900 text-sm">{t.name}</p>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{t.role}</span>
+                    <div className="flex items-center gap-0.5">{Array.from({ length: 5 }).map((_, i) => <Star key={i} size={11} className={i < t.rating ? "text-amber-400" : "text-gray-200"} fill="currentColor" />)}</div>
+                    {t.approved && <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">Live</span>}
+                  </div>
+                  <p className="text-sm text-gray-600">{t.comment}</p>
+                  <p className="text-xs text-gray-400 mt-1">{fmtDateTime(t.created_at)}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {!t.approved ? (
+                    <button onClick={() => setApproved(t.id, true)} disabled={busy === t.id} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
+                      <Check size={13} /> Approve
+                    </button>
+                  ) : (
+                    <button onClick={() => setApproved(t.id, false)} disabled={busy === t.id} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors disabled:opacity-50">
+                      Unpublish
+                    </button>
+                  )}
+                  <button onClick={() => handleDelete(t.id)} disabled={busy === t.id} className="text-gray-300 hover:text-red-500 transition-colors"><Trash2 size={15} /></button>
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       )}

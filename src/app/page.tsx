@@ -41,10 +41,13 @@ function InViewSection({ children, className = "" }: { children: React.ReactNode
   );
 }
 
+type Testimonial = { name: string; role: string; avatar: string; rating: number; text: string };
+
 export default function Home() {
   const router = useRouter();
   const [heroQuery, setHeroQuery] = useState("");
   const [featuredFlorists, setFeaturedFlorists] = useState<ReturnType<typeof dbToFloristCard>[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(TESTIMONIALS);
 
   useEffect(() => {
     // /api/florists already ranks elite/pro plan tiers first — that
@@ -53,6 +56,21 @@ export default function Home() {
       .then(r => r.json())
       .then(d => setFeaturedFlorists((d.florists ?? []).slice(0, 4).map(dbToFloristCard)))
       .catch(() => setFeaturedFlorists([]));
+
+    // Real, admin-approved buyer/seller testimonials — padded with the
+    // placeholder set if there aren't enough real ones yet so the three
+    // scrolling columns never look sparse or empty during early days.
+    fetch("/api/testimonials")
+      .then(r => r.json())
+      .then(d => {
+        const real: { role: string; name: string; rating: number; comment: string }[] = d.testimonials ?? [];
+        const mapped: Testimonial[] = real.map(t => ({
+          name: t.name, role: t.role === "florist" ? "Florist Partner" : "Customer",
+          avatar: t.name[0]?.toUpperCase() ?? "F", rating: t.rating, text: t.comment,
+        }));
+        setTestimonials(mapped.length >= 9 ? mapped : [...mapped, ...TESTIMONIALS]);
+      })
+      .catch(() => {});
   }, []);
 
   const handleHeroSearch = (e: React.FormEvent) => {
@@ -369,9 +387,9 @@ export default function Home() {
             <p className="text-gray-500">Real experiences from real people across Malaysia.</p>
           </motion.div>
           <motion.div variants={fadeUp} className="flex justify-center gap-5 max-h-[640px] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_15%,black_85%,transparent)]">
-            <TestimonialsColumn testimonials={TESTIMONIALS.slice(0, 3)} duration={22} className="w-full max-w-xs" />
-            <TestimonialsColumn testimonials={TESTIMONIALS.slice(3, 6)} duration={28} className="hidden md:block w-full max-w-xs" />
-            <TestimonialsColumn testimonials={TESTIMONIALS.slice(6, 9)} duration={24} className="hidden lg:block w-full max-w-xs" />
+            <TestimonialsColumn testimonials={testimonials.slice(0, 3)} duration={22} className="w-full max-w-xs" />
+            <TestimonialsColumn testimonials={testimonials.slice(3, 6)} duration={28} className="hidden md:block w-full max-w-xs" />
+            <TestimonialsColumn testimonials={testimonials.slice(6, 9)} duration={24} className="hidden lg:block w-full max-w-xs" />
           </motion.div>
         </InViewSection>
       </section>

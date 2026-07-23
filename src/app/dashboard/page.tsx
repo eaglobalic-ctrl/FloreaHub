@@ -13,6 +13,7 @@ import { StatCardSkeleton, RowSkeleton } from "@/components/ui/skeleton";
 import ImageUpload from "@/components/ui/image-upload";
 import DashboardMessages from "@/components/DashboardMessages";
 import ResponseRateBadge from "@/components/ResponseRateBadge";
+import TestimonialPrompt from "@/components/TestimonialPrompt";
 
 const STATUS_STYLE: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
@@ -492,6 +493,10 @@ export default function DashboardPage() {
 
           {tab === "overview" && (
             <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
+              <motion.div variants={fadeUp}>
+                <TestimonialPrompt context="seller" />
+              </motion.div>
+
               {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {loadingOrders && loadingProducts ? (

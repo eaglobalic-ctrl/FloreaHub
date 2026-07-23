@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { fadeUp, stagger } from "@/lib/animations";
 import { toast } from "@/components/Toast";
+import TestimonialPrompt from "@/components/TestimonialPrompt";
 
 type Order = {
   id: string;
@@ -189,6 +190,10 @@ export default function OrdersPage() {
           <motion.div variants={fadeUp} className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
             <p className="text-gray-500 text-sm mt-1">Welcome back, {user.name.split(" ")[0]}</p>
+          </motion.div>
+
+          <motion.div variants={fadeUp}>
+            <TestimonialPrompt context="buyer" />
           </motion.div>
 
           {loading ? (
