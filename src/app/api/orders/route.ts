@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
-import { sendOrderStatusUpdateEmail } from "@/lib/email";
+import { sendOrderStatusUpdateEmail, sendBuyerConfirmedReceiptEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -92,8 +92,15 @@ export async function PATCH(req: NextRequest) {
       if (order.status !== "delivered") return NextResponse.json({ error: "Order isn't marked delivered yet" }, { status: 400 });
       if (order.buyer_confirmed_at) return NextResponse.json({ ok: true, alreadyConfirmed: true });
 
-      const { data: updated, error } = await db.from("orders").update({ buyer_confirmed_at: new Date().toISOString() }).eq("id", orderId).select().single();
+      const { data: updated, error } = await db.from("orders").update({ buyer_confirmed_at: new Date().toISOString() }).eq("id", orderId).select("*, florists(name, email)").single();
       if (error) throw error;
+
+      const florist = updated?.florists as { name: string; email: string } | null;
+      if (florist?.email) {
+        sendBuyerConfirmedReceiptEmail({ email: florist.email, name: florist.name, orderId: updated.id })
+          .catch(err => console.error("Buyer-confirmed-receipt email error (non-blocking):", err));
+      }
+
       return NextResponse.json({ order: updated });
     }
 

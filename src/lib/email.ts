@@ -823,3 +823,35 @@ export async function sendOrderAutoConfirmedEmail({ email, name, orderId }: {
 
   await send(email, `Order auto-confirmed as received — ${orderId}`, html);
 }
+
+// ── Buyer confirmed receipt (florist) ────────────────────────────────────────
+
+export async function sendBuyerConfirmedReceiptEmail({ email, name, orderId }: {
+  email: string; name: string; orderId: string;
+}) {
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+    <div style="background:linear-gradient(135deg,#2d6a4f,#1b4332);padding:32px;text-align:center;">
+      ${LOGO_SVG_GREEN}
+      <div style="width:48px;height:48px;background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.4);border-radius:50%;display:inline-block;line-height:44px;text-align:center;margin:16px auto 10px;font-size:22px;color:#fff;font-weight:700;">&#10003;</div>
+      <h1 style="margin:0;color:#fff;font-size:20px;font-weight:700;">Buyer Confirmed Receipt</h1>
+      <p style="margin:6px 0 0;color:rgba(255,255,255,.7);font-size:13px;">${orderId}</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.6;">
+        Hi ${name.split(" ")[0]}, good news — the buyer for order ${orderId} confirmed they received it. This order is now ready for payout, and our team will process it soon.
+      </p>
+      <a href="https://floriahub.vercel.app/dashboard?tab=orders" style="display:block;background:#2d6a4f;color:#fff;text-align:center;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;">View in Dashboard →</a>
+    </div>
+    <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+      <p style="margin:0;color:#d1d5db;font-size:12px;">© 2024 FloreaHub by Lisya Lane Empire</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await send(email, `Buyer confirmed receipt — ${orderId}`, html);
+}
