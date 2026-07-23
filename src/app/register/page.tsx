@@ -88,7 +88,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+      <div className="flex-1 min-w-0 flex items-center justify-center p-8 bg-gray-50">
         <motion.div variants={stagger} initial="hidden" animate="show" className="w-full max-w-md">
           <motion.div variants={fadeUp} className="lg:hidden mb-8 text-center">
             <Link href="/" className="inline-flex items-center gap-2.5">
