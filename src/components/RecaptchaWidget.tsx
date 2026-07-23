@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 declare global {
   interface Window {
     grecaptcha?: {
-      render: (container: HTMLElement, params: { sitekey: string }) => number;
+      render: (container: HTMLElement, params: { sitekey: string; size?: "normal" | "compact" }) => number;
       getResponse: (widgetId?: number) => string;
       reset: (widgetId?: number) => void;
     };
@@ -41,9 +41,15 @@ const RecaptchaWidget = forwardRef<RecaptchaWidgetHandle>((_props, ref) => {
   useEffect(() => {
     if (!siteKey || !containerRef.current || widgetId.current !== null) return;
     let cancelled = false;
+    // Google's normal widget is a fixed ~304px wide — too tight against a
+    // narrow phone's padding. The "compact" size (~164px, checkbox and
+    // logo stacked) fits comfortably instead. Decided once at mount from
+    // the initial viewport, not re-checked on resize/rotate — re-rendering
+    // the widget mid-fill would throw away whatever the user already solved.
+    const size = window.innerWidth < 400 ? "compact" : "normal";
     loadScript().then(() => {
       if (cancelled || !containerRef.current || widgetId.current !== null) return;
-      widgetId.current = window.grecaptcha!.render(containerRef.current, { sitekey: siteKey });
+      widgetId.current = window.grecaptcha!.render(containerRef.current, { sitekey: siteKey, size });
       setReady(true);
     });
     return () => { cancelled = true; };
