@@ -4,12 +4,17 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendWelcomeEmail } from "@/lib/email";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { getSession } from "@/lib/session";
+import { verifyRecaptcha } from "@/lib/recaptcha";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, phone, role, password } = await req.json();
+    const { email, name, phone, role, password, recaptchaToken } = await req.json();
     if (!email || !name) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     if (!password || password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+
+    if (!(await verifyRecaptcha(recaptchaToken, "register"))) {
+      return NextResponse.json({ error: "Verification failed — please try again" }, { status: 400 });
+    }
 
     const db = getSupabaseAdmin();
 

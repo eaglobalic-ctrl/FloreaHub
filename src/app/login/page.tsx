@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { Flower2, Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
 import { isAdminEmail } from "@/lib/admin";
+import { getRecaptchaToken } from "@/lib/recaptcha-client";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,10 +20,11 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     try {
+      const recaptchaToken = await getRecaptchaToken("login");
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, password: form.password }),
+        body: JSON.stringify({ email: form.email, password: form.password, recaptchaToken }),
       });
       const data = await res.json();
       if (!data.user) {

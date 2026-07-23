@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { verifyRecaptcha } from "@/lib/recaptcha";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, recaptchaToken } = await req.json();
     if (!email || !password) return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+
+    if (!(await verifyRecaptcha(recaptchaToken, "login"))) {
+      return NextResponse.json({ error: "Verification failed — please try again" }, { status: 400 });
+    }
 
     const db = getSupabaseAdmin();
     const { data: user, error } = await db

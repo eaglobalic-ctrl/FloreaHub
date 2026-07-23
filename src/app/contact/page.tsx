@@ -5,6 +5,7 @@ import { Mail, Phone, MapPin, Clock, Send, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { fadeUp, stagger } from "@/lib/animations";
+import { getRecaptchaToken } from "@/lib/recaptcha-client";
 
 const TOPICS = ["General Enquiry", "Order Issue", "Florist Registration", "Partnership", "Technical Support", "Billing"];
 
@@ -19,10 +20,11 @@ export default function ContactPage() {
     setLoading(true);
     setError("");
     try {
+      const recaptchaToken = await getRecaptchaToken("contact");
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, recaptchaToken }),
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }

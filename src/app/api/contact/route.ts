@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendContactFormEmail } from "@/lib/email";
+import { verifyRecaptcha } from "@/lib/recaptcha";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, topic, message } = await req.json();
+    const { name, email, topic, message, recaptchaToken } = await req.json();
     if (!name || !email || !message) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (!(await verifyRecaptcha(recaptchaToken, "contact"))) {
+      return NextResponse.json({ error: "Verification failed — please try again" }, { status: 400 });
     }
 
     const db = getSupabaseAdmin();

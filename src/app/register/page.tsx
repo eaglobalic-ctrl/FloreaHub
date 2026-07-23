@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Flower2, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, AlertCircle, Store, ShoppingBag } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
+import { getRecaptchaToken } from "@/lib/recaptcha-client";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -20,10 +21,11 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
     try {
+      const recaptchaToken = await getRecaptchaToken("register");
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, role, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, role, password: form.password, recaptchaToken }),
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }

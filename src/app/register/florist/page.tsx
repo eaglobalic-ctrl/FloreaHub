@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Flower2, ArrowRight, ArrowLeft, Check, Store, MapPin, Tag, FileText, AlertCircle, Wallet, ExternalLink } from "lucide-react";
 import { fadeUp, stagger } from "@/lib/animations";
+import { getRecaptchaToken } from "@/lib/recaptcha-client";
 
 const STEPS = ["Business Info", "Shop Details", "Specialties", "Payout Setup", "Done"];
 const SPECIALTIES = ["Wedding", "Birthday", "Anniversary", "Corporate", "Sympathy", "Luxury", "Custom", "Subscription", "Daily", "Bridal"];
@@ -71,6 +72,7 @@ export default function FloristRegisterPage() {
       }
 
       // Not signed in — create the account first, then submit the shop application under it
+      const recaptchaToken = await getRecaptchaToken("register");
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,6 +82,7 @@ export default function FloristRegisterPage() {
           phone: form.phone,
           password: form.password,
           role: "florist",
+          recaptchaToken,
         }),
       });
       const data = await res.json();
