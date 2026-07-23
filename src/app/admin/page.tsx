@@ -72,7 +72,7 @@ export default function AdminPage() {
         <div className="text-center card-premium p-12 max-w-sm">
           <ShieldCheck size={40} className="text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Admin Access Required</h2>
-          <p className="text-gray-500 text-sm mb-6">Log in dengan akaun admin untuk akses page ini.</p>
+          <p className="text-gray-500 text-sm mb-6">Sign in with an admin account to access this page.</p>
           <Link href="/login" className="btn-primary">Sign In</Link>
         </div>
       </div>

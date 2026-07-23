@@ -42,8 +42,12 @@ export async function POST(req: NextRequest) {
 
     // The order must actually belong to this buyer — otherwise anyone could review any florist
     if (orderId) {
-      const { data: order } = await db.from("orders").select("id").eq("id", orderId).eq("buyer_email", session.email).maybeSingle();
+      const { data: order } = await db.from("orders").select("id, buyer_confirmed_at").eq("id", orderId).eq("buyer_email", session.email).maybeSingle();
       if (!order) return NextResponse.json({ error: "Order not found" }, { status: 403 });
+
+      // Can't review until the buyer has actually confirmed they received
+      // it — a florist marking it "delivered" isn't proof it arrived.
+      if (!order.buyer_confirmed_at) return NextResponse.json({ error: "Confirm you've received this order before leaving a review" }, { status: 403 });
 
       // One review per (order, product) — a multi-item order lets a buyer
       // rate each product separately. Without this check, resubmitting (e.g.

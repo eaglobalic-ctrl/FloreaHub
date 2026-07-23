@@ -5,7 +5,7 @@ import { toast } from "@/components/Toast";
 
 const DISMISS_KEY = "floreahub_testimonial_dismissed";
 
-// "Nanti" only skips the full nagging card on future visits — it never
+// "Later" only skips the full nagging card on future visits — it never
 // removes the ability to leave a testimonial. Once collapsed, a small
 // permanent link stays clickable so someone who said "later" can still
 // come back and submit whenever they actually want to.
@@ -27,7 +27,7 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
   };
 
   const submit = async () => {
-    if (!comment.trim()) { toast.error("Tulis sikit pengalaman anda dulu."); return; }
+    if (!comment.trim()) { toast.error("Write a bit about your experience first."); return; }
     setSubmitting(true);
     try {
       const res = await fetch("/api/testimonials", {
@@ -39,14 +39,14 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
       if (data.error) { toast.error(data.error); return; }
       localStorage.setItem(DISMISS_KEY, "1");
       setStage("done");
-    } catch { toast.error("Gagal hantar."); }
+    } catch { toast.error("Failed to submit."); }
     setSubmitting(false);
   };
 
   if (stage === "collapsed") {
     return (
       <button onClick={() => setStage("form")} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 mb-4">
-        <MessageSquarePlus size={13} /> Bagi testimoni tentang FloreaHub
+        <MessageSquarePlus size={13} /> Share a testimonial about FloreaHub
       </button>
     );
   }
@@ -55,7 +55,7 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
     <div className="card-premium p-5 mb-6 border-rose-100 bg-rose-50/40">
       {stage === "done" ? (
         <div className="flex items-center gap-3 text-sm text-emerald-700">
-          <Check size={18} /> Terima kasih! Testimoni anda akan disemak sebelum dipaparkan.
+          <Check size={18} /> Thank you! Your testimonial will be reviewed before it's shown publicly.
         </div>
       ) : stage === "card" ? (
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -63,16 +63,16 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
             <MessageSquarePlus size={20} className="text-rose-500 flex-shrink-0" />
             <div>
               <p className="font-medium text-gray-900 text-sm">
-                {context === "buyer" ? "Suka pengalaman guna FloreaHub?" : "Suka jual di FloreaHub?"}
+                {context === "buyer" ? "Enjoying your FloreaHub experience?" : "Enjoying selling on FloreaHub?"}
               </p>
-              <p className="text-xs text-gray-500">Kongsi testimoni ringkas — mungkin dipaparkan di homepage.</p>
+              <p className="text-xs text-gray-500">Share a quick testimonial — it might be featured on the homepage.</p>
             </div>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <button onClick={() => setStage("form")} className="text-xs px-3 py-1.5 rounded-lg text-white" style={{ background: "var(--primary)" }}>
-              Tulis Testimoni
+              Write a Testimonial
             </button>
-            <button onClick={dismiss} className="text-xs text-gray-400 hover:text-gray-600">Nanti</button>
+            <button onClick={dismiss} className="text-xs text-gray-400 hover:text-gray-600">Later</button>
           </div>
         </div>
       ) : (
@@ -87,15 +87,15 @@ export default function TestimonialPrompt({ context }: { context: "buyer" | "sel
           <textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
-            placeholder="Kongsi pengalaman anda guna FloreaHub..."
+            placeholder="Share your experience using FloreaHub..."
             rows={3}
             className="input-premium w-full text-sm mb-3 resize-none"
           />
           <div className="flex items-center gap-2">
             <button onClick={submit} disabled={submitting} className="text-xs px-4 py-2 rounded-lg text-white disabled:opacity-50" style={{ background: "var(--primary)" }}>
-              {submitting ? "..." : "Hantar"}
+              {submitting ? "..." : "Submit"}
             </button>
-            <button onClick={() => setStage(localStorage.getItem(DISMISS_KEY) === "1" ? "collapsed" : "card")} className="text-xs text-gray-400 hover:text-gray-600">Batal</button>
+            <button onClick={() => setStage(localStorage.getItem(DISMISS_KEY) === "1" ? "collapsed" : "card")} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
           </div>
         </div>
       )}

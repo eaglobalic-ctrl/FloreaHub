@@ -338,7 +338,7 @@ export default function DashboardPage() {
         <div className="text-center card-premium p-12 max-w-sm">
           <Store size={40} className="text-gray-300 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">Sign In Required</h2>
-          <p className="text-gray-500 text-sm mb-6">Sila log masuk untuk akses dashboard.</p>
+          <p className="text-gray-500 text-sm mb-6">Please sign in to access the dashboard.</p>
           <Link href="/login" className="btn-primary">Sign In</Link>
         </div>
       </div>
@@ -350,9 +350,9 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center card-premium p-12 max-w-sm">
           <Store size={40} className="text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Belum Ada Kedai</h2>
-          <p className="text-gray-500 text-sm mb-6">Akaun anda belum mempunyai permohonan kedai florist.</p>
-          <Link href="/register/florist" className="btn-primary">Mohon Buka Kedai</Link>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No Shop Yet</h2>
+          <p className="text-gray-500 text-sm mb-6">Your account doesn't have a florist shop application yet.</p>
+          <Link href="/register/florist" className="btn-primary">Apply to Open a Shop</Link>
         </div>
       </div>
     );
@@ -363,9 +363,9 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center card-premium p-12 max-w-sm">
           <Clock size={40} className="text-amber-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Permohonan Dalam Semakan</h2>
-          <p className="text-gray-500 text-sm mb-6">Kedai <strong>{florist.name}</strong> sedang disemak oleh team kami. Kami akan email anda bila keputusan dibuat.</p>
-          <Link href="/" className="btn-secondary">Kembali ke Laman Utama</Link>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Application Under Review</h2>
+          <p className="text-gray-500 text-sm mb-6">Shop <strong>{florist.name}</strong> is being reviewed by our team. We'll email you once a decision is made.</p>
+          <Link href="/" className="btn-secondary">Back to Home</Link>
         </div>
       </div>
     );
@@ -376,9 +376,9 @@ export default function DashboardPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center card-premium p-12 max-w-sm">
           <X size={40} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Permohonan Tidak Diluluskan</h2>
-          <p className="text-gray-500 text-sm mb-6">Permohonan kedai <strong>{florist.name}</strong> tidak diluluskan pada masa ini.</p>
-          <Link href="/register/florist" className="btn-primary">Mohon Semula</Link>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Application Not Approved</h2>
+          <p className="text-gray-500 text-sm mb-6">The shop application for <strong>{florist.name}</strong> was not approved at this time.</p>
+          <Link href="/register/florist" className="btn-primary">Apply Again</Link>
         </div>
       </div>
     );
@@ -942,7 +942,7 @@ function AddProductModal({ floristId, onClose, onCreated }: { floristId: string;
       if (data.error) { setError(data.error); return; }
       onCreated();
     } catch {
-      setError("Gagal tambah produk. Sila cuba lagi.");
+      setError("Failed to add product. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1031,7 +1031,7 @@ function EditProductModal({
       toast.success("Product updated.");
       onSaved();
     } catch {
-      setError("Gagal kemaskini produk. Sila cuba lagi.");
+      setError("Failed to update product. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -1050,7 +1050,7 @@ function EditProductModal({
       toast.success("Product deleted.");
       onDeleted();
     } catch {
-      setError("Gagal padam produk. Sila cuba lagi.");
+      setError("Failed to delete product. Please try again.");
       setDeleting(false);
     }
   };

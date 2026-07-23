@@ -47,14 +47,14 @@ function ReviewForm({ onSubmit, onCancel }: { onSubmit: (rating: number, comment
         value={comment}
         onChange={e => setComment(e.target.value)}
         rows={2}
-        placeholder="Macam mana pengalaman awak dengan florist ni?"
+        placeholder="How was your experience with this florist?"
         className="input-premium w-full resize-none text-sm"
       />
       <div className="flex gap-2">
         <button onClick={handleSubmit} disabled={submitting} className="btn-primary text-xs py-2 px-4 disabled:opacity-50">
-          {submitting ? "Menghantar..." : "Hantar Review"}
+          {submitting ? "Submitting..." : "Submit Review"}
         </button>
-        <button onClick={onCancel} className="text-xs text-gray-500 hover:text-gray-700 px-2">Batal</button>
+        <button onClick={onCancel} className="text-xs text-gray-500 hover:text-gray-700 px-2">Cancel</button>
       </div>
     </div>
   );
@@ -263,7 +263,7 @@ export default function OrdersPage() {
 
                   {order.status === "delivered" && !order.buyer_confirmed_at && (
                     <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-3">
-                      <p className="text-xs text-amber-800 mb-2">Dah terima pesanan ni? Sahkan supaya florist boleh terima bayaran.</p>
+                      <p className="text-xs text-amber-800 mb-2">Received this order? Confirm so the florist can get paid.</p>
                       <button onClick={() => handleConfirmReceipt(order.id)} disabled={confirmingId === order.id} className="btn-primary text-xs py-2 px-4 w-full justify-center disabled:opacity-60">
                         {confirmingId === order.id ? "Confirming..." : "Confirm Received"}
                       </button>
@@ -288,8 +288,11 @@ export default function OrdersPage() {
                   </div>
 
                   {(() => {
+                    // Gate on the buyer actually confirming receipt, not just the
+                    // florist marking it delivered — a buyer shouldn't be able to
+                    // rate a product they haven't confirmed they got yet.
                     const reviewableItems = (order.order_items ?? []).filter(item => item.product_id);
-                    if (order.status !== "delivered" || !order.florist_id || reviewableItems.length === 0) return null;
+                    if (!order.buyer_confirmed_at || !order.florist_id || reviewableItems.length === 0) return null;
                     const multi = reviewableItems.length > 1;
                     return (
                       <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
@@ -297,7 +300,7 @@ export default function OrdersPage() {
                           const key = reviewKey(order.id, item.product_id);
                           return reviewedKeys.has(key) ? (
                             <p key={i} className="text-xs text-emerald-600 flex items-center gap-1.5">
-                              <Star size={13} className="fill-emerald-600" /> Terima kasih atas review anda untuk {item.product_name}!
+                              <Star size={13} className="fill-emerald-600" /> Thanks for reviewing {item.product_name}!
                             </p>
                           ) : reviewingKey === key ? (
                             <div key={i}>

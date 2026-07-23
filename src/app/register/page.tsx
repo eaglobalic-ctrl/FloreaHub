@@ -99,18 +99,18 @@ export default function RegisterPage() {
                     <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-6">
                       <Check size={28} className="text-amber-600" strokeWidth={2.5} />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Akaun dicipta!</h2>
-                    <p className="text-gray-500 mb-4">Selamat datang, {form.name.split(" ")[0]}. Satu langkah lagi — lengkapkan maklumat kedai untuk mula jual.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Account created!</h2>
+                    <p className="text-gray-500 mb-4">Welcome, {form.name.split(" ")[0]}. One more step — complete your shop details to start selling.</p>
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
-                      <p className="text-sm font-semibold text-amber-800 mb-2">Apa berlaku seterusnya:</p>
+                      <p className="text-sm font-semibold text-amber-800 mb-2">What happens next:</p>
                       <ul className="text-sm text-amber-700 space-y-1.5 list-disc list-inside">
-                        <li>Isi maklumat kedai (lokasi, spesialiti)</li>
-                        <li>Team kami akan semak dalam 1-2 hari bekerja</li>
-                        <li>Kamu akan dapat email bila approved</li>
+                        <li>Fill in your shop details (location, specialty)</li>
+                        <li>Our team reviews it within 1-2 business days</li>
+                        <li>You'll get an email once approved</li>
                       </ul>
                     </div>
                     <Link href="/register/florist" className="btn-primary w-full flex items-center justify-center gap-2">
-                      Lengkapkan Maklumat Kedai <ArrowRight size={16} />
+                      Complete Shop Details <ArrowRight size={16} />
                     </Link>
                   </>
                 ) : (

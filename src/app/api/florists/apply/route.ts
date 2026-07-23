@@ -6,7 +6,7 @@ import { sendAdminFloristNotification } from "@/lib/email";
 export async function POST(req: NextRequest) {
   try {
     const session = getSession(req);
-    if (!session) return NextResponse.json({ error: "Sila log masuk dahulu" }, { status: 401 });
+    if (!session) return NextResponse.json({ error: "Please sign in first" }, { status: 401 });
 
     const { shopName, shopCity, shopState, shopPhone, bio, toyyibpayUsername } = await req.json();
     if (!shopName || !shopCity) {
@@ -21,10 +21,10 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await db.from("florists").select("id, status").eq("user_id", session.userId).maybeSingle();
 
     if (existing?.status === "pending") {
-      return NextResponse.json({ error: "Permohonan anda masih dalam semakan" }, { status: 409 });
+      return NextResponse.json({ error: "Your application is still under review" }, { status: 409 });
     }
     if (existing?.status === "approved") {
-      return NextResponse.json({ error: "Anda sudah mempunyai kedai" }, { status: 409 });
+      return NextResponse.json({ error: "You already have a shop" }, { status: 409 });
     }
 
     const floristFields = {

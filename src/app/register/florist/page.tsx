@@ -84,11 +84,11 @@ export default function FloristRegisterPage() {
       });
       const data = await res.json();
       if (data.error) { setError(data.error); return; }
-      if (data.existed) { setError("Email ini sudah didaftarkan. Sila log masuk dahulu, kemudian mohon dari akaun sedia ada."); return; }
+      if (data.existed) { setError("This email is already registered. Please sign in first, then apply from your existing account."); return; }
 
       if (await submitApplication()) setStep(4);
     } catch {
-      setError("Ada masalah menghantar permohonan. Sila cuba lagi.");
+      setError("There was a problem submitting your application. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -148,7 +148,7 @@ export default function FloristRegisterPage() {
                 {loggedIn && (
                   <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5 mb-2">
                     <Check size={14} className="flex-shrink-0" />
-                    Memohon sebagai <strong>{sessionEmail}</strong> — akaun sedia ada anda akan turut dapat akses seller.
+                    Applying as <strong>{sessionEmail}</strong> — your existing account will also get seller access.
                   </div>
                 )}
                 <div className={loggedIn ? "" : "grid grid-cols-1 sm:grid-cols-2 gap-4"}>

@@ -21,7 +21,7 @@ function ResetPasswordContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (password !== confirm) { setError("Password tidak sepadan"); return; }
+    if (password !== confirm) { setError("Passwords don't match"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/reset-password", {
@@ -44,9 +44,9 @@ function ResetPasswordContent() {
       <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-emerald-50 flex items-center justify-center p-4">
         <div className="card-premium p-10 text-center max-w-md">
           <AlertCircle size={36} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Link Tidak Sah</h2>
-          <p className="text-gray-500 text-sm mb-6">Link reset password tidak lengkap. Sila mohon link baru.</p>
-          <Link href="/forgot-password" className="btn-primary">Mohon Link Baru</Link>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Invalid Link</h2>
+          <p className="text-gray-500 text-sm mb-6">This password reset link is incomplete. Please request a new one.</p>
+          <Link href="/forgot-password" className="btn-primary">Request New Link</Link>
         </div>
       </div>
     );
@@ -69,19 +69,19 @@ function ResetPasswordContent() {
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
               <Check size={28} className="text-emerald-600" strokeWidth={2.5} />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Dikemaskini</h2>
-            <p className="text-gray-500 text-sm mb-8">Sila log masuk dengan password baru anda.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Updated</h2>
+            <p className="text-gray-500 text-sm mb-8">Please sign in with your new password.</p>
             <button onClick={() => router.push("/login")} className="btn-primary w-full flex items-center justify-center gap-2">
-              Log Masuk <ArrowRight size={15} />
+              Sign In <ArrowRight size={15} />
             </button>
           </motion.div>
         ) : (
           <motion.div variants={fadeUp} className="card-premium p-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Set Password Baru</h1>
-            <p className="text-gray-500 text-sm mb-6">Masukkan password baru untuk akaun anda.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">Set New Password</h1>
+            <p className="text-gray-500 text-sm mb-6">Enter a new password for your account.</p>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Password Baru</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input type={showPass ? "text" : "password"} required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full pl-10 pr-11" />
@@ -91,8 +91,8 @@ function ResetPasswordContent() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Sahkan Password</label>
-                <input type={showPass ? "text" : "password"} required minLength={8} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Taip semula password" className="input-premium w-full" />
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
+                <input type={showPass ? "text" : "password"} required minLength={8} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-type password" className="input-premium w-full" />
               </div>
               {error && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
@@ -101,7 +101,7 @@ function ResetPasswordContent() {
                 </div>
               )}
               <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3">
-                {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Set Password Baru</span><ArrowRight size={16} /></>}
+                {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Set New Password</span><ArrowRight size={16} /></>}
               </button>
             </form>
           </motion.div>
