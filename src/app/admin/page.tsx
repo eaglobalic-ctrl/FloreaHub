@@ -1033,6 +1033,8 @@ function SystemTab() {
     { label: "ToyyibPay category code", ok: data.config.toyyibpayCategory },
     { label: "Cron secret", ok: data.config.cronSecret },
     { label: "Admin notification email", ok: data.config.adminEmail, note: data.config.adminEmailSource ? `via ${data.config.adminEmailSource}` : undefined },
+    { label: "reCAPTCHA site key", ok: data.config.recaptchaSiteKey },
+    { label: "reCAPTCHA secret key", ok: data.config.recaptchaSecretKey },
   ];
 
   return (
