@@ -175,7 +175,7 @@ export default function FloristRegisterPage() {
                 {!loggedIn && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
-                    <input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="shop@example.com" className="input-premium w-full" />
+                    <input type="email" autoComplete="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="shop@example.com" className="input-premium w-full" />
                   </div>
                 )}
                 <div>
@@ -185,7 +185,7 @@ export default function FloristRegisterPage() {
                 {!loggedIn && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-                    <input type="password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full" />
+                    <input type="password" autoComplete="new-password" value={form.password} onChange={e => set("password", e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full" />
                   </div>
                 )}
               </div>

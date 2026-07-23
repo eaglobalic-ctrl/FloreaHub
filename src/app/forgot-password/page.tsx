@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
                 <div className="relative">
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="input-premium w-full pl-10" />
+                  <input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="input-premium w-full pl-10" />
                 </div>
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full flex items-center justify-center gap-2 py-3">

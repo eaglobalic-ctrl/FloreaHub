@@ -115,6 +115,7 @@ export default function LoginPage() {
                   <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
                     type="email"
+                    autoComplete="email"
                     required
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
@@ -134,6 +135,7 @@ export default function LoginPage() {
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   <input
                     type={showPass ? "text" : "password"}
+                    autoComplete="current-password"
                     required
                     value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}

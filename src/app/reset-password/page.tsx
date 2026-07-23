@@ -84,7 +84,7 @@ function ResetPasswordContent() {
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">New Password</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                  <input type={showPass ? "text" : "password"} required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full pl-10 pr-11" />
+                  <input type={showPass ? "text" : "password"} autoComplete="new-password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" className="input-premium w-full pl-10 pr-11" />
                   <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -92,7 +92,7 @@ function ResetPasswordContent() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
-                <input type={showPass ? "text" : "password"} required minLength={8} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-type password" className="input-premium w-full" />
+                <input type={showPass ? "text" : "password"} autoComplete="new-password" required minLength={8} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Re-type password" className="input-premium w-full" />
               </div>
               {error && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5">
