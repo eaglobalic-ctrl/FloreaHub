@@ -99,8 +99,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: string; name: string; email: string } | null>(null);
-  const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
-  const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
+  const [reviewingKey, setReviewingKey] = useState<string | null>(null);
+  const [reviewedKeys, setReviewedKeys] = useState<Set<string>>(new Set());
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const handleConfirmReceipt = async (orderId: string) => {
@@ -119,6 +119,11 @@ export default function OrdersPage() {
     }
   };
 
+  // A review is per (order, product) — buying two different products in one
+  // order should let a buyer rate each one separately, right where they see
+  // that product, instead of one generic review for the whole order.
+  const reviewKey = (orderId: string, productId?: string | null) => `${orderId}::${productId ?? "none"}`;
+
   useEffect(() => {
     fetch("/api/auth/me")
       .then(r => r.json())
@@ -127,7 +132,7 @@ export default function OrdersPage() {
         setUser(d.user);
         fetch("/api/reviews?mine=1")
           .then(r => r.json())
-          .then(rd => setReviewedOrderIds(new Set((rd.reviews ?? []).map((r: { order_id: string }) => r.order_id).filter(Boolean))))
+          .then(rd => setReviewedKeys(new Set((rd.reviews ?? []).map((r: { order_id: string; product_id?: string | null }) => reviewKey(r.order_id, r.product_id)))))
           .catch(() => {});
         return fetch(`/api/orders?buyerEmail=${encodeURIComponent(d.user.email)}`)
           .then(r => r.json())
@@ -137,21 +142,22 @@ export default function OrdersPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const submitReview = async (order: Order, rating: number, comment: string) => {
+  const submitReview = async (order: Order, productId: string | null | undefined, rating: number, comment: string) => {
     if (!order.florist_id || !user) return;
+    const key = reviewKey(order.id, productId);
     try {
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ floristId: order.florist_id, productId: order.order_items?.[0]?.product_id ?? null, orderId: order.id, rating, comment }),
+        body: JSON.stringify({ floristId: order.florist_id, productId: productId ?? null, orderId: order.id, rating, comment }),
       });
       const data = await res.json();
       if (res.ok) {
-        setReviewedOrderIds(prev => new Set(prev).add(order.id));
-        setReviewingOrderId(null);
+        setReviewedKeys(prev => new Set(prev).add(key));
+        setReviewingKey(null);
       } else {
         toast.error(data.error || "Failed to submit review.");
-        if (res.status === 409) setReviewedOrderIds(prev => new Set(prev).add(order.id));
+        if (res.status === 409) setReviewedKeys(prev => new Set(prev).add(key));
       }
     } catch { toast.error("Failed to submit review."); }
   };
@@ -227,17 +233,43 @@ export default function OrdersPage() {
                   </div>
 
                   {order.order_items && order.order_items.length > 0 && (
-                    <div className="space-y-2 mb-4">
-                      {order.order_items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm">
-                          <div>
-                            <span className="font-medium text-gray-800">{item.product_name}</span>
-                            <span className="text-gray-400 mx-1.5">×{item.quantity}</span>
-                            <span className="text-xs text-gray-400">{item.florist_name}</span>
+                    <div className="space-y-3 mb-4">
+                      {order.order_items.map((item, i) => {
+                        const key = reviewKey(order.id, item.product_id);
+                        const canReview = order.status === "delivered" && order.florist_id && item.product_id;
+                        return (
+                          <div key={i}>
+                            <div className="flex items-center justify-between text-sm">
+                              <div>
+                                <span className="font-medium text-gray-800">{item.product_name}</span>
+                                <span className="text-gray-400 mx-1.5">×{item.quantity}</span>
+                                <span className="text-xs text-gray-400">{item.florist_name}</span>
+                              </div>
+                              <span className="font-semibold text-gray-700">RM{(item.price * item.quantity).toFixed(2)}</span>
+                            </div>
+                            {canReview && (
+                              reviewedKeys.has(key) ? (
+                                <p className="mt-1.5 text-xs text-emerald-600 flex items-center gap-1.5">
+                                  <Star size={12} className="fill-emerald-600" /> Terima kasih atas review anda!
+                                </p>
+                              ) : reviewingKey === key ? (
+                                <ReviewForm
+                                  onSubmit={(rating, comment) => submitReview(order, item.product_id, rating, comment)}
+                                  onCancel={() => setReviewingKey(null)}
+                                />
+                              ) : (
+                                <button
+                                  onClick={() => setReviewingKey(key)}
+                                  className="mt-1.5 text-xs font-medium flex items-center gap-1.5 hover:opacity-80"
+                                  style={{ color: "var(--primary)" }}
+                                >
+                                  <Star size={12} /> Review this product
+                                </button>
+                              )
+                            )}
                           </div>
-                          <span className="font-semibold text-gray-700">RM{(item.price * item.quantity).toFixed(2)}</span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -280,27 +312,6 @@ export default function OrdersPage() {
                       <p className="font-bold text-gray-900" style={{ color: "var(--primary)" }}>RM{Number(order.total).toFixed(2)}</p>
                     </div>
                   </div>
-
-                  {order.status === "delivered" && order.florist_id && (
-                    reviewedOrderIds.has(order.id) ? (
-                      <p className="mt-3 pt-3 border-t border-gray-100 text-xs text-emerald-600 flex items-center gap-1.5">
-                        <Star size={13} className="fill-emerald-600" /> Terima kasih atas review anda!
-                      </p>
-                    ) : reviewingOrderId === order.id ? (
-                      <ReviewForm
-                        onSubmit={(rating, comment) => submitReview(order, rating, comment)}
-                        onCancel={() => setReviewingOrderId(null)}
-                      />
-                    ) : (
-                      <button
-                        onClick={() => setReviewingOrderId(order.id)}
-                        className="mt-3 pt-3 border-t border-gray-100 w-full text-left text-xs font-medium flex items-center gap-1.5 hover:opacity-80"
-                        style={{ color: "var(--primary)" }}
-                      >
-                        <Star size={13} /> Leave a Review
-                      </button>
-                    )
-                  )}
                 </motion.div>
               ))}
             </motion.div>

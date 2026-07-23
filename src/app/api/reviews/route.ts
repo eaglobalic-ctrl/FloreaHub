@@ -45,11 +45,15 @@ export async function POST(req: NextRequest) {
       const { data: order } = await db.from("orders").select("id").eq("id", orderId).eq("buyer_email", session.email).maybeSingle();
       if (!order) return NextResponse.json({ error: "Order not found" }, { status: 403 });
 
-      // One review per order — without this, resubmitting (e.g. after a
-      // page refresh, since the client-side "already reviewed" state was
-      // never actually seeded from the server) silently created duplicates.
-      const { data: existing } = await db.from("reviews").select("id").eq("order_id", orderId).eq("user_id", session.userId).maybeSingle();
-      if (existing) return NextResponse.json({ error: "You've already reviewed this order" }, { status: 409 });
+      // One review per (order, product) — a multi-item order lets a buyer
+      // rate each product separately. Without this check, resubmitting (e.g.
+      // after a page refresh, since the client-side "already reviewed"
+      // state was never actually seeded from the server) silently created
+      // duplicates.
+      let dupQuery = db.from("reviews").select("id").eq("order_id", orderId).eq("user_id", session.userId);
+      dupQuery = productId ? dupQuery.eq("product_id", productId) : dupQuery.is("product_id", null);
+      const { data: existing } = await dupQuery.maybeSingle();
+      if (existing) return NextResponse.json({ error: "You've already reviewed this product for this order" }, { status: 409 });
     }
 
     const { data, error } = await db.from("reviews").insert({
