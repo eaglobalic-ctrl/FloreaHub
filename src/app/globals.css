@@ -145,72 +145,82 @@ body {
   border: 1px solid rgba(255,255,255,0.6);
 }
 
-/* Premium card */
-.card-premium {
-  background: #fff;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-.card-premium:hover {
-  border-color: rgba(181,41,78,0.2);
-  box-shadow: 0 8px 32px rgba(181,41,78,0.08), 0 2px 8px rgba(0,0,0,0.04);
-}
+/* Wrapped in @layer components so Tailwind utilities (like the pl-10/pr-11
+   padding overrides used on inputs with a leading/trailing icon) always win
+   over these base styles in the cascade, regardless of source order. Before
+   this, .input-premium's own `padding: 0.75rem 1rem` shorthand (1rem = 16px
+   left) beat pl-10's 2.5rem left padding — since both are plain classes of
+   equal specificity declared after `@import "tailwindcss"` — which made the
+   absolutely-positioned Mail/Lock icon (left-3.5) overlap the first 1-2
+   characters of whatever the user typed. */
+@layer components {
+  /* Premium card */
+  .card-premium {
+    background: #fff;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .card-premium:hover {
+    border-color: rgba(181,41,78,0.2);
+    box-shadow: 0 8px 32px rgba(181,41,78,0.08), 0 2px 8px rgba(0,0,0,0.04);
+  }
 
-/* Button styles */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius);
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: white;
-  background: var(--primary);
-  transition: all 0.2s ease;
-  letter-spacing: -0.01em;
-}
-.btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(181,41,78,0.3); }
-.btn-primary:active { transform: translateY(0); }
+  /* Button styles */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: white;
+    background: var(--primary);
+    transition: all 0.2s ease;
+    letter-spacing: -0.01em;
+  }
+  .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(181,41,78,0.3); }
+  .btn-primary:active { transform: translateY(0); }
 
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--radius);
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: var(--foreground);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  transition: all 0.2s ease;
-}
-.btn-secondary:hover { background: #f5f5f5; border-color: #d1d5db; }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--foreground);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
+  }
+  .btn-secondary:hover { background: #f5f5f5; border-color: #d1d5db; }
 
-/* Input styles */
-.input-premium {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  /* 16px on mobile — iOS Safari auto-zooms on focus for any input below
-     that, which felt like the page "jumping". Desktop drops back to the
-     original 14px below. */
-  font-size: 16px;
-  color: var(--foreground);
-  background: white;
-  transition: border-color 0.2s ease;
-  outline: none;
-}
-.input-premium:focus { border-color: var(--primary); }
-.input-premium::placeholder { color: var(--text-tertiary); }
+  /* Input styles */
+  .input-premium {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    /* 16px on mobile — iOS Safari auto-zooms on focus for any input below
+       that, which felt like the page "jumping". Desktop drops back to the
+       original 14px below. */
+    font-size: 16px;
+    color: var(--foreground);
+    background: white;
+    transition: border-color 0.2s ease;
+    outline: none;
+  }
+  .input-premium:focus { border-color: var(--primary); }
+  .input-premium::placeholder { color: var(--text-tertiary); }
 
-@media (min-width: 640px) {
-  .input-premium { font-size: 0.875rem; }
+  @media (min-width: 640px) {
+    .input-premium { font-size: 0.875rem; }
+  }
 }
 
 /* Hide scrollbar utility */
