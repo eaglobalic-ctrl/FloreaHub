@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,7 +11,7 @@ import ChatWidget from "@/components/ChatWidget";
 import ResponseRateBadge from "@/components/ResponseRateBadge";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-async function getFlorist(id: string) {
+const getFlorist = cache(async (id: string) => {
   try {
     const db = getSupabaseAdmin();
     const { data } = await db
@@ -22,6 +24,26 @@ async function getFlorist(id: string) {
   } catch {
     return null;
   }
+});
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const florist = await getFlorist(id);
+  if (!florist) return { title: "Florist — FloreaHub" };
+
+  const title = `${florist.name} — Florist in ${florist.city ?? "Malaysia"} | FloreaHub`;
+  const description = florist.description || `Order fresh flowers and gifts from ${florist.name}, a verified florist in ${florist.city ?? ""}, ${florist.state ?? ""} on FloreaHub.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      images: florist.cover_image ? [florist.cover_image] : undefined,
+    },
+  };
 }
 
 export default async function FloristDetailPage({ params }: { params: Promise<{ id: string }> }) {
