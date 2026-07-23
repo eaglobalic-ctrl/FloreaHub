@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import { logSystemError } from "@/lib/systemLog";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -57,7 +58,10 @@ const LOGO_SVG_GREEN = `<table cellpadding="0" cellspacing="0" border="0" style=
 </table>`;
 
 async function send(to: string, subject: string, html: string) {
-  if (!process.env.GMAIL_APP_PASSWORD) return;
+  if (!process.env.GMAIL_APP_PASSWORD) {
+    await logSystemError("Email NOT sent — GMAIL_APP_PASSWORD not configured", { to, subject });
+    return;
+  }
   const mail = { from: `"${SENDER_NAME}" <${SENDER_EMAIL}>`, to, subject, html };
 
   try {
@@ -70,7 +74,12 @@ async function send(to: string, subject: string, html: string) {
       transporter = null;
       await getTransporter().sendMail(mail);
     } catch (retryErr) {
-      console.error("Email send error (retry also failed, non-blocking):", retryErr);
+      // Both attempts failed — this used to only console.error, which is
+      // invisible without digging through Vercel logs. Every OTHER silent-
+      // failure path in this codebase got the same fix this session (order
+      // inserts, stock decrements) — email sends were the one place left
+      // still failing without a trace in Admin -> Error Log.
+      await logSystemError("Email send FAILED (both attempts)", { to, subject, error: String(retryErr) });
     }
   }
 }
