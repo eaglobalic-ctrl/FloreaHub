@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const db = getSupabaseAdmin();
-    const baseSelect = "id, total, subtotal, delivery_fee, split_amount, created_at, delivered_at, buyer_confirmed_at, florists(id, name, email, toyyibpay_username)";
+    const baseSelect = "id, status, total, subtotal, delivery_fee, split_amount, created_at, delivered_at, buyer_confirmed_at, florists(id, name, email, toyyibpay_username)";
 
     const historySelect = `${baseSelect}, payout_completed_at`;
 

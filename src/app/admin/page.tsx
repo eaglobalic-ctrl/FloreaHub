@@ -187,9 +187,14 @@ function OverviewTab() {
 // ── Financial (6.1) ──────────────────────────────────────────────────────────
 
 type PayoutOrder = {
-  id: string; total: number; subtotal: number; delivery_fee: number; split_amount: number | null; created_at: string;
+  id: string; status: string; total: number; subtotal: number; delivery_fee: number; split_amount: number | null; created_at: string;
   delivered_at: string | null; buyer_confirmed_at: string | null; payout_completed_at?: string | null;
   florists: { id: string; name: string; email: string; toyyibpay_username: string | null } | null;
+};
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  pending: "Order Confirmed", processing: "Florist Preparing", ready: "Ready for Pickup",
+  delivering: "Out for Delivery", delivered: "Delivered", cancelled: "Cancelled",
 };
 
 // 2% platform commission applies only to the product subtotal — the
@@ -276,8 +281,13 @@ function FinancialTab() {
           {data.awaitingConfirmation.map(o => (
             <div key={o.id} className="card-premium p-4 flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="font-medium text-gray-900 text-sm">{o.florists?.name ?? "Unknown florist"}</p>
-                <p className="text-xs text-gray-400">Order {o.id} · {o.delivered_at ? `delivered ${fmtDate(o.delivered_at)}` : "not yet delivered"}</p>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <p className="font-medium text-gray-900 text-sm">{o.florists?.name ?? "Unknown florist"}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${o.status === "delivering" ? "bg-indigo-50 text-indigo-700" : o.status === "delivered" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                    {ORDER_STATUS_LABEL[o.status] ?? o.status}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-400">Order {o.id} · {o.delivered_at ? `delivered ${fmtDate(o.delivered_at)}` : "awaiting delivery"}</p>
               </div>
               <p className="font-semibold text-gray-500">{money(payoutOwed(o))}</p>
             </div>
