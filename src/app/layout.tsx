@@ -26,12 +26,21 @@ export const metadata: Metadata = {
     type: "website",
   },
   manifest: "/manifest.json",
+  // "Add to Home Screen" on iOS Safari opens in standalone mode (no Safari
+  // chrome) only when these are set — without them it just opens a normal
+  // browser tab, same as tapping a bookmark.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FloreaHub",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: "#b5294e",
 };
 
 export default function RootLayout({
