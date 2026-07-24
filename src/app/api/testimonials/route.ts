@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { getActiveSession } from "@/lib/activeSession";
 import { isAdminEmail } from "@/lib/admin";
 import { logSystemError } from "@/lib/systemLog";
 import { notify } from "@/lib/notify";
@@ -24,7 +25,7 @@ export async function GET() {
 // publish it before it can show up anywhere public.
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     if (!(await rateLimit(req, "testimonial", 5, 300))) {

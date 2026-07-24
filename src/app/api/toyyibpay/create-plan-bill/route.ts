@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getSession } from "@/lib/session";
+import { getActiveSession } from "@/lib/activeSession";
 import { getAppUrl } from "@/lib/url";
 
 const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
@@ -17,7 +17,7 @@ const PLAN_PRICES: Record<string, { name: string; price: number }> = {
 // carry split-payment args meant for product orders.
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const { floristId, plan, name, email, phone } = await req.json();
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getSupabaseAdmin();
-    const { data: florist } = await db.from("florists").select("id, plan").eq("id", floristId).eq("user_id", session.userId).eq("status", "approved").maybeSingle();
+    const { data: florist } = await db.from("florists").select("id, plan").eq("id", floristId).eq("user_id", session.userId).eq("status", "approved").eq("is_active", true).maybeSingle();
     if (!florist) return NextResponse.json({ error: "Approved florist account not found for this user" }, { status: 403 });
 
     // Pending row created first so the callback (which only receives the

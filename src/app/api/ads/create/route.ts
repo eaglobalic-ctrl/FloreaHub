@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getSession } from "@/lib/session";
+import { getActiveSession } from "@/lib/activeSession";
 import { moderateAdContent } from "@/lib/moderation";
 import { getAppUrl } from "@/lib/url";
 import { notify } from "@/lib/notify";
@@ -8,7 +8,7 @@ import { AD_PLANS } from "@/lib/ads";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const body = await req.json();
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const supabaseAdmin = getSupabaseAdmin();
-    const { data: florist } = await supabaseAdmin.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).eq("status", "approved").maybeSingle();
+    const { data: florist } = await supabaseAdmin.from("florists").select("id").eq("id", floristId).eq("user_id", session.userId).eq("status", "approved").eq("is_active", true).maybeSingle();
     if (!florist) return NextResponse.json({ error: "Florist not found" }, { status: 403 });
 
     const baseUrl = process.env.TOYYIBPAY_SANDBOX === "true"

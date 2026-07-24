@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { getActiveSession } from "@/lib/activeSession";
 import { notify } from "@/lib/notify";
 import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rateLimit";
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     if (!(await rateLimit(req, "review", 10, 300))) {

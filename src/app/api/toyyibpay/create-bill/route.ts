@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getSession } from "@/lib/session";
 import { getAppUrl } from "@/lib/url";
 import { logSystemError } from "@/lib/systemLog";
 import { computeBuilderTotal } from "@/lib/builderPricing";
+import { getActiveSession } from "@/lib/activeSession";
 
 const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
   ? "https://dev.toyyibpay.com"
@@ -22,7 +22,7 @@ type Item = {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const { name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, deliveryDate, notes } = await req.json();

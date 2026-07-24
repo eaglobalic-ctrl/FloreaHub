@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getSession } from "@/lib/session";
+import { getActiveSession } from "@/lib/activeSession";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -68,7 +68,7 @@ const LISTING_LIMITS: Record<string, number> = { free: 5, starter: 5, pro: 50, e
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const { floristId, name, description, price, category, imageUrl, stock, sameDay, lowStockThreshold } = await req.json();
@@ -113,13 +113,13 @@ const EDITABLE_FIELDS = ["name", "description", "price", "category", "image_url"
 async function assertOwnsProduct(db: ReturnType<typeof getSupabaseAdmin>, productId: string, userId: string) {
   const { data: product } = await db.from("products").select("id, florist_id").eq("id", productId).maybeSingle();
   if (!product) return null;
-  const { data: florist } = await db.from("florists").select("id").eq("id", product.florist_id).eq("user_id", userId).maybeSingle();
+  const { data: florist } = await db.from("florists").select("id").eq("id", product.florist_id).eq("user_id", userId).eq("is_active", true).maybeSingle();
   return florist ? product : null;
 }
 
 export async function PATCH(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const { productId, ...fields } = await req.json();
@@ -149,7 +149,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const { productId } = await req.json();

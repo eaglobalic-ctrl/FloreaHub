@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { getActiveSession } from "@/lib/activeSession";
 import { moderateMessage } from "@/lib/chatModeration";
 import { sendNewChatMessageEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = getSession(req);
+    const session = await getActiveSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const { conversationId, content, imageUrl } = await req.json();
