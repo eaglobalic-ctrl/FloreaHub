@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-    const { floristId, name, description, price, category, imageUrl, stock, sameDay } = await req.json();
+    const { floristId, name, description, price, category, imageUrl, stock, sameDay, lowStockThreshold } = await req.json();
     if (!floristId || !name || !price) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
       image_url: imageUrl ?? null,
       stock: stock ?? 0,
       same_day: !!sameDay,
+      low_stock_threshold: Number.isFinite(lowStockThreshold) ? Math.max(0, Number(lowStockThreshold)) : 5,
     }).select("*").single();
 
     if (error) throw error;
@@ -107,7 +108,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-const EDITABLE_FIELDS = ["name", "description", "price", "category", "image_url", "stock", "same_day", "is_active"] as const;
+const EDITABLE_FIELDS = ["name", "description", "price", "category", "image_url", "stock", "same_day", "is_active", "low_stock_threshold"] as const;
 
 async function assertOwnsProduct(db: ReturnType<typeof getSupabaseAdmin>, productId: string, userId: string) {
   const { data: product } = await db.from("products").select("id, florist_id").eq("id", productId).maybeSingle();

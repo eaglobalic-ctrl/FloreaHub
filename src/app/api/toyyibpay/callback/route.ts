@@ -110,13 +110,13 @@ export async function POST(req: NextRequest) {
             if (stockError) {
               await logSystemError("Stock decrement FAILED — RPC rejected", { orderId: order.id, productId: item.product_id, quantity: item.quantity, error: stockError });
             } else {
-              const row = stockResult?.[0] as { old_stock: number; new_stock: number } | undefined;
+              const row = stockResult?.[0] as { old_stock: number; new_stock: number; low_stock_threshold: number } | undefined;
               console.log("Stock decremented:", JSON.stringify({ orderId: order.id, productId: item.product_id, ...row }));
 
-              // Matches the "Low Stock Alert" threshold already shown on the
-              // florist dashboard (stock < 5) — only fires once per crossing.
-              const LOW_STOCK_THRESHOLD = 5;
-              if (row && florist?.user_id && row.old_stock >= LOW_STOCK_THRESHOLD && row.new_stock < LOW_STOCK_THRESHOLD) {
+              // Threshold is set per-product by the florist (defaults to 5
+              // for products created before this existed) — only fires once
+              // per crossing, not on every order while already low.
+              if (row && florist?.user_id && row.old_stock >= row.low_stock_threshold && row.new_stock < row.low_stock_threshold) {
                 await notify({
                   userId: florist.user_id,
                   type: "stock",

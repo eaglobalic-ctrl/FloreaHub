@@ -49,6 +49,7 @@ type Product = {
   id: string; name: string; price: number; stock: number;
   review_count: number; badge?: string; is_active: boolean;
   description?: string | null; category?: string; image_url?: string | null; same_day?: boolean;
+  low_stock_threshold?: number;
 };
 
 type Florist = {
@@ -312,7 +313,7 @@ export default function DashboardPage() {
     ];
   }, [orders, products]);
 
-  const lowStockProducts = products.filter((p) => p.stock > 0 && p.stock < 5);
+  const lowStockProducts = products.filter((p) => p.stock > 0 && p.stock < (p.low_stock_threshold ?? 5));
 
   const timeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -698,8 +699,8 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-gray-900">RM{Number(p.price).toFixed(2)}</p>
-                      <p className={`text-xs ${p.stock < 5 && p.stock > 0 ? "text-amber-600 font-medium" : p.stock === 0 ? "text-red-500" : "text-gray-400"}`}>
-                        {p.stock === 0 ? "Out of stock" : p.stock < 5 ? "Low stock" : "In stock"}
+                      <p className={`text-xs ${p.stock < (p.low_stock_threshold ?? 5) && p.stock > 0 ? "text-amber-600 font-medium" : p.stock === 0 ? "text-red-500" : "text-gray-400"}`}>
+                        {p.stock === 0 ? "Out of stock" : p.stock < (p.low_stock_threshold ?? 5) ? "Low stock" : "In stock"}
                       </p>
                     </div>
                     <button onClick={() => setEditingProduct(p)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
@@ -915,6 +916,7 @@ function AddProductModal({ floristId, onClose, onCreated }: { floristId: string;
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("daily");
   const [stock, setStock] = useState("10");
+  const [lowStockThreshold, setLowStockThreshold] = useState("5");
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -934,6 +936,7 @@ function AddProductModal({ floristId, onClose, onCreated }: { floristId: string;
           price: Number(price),
           category,
           stock: Number(stock),
+          lowStockThreshold: Number(lowStockThreshold),
           imageUrl: imageUrl || null,
           description: description || null,
         }),
@@ -979,6 +982,11 @@ function AddProductModal({ floristId, onClose, onCreated }: { floristId: string;
             </select>
           </div>
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Alert me when stock drops to</label>
+            <input required type="number" min="0" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} className="input-premium w-full" />
+            <p className="text-xs text-gray-400 mt-1">You&apos;ll get a notification once stock falls below this number.</p>
+          </div>
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Photo (optional)</label>
             <ImageUpload value={imageUrl} onChange={setImageUrl} folder="products" />
           </div>
@@ -1003,6 +1011,7 @@ function EditProductModal({
   const [price, setPrice] = useState(String(product.price));
   const [category, setCategory] = useState(product.category ?? "daily");
   const [stock, setStock] = useState(String(product.stock));
+  const [lowStockThreshold, setLowStockThreshold] = useState(String(product.low_stock_threshold ?? 5));
   const [imageUrl, setImageUrl] = useState(product.image_url ?? "");
   const [description, setDescription] = useState(product.description ?? "");
   const [isActive, setIsActive] = useState(product.is_active);
@@ -1022,6 +1031,7 @@ function EditProductModal({
         body: JSON.stringify({
           productId: product.id,
           name, price: Number(price), category, stock: Number(stock),
+          low_stock_threshold: Number(lowStockThreshold),
           image_url: imageUrl || null, description: description || null,
           is_active: isActive,
         }),
@@ -1084,6 +1094,11 @@ function EditProductModal({
                 <option key={c} value={c}>{c[0].toUpperCase() + c.slice(1)}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Alert me when stock drops to</label>
+            <input required type="number" min="0" value={lowStockThreshold} onChange={e => setLowStockThreshold(e.target.value)} className="input-premium w-full" />
+            <p className="text-xs text-gray-400 mt-1">You&apos;ll get a notification once stock falls below this number.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Photo (optional)</label>
