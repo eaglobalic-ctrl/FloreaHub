@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Bell, Package, MessageCircle, DollarSign, Star, CheckCircle, RotateCcw } from "lucide-react";
+import { Bell, Package, MessageCircle, DollarSign, Star, CheckCircle, RotateCcw, AlertTriangle } from "lucide-react";
 import { enablePushNotifications, getPushPermissionState, isIos, isStandalone } from "@/lib/push-client";
 
 type Notification = { id: string; type: string; title: string; body: string | null; link: string | null; read_at: string | null; created_at: string };
@@ -14,6 +14,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   payout: DollarSign,
   refund: RotateCcw,
   review: Star,
+  stock: AlertTriangle,
 };
 
 function timeAgo(dateStr: string) {

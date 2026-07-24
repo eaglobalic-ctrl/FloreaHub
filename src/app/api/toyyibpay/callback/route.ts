@@ -92,6 +92,8 @@ export async function POST(req: NextRequest) {
           : await db.from("orders").select("*, order_items(*), florists(name, email, user_id)").like("id", `${orderId}%`).not("florist_id", "is", null);
 
         for (const order of orders ?? []) {
+          const florist = order.florists as { name: string; email: string; user_id: string } | null;
+
           for (const item of order.order_items ?? []) {
             if (!item.product_id) {
               await logSystemError("Stock decrement SKIPPED — order_item has no product_id", { orderId: order.id, itemName: item.product_name });
@@ -101,16 +103,33 @@ export async function POST(req: NextRequest) {
             // a prior read-then-write here could lose an update when two
             // orders for the same product were paid within milliseconds of
             // each other, since both requests would read the same stale
-            // stock value before either write landed.
-            const { data: newStock, error: stockError } = await db.rpc("decrement_product_stock", { p_product_id: item.product_id, p_quantity: item.quantity });
+            // stock value before either write landed. Returns old+new stock
+            // so we can tell whether THIS decrement is what crossed the
+            // low-stock line, instead of re-alerting on every order after.
+            const { data: stockResult, error: stockError } = await db.rpc("decrement_product_stock", { p_product_id: item.product_id, p_quantity: item.quantity });
             if (stockError) {
               await logSystemError("Stock decrement FAILED — RPC rejected", { orderId: order.id, productId: item.product_id, quantity: item.quantity, error: stockError });
             } else {
-              console.log("Stock decremented:", JSON.stringify({ orderId: order.id, productId: item.product_id, newStock }));
+              const row = stockResult?.[0] as { old_stock: number; new_stock: number } | undefined;
+              console.log("Stock decremented:", JSON.stringify({ orderId: order.id, productId: item.product_id, ...row }));
+
+              // Matches the "Low Stock Alert" threshold already shown on the
+              // florist dashboard (stock < 5) — only fires once per crossing.
+              const LOW_STOCK_THRESHOLD = 5;
+              if (row && florist?.user_id && row.old_stock >= LOW_STOCK_THRESHOLD && row.new_stock < LOW_STOCK_THRESHOLD) {
+                await notify({
+                  userId: florist.user_id,
+                  type: "stock",
+                  title: row.new_stock === 0 ? "Out of stock" : "Low stock alert",
+                  body: row.new_stock === 0
+                    ? `"${item.product_name}" just sold out.`
+                    : `"${item.product_name}" has only ${row.new_stock} left — consider restocking.`,
+                  link: "/dashboard/products",
+                });
+              }
             }
           }
 
-          const florist = order.florists as { name: string; email: string; user_id: string } | null;
           if (florist?.email) {
             await sendNewOrderNotificationToFlorist({
               email: florist.email,
