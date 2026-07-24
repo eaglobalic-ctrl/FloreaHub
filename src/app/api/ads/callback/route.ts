@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { notify } from "@/lib/notify";
+import { isToyyibPayBillPaid } from "@/lib/toyyibpay";
+import { logSystemError } from "@/lib/systemLog";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,8 +15,15 @@ export async function POST(req: NextRequest) {
 
     console.log("Ads callback:", { statusId, adId, billCode });
 
-    // status_id "1" = success
+    // status_id "1" = success — but that's unauthenticated client-supplied
+    // data, so confirm independently with ToyyibPay before activating a
+    // free ad campaign for anyone who just POSTs their own known billCode here.
     if (statusId === "1" && (adId || billCode)) {
+      if (!billCode || !(await isToyyibPayBillPaid(billCode))) {
+        await logSystemError("Ads callback REJECTED — could not independently verify payment", { adId, billCode, statusId });
+        return NextResponse.json({ error: "Could not verify payment" }, { status: 400 });
+      }
+
       const startDate = new Date().toISOString();
       const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
       const supabaseAdmin = getSupabaseAdmin();

@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { getAppUrl } from "@/lib/url";
 import { logSystemError } from "@/lib/systemLog";
+import { computeBuilderTotal } from "@/lib/builderPricing";
 
 const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
   ? "https://dev.toyyibpay.com"
@@ -14,14 +15,17 @@ const BASE_URL = process.env.TOYYIBPAY_SANDBOX === "true"
 // to 100%-company revenue.
 const COMMISSION_RATE = 0.02;
 
-type Item = { id: string; name: string; image: string; florist: string; floristId?: string | null; price: number; quantity: number };
+type Item = {
+  id: string; name: string; image: string; florist: string; floristId?: string | null; price: number; quantity: number;
+  builderSelections?: { flowers: { id: string; qty: number }[]; wrapId: string };
+};
 
 export async function POST(req: NextRequest) {
   try {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
-    const { amount, name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, deliveryDate, notes } = await req.json();
+    const { name, email, phone, description, referenceNo, items, recipientName, recipientPhone, deliveryAddress, deliveryDate, notes } = await req.json();
     if (!deliveryDate) return NextResponse.json({ error: "Delivery date is required" }, { status: 400 });
 
     if (!process.env.TOYYIBPAY_SECRET_KEY || !process.env.TOYYIBPAY_CATEGORY_CODE) {
@@ -31,11 +35,46 @@ export async function POST(req: NextRequest) {
     const orderId = referenceNo || `FH-${Date.now()}`;
     const db = getSupabaseAdmin();
 
+    const cartItemsRaw: Item[] = items ?? [];
+    if (!cartItemsRaw.length) return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+
+    // Never trust client-submitted price/floristId — editing localStorage or
+    // the raw request body would otherwise let anyone pay whatever they want
+    // for a real product. Resolve every item against its actual `products`
+    // row (price + florist_id) instead. Items with no matching product are
+    // custom-bouquet-builder items — recompute those from the shared pricing
+    // table (src/lib/builderPricing.ts) using the raw flower/wrap selections,
+    // never from a pre-computed price the client sent.
+    const productIds = cartItemsRaw.map(it => it.id).filter(Boolean);
+    const { data: dbProducts } = productIds.length
+      ? await db.from("products").select("id, price, florist_id, is_active").in("id", productIds)
+      : { data: [] };
+    const productById = new Map((dbProducts ?? []).map(p => [p.id, p]));
+
+    const cartItems: Item[] = [];
+    for (const raw of cartItemsRaw) {
+      const quantity = Math.max(1, Math.floor(Number(raw.quantity) || 0));
+      const product = productById.get(raw.id);
+
+      if (product) {
+        if (product.is_active === false) {
+          return NextResponse.json({ error: `"${raw.name}" is no longer available` }, { status: 400 });
+        }
+        cartItems.push({ ...raw, price: Number(product.price), floristId: product.florist_id, quantity });
+        continue;
+      }
+
+      if (!raw.builderSelections) {
+        return NextResponse.json({ error: `Could not verify price for "${raw.name}"` }, { status: 400 });
+      }
+      const price = computeBuilderTotal(raw.builderSelections.flowers, raw.builderSelections.wrapId);
+      cartItems.push({ ...raw, price, floristId: null, quantity });
+    }
+
     // Group cart items per florist — a cart can span multiple sellers (like
     // Shopee's combined checkout). Items with no floristId (e.g. the custom
     // bouquet builder) fall into one "unassigned" group FloreaHub fulfills
     // directly, never split.
-    const cartItems: Item[] = items ?? [];
     const groups = new Map<string, Item[]>();
     for (const item of cartItems) {
       const key = item.floristId ?? "__none__";
@@ -82,6 +121,14 @@ export async function POST(req: NextRequest) {
     // for the earlier "Split Payment Error" — it's the intended design now.
     const splitArgs: { id: string; amount: string }[] = [];
 
+    // Grand total recomputed entirely from resolved (DB-authoritative)
+    // prices above — the client's own `amount` is never used here, since
+    // trusting it was the actual vulnerability (a manipulated request body
+    // could previously set this to anything, e.g. RM0.01, regardless of
+    // what was really in the cart).
+    const grandTotal = groupCalcs.reduce((s, g) => s + g.total, 0);
+    if (grandTotal <= 0) return NextResponse.json({ error: "Invalid order total" }, { status: 400 });
+
     const params = new URLSearchParams({
       userSecretKey: process.env.TOYYIBPAY_SECRET_KEY,
       categoryCode: process.env.TOYYIBPAY_CATEGORY_CODE,
@@ -89,7 +136,7 @@ export async function POST(req: NextRequest) {
       billDescription: description || "Flower order from FloreaHub",
       billPriceSetting: "1",
       billPayorInfo: "1",
-      billAmount: String(Math.round(amount * 100)),
+      billAmount: String(Math.round(grandTotal * 100)),
       billReturnUrl: `${getAppUrl()}/checkout/success`,
       billCallbackUrl: `${getAppUrl()}/api/toyyibpay/callback`,
       billExternalReferenceNo: orderId,

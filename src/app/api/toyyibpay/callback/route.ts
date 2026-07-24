@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendOrderConfirmationEmail, sendNewOrderNotificationToFlorist } from "@/lib/email";
 import { logSystemError } from "@/lib/systemLog";
 import { notify } from "@/lib/notify";
+import { isToyyibPayBillPaid } from "@/lib/toyyibpay";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,6 +28,16 @@ export async function POST(req: NextRequest) {
     // `${orderId}-1`, `${orderId}-2`, ...) sharing this reference — "%" also
     // matches zero extra characters, so this covers the single-seller case too.
     if (statusId === "1" && (orderId || billCode)) {
+      // The callback body itself is unauthenticated — anyone who knows their
+      // own billCode (handed back right after createBill, before paying)
+      // could otherwise POST status_id=1 straight to this URL and get an
+      // order marked paid for free. Independently confirm with ToyyibPay's
+      // own API before trusting anything in this request.
+      if (!billCode || !(await isToyyibPayBillPaid(billCode))) {
+        await logSystemError("ToyyibPay callback REJECTED — could not independently verify payment", { orderId, billCode, statusId });
+        return NextResponse.json({ error: "Could not verify payment" }, { status: 400 });
+      }
+
       let count = 0;
       if (orderId) {
         const { error: updateError, count: byIdCount } = await db.from("orders").update({

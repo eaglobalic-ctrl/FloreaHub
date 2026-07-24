@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { moderateAdContent } from "@/lib/moderation";
 import { getAppUrl } from "@/lib/url";
 import { notify } from "@/lib/notify";
+import { AD_PLANS } from "@/lib/ads";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,11 +12,18 @@ export async function POST(req: NextRequest) {
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
 
     const body = await req.json();
-    const { adType, floristId, floristName, headline, tagline, imageUrl, price } = body;
+    const { adType, floristId, floristName, headline, tagline, imageUrl } = body;
 
-    if (!adType || !floristId || !floristName || !price) {
+    if (!adType || !floristId || !floristName) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    // Price comes from the server-side plan list, never the client — the
+    // request body previously carried its own `price` straight into
+    // billAmount, so anyone could pay whatever they wanted for any campaign.
+    const planInfo = AD_PLANS.find(p => p.id === adType);
+    if (!planInfo) return NextResponse.json({ error: "Invalid ad type" }, { status: 400 });
+    const price = planInfo.price;
 
     const moderation = moderateAdContent(headline ?? "", tagline);
     if (moderation.blocked) {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { notify } from "@/lib/notify";
+import { isToyyibPayBillPaid } from "@/lib/toyyibpay";
+import { logSystemError } from "@/lib/systemLog";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,6 +17,13 @@ export async function POST(req: NextRequest) {
     console.log("Plan callback:", { statusId, subId, billCode });
 
     if (statusId === "1" && (subId || billCode)) {
+      // Unauthenticated callback body — confirm independently with
+      // ToyyibPay before upgrading anyone's plan for free.
+      if (!billCode || !(await isToyyibPayBillPaid(billCode))) {
+        await logSystemError("Plan callback REJECTED — could not independently verify payment", { subId, billCode, statusId });
+        return NextResponse.json({ error: "Could not verify payment" }, { status: 400 });
+      }
+
       const db = getSupabaseAdmin();
       const startDate = new Date().toISOString();
       const endDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();

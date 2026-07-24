@@ -7,23 +7,24 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { stagger, scaleIn } from "@/lib/animations";
 import { addToCart } from "@/lib/cart";
+import { BUILDER_FLOWER_PRICES, BUILDER_WRAP_PRICES, BUILDER_BASE_FEE, computeBuilderTotal } from "@/lib/builderPricing";
 
 const FLOWERS = [
-  { id: "rose-red", name: "Red Rose", variety: "Rosa", price: 8 },
-  { id: "rose-pink", name: "Pink Rose", variety: "Rosa", price: 8 },
-  { id: "lily", name: "White Lily", variety: "Lilium", price: 10 },
-  { id: "sunflower", name: "Sunflower", variety: "Helianthus", price: 6 },
-  { id: "tulip", name: "Purple Tulip", variety: "Tulipa", price: 12 },
-  { id: "daisy", name: "Daisy", variety: "Bellis", price: 5 },
-  { id: "orchid", name: "Orchid", variety: "Orchidaceae", price: 15 },
-  { id: "hydrangea", name: "Hydrangea", variety: "H. macrophylla", price: 11 },
+  { id: "rose-red", name: "Red Rose", variety: "Rosa", price: BUILDER_FLOWER_PRICES["rose-red"] },
+  { id: "rose-pink", name: "Pink Rose", variety: "Rosa", price: BUILDER_FLOWER_PRICES["rose-pink"] },
+  { id: "lily", name: "White Lily", variety: "Lilium", price: BUILDER_FLOWER_PRICES.lily },
+  { id: "sunflower", name: "Sunflower", variety: "Helianthus", price: BUILDER_FLOWER_PRICES.sunflower },
+  { id: "tulip", name: "Purple Tulip", variety: "Tulipa", price: BUILDER_FLOWER_PRICES.tulip },
+  { id: "daisy", name: "Daisy", variety: "Bellis", price: BUILDER_FLOWER_PRICES.daisy },
+  { id: "orchid", name: "Orchid", variety: "Orchidaceae", price: BUILDER_FLOWER_PRICES.orchid },
+  { id: "hydrangea", name: "Hydrangea", variety: "H. macrophylla", price: BUILDER_FLOWER_PRICES.hydrangea },
 ];
 
 const WRAPS = [
-  { id: "kraft", name: "Kraft Paper", desc: "Classic & natural", price: 0 },
-  { id: "lace", name: "White Lace", desc: "Elegant & romantic", price: 10 },
-  { id: "velvet", name: "Red Velvet", desc: "Luxurious feel", price: 15 },
-  { id: "clear", name: "Clear Film", desc: "Modern & minimal", price: 8 },
+  { id: "kraft", name: "Kraft Paper", desc: "Classic & natural", price: BUILDER_WRAP_PRICES.kraft },
+  { id: "lace", name: "White Lace", desc: "Elegant & romantic", price: BUILDER_WRAP_PRICES.lace },
+  { id: "velvet", name: "Red Velvet", desc: "Luxurious feel", price: BUILDER_WRAP_PRICES.velvet },
+  { id: "clear", name: "Clear Film", desc: "Modern & minimal", price: BUILDER_WRAP_PRICES.clear },
 ];
 
 const RIBBONS = [
@@ -58,7 +59,7 @@ export default function BuilderPage() {
   const total = selections.reduce((s, x) => { const f = FLOWERS.find((fl) => fl.id === x.id); return s + (f ? f.price * x.qty : 0); }, 0);
   const wrapCost = WRAPS.find((w) => w.id === wrap)?.price ?? 0;
   const totalFlowers = selections.reduce((s, x) => s + x.qty, 0);
-  const grandTotal = total + wrapCost + 20;
+  const grandTotal = computeBuilderTotal(selections, wrap);
   const canNext = step === 0 ? totalFlowers >= 3 : true;
 
   const stepContent: Record<number, React.ReactNode> = {
@@ -209,7 +210,7 @@ export default function BuilderPage() {
           <div className="divide-y divide-gray-50 text-sm">
             <div className="flex justify-between py-2.5 text-gray-500"><span>Blooms ({totalFlowers})</span><span>RM{total}</span></div>
             <div className="flex justify-between py-2.5 text-gray-500"><span>Wrapping</span><span>{wrapCost === 0 ? "Included" : `RM${wrapCost}`}</span></div>
-            <div className="flex justify-between py-2.5 text-gray-500"><span>Base fee</span><span>RM20</span></div>
+            <div className="flex justify-between py-2.5 text-gray-500"><span>Base fee</span><span>RM{BUILDER_BASE_FEE}</span></div>
             <div className="flex justify-between py-3 font-bold text-base text-gray-900">
               <span>Total</span>
               <motion.span key={grandTotal} initial={{ scale: 1.1 }} animate={{ scale: 1 }} style={{ color: "var(--primary)" }}>RM{grandTotal}</motion.span>
@@ -228,6 +229,7 @@ export default function BuilderPage() {
               image: "",
               florist: "FloreaHub Builder",
               floristId: null,
+              builderSelections: { flowers: selections, wrapId: wrap },
             });
             router.push("/checkout");
           }}

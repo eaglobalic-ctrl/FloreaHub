@@ -8,6 +8,10 @@ export type CartItem = {
   // null for non-marketplace items (e.g. the custom bouquet builder) that
   // aren't fulfilled by a specific florist — these never get split payment.
   floristId: string | null;
+  // Present only for custom-bouquet-builder items — lets the checkout API
+  // recompute the price server-side from the shared pricing table instead
+  // of trusting this item's `price` field directly.
+  builderSelections?: { flowers: { id: string; qty: number }[]; wrapId: string };
 };
 
 const KEY = "floreahub_cart";
