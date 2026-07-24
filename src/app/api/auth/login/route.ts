@@ -3,9 +3,14 @@ import bcrypt from "bcryptjs";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { verifyRecaptcha } from "@/lib/recaptcha";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await rateLimit(req, "login", 10, 60))) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+
     const { email, password, recaptchaToken } = await req.json();
     if (!email || !password) return NextResponse.json({ error: "Email and password required" }, { status: 400 });
 

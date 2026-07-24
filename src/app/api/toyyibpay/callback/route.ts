@@ -97,21 +97,16 @@ export async function POST(req: NextRequest) {
               await logSystemError("Stock decrement SKIPPED — order_item has no product_id", { orderId: order.id, itemName: item.product_name });
               continue;
             }
-            const { data: product, error: fetchError } = await db.from("products").select("stock").eq("id", item.product_id).maybeSingle();
-            if (fetchError) {
-              await logSystemError("Stock decrement FAILED — could not fetch product", { orderId: order.id, productId: item.product_id, error: fetchError });
-              continue;
-            }
-            if (!product) {
-              await logSystemError("Stock decrement SKIPPED — product not found", { orderId: order.id, productId: item.product_id });
-              continue;
-            }
-            const newStock = Math.max(0, (Number(product.stock) || 0) - item.quantity);
-            const { error: stockError } = await db.from("products").update({ stock: newStock }).eq("id", item.product_id);
+            // Atomic RPC ("stock = stock - qty" inside the UPDATE itself) —
+            // a prior read-then-write here could lose an update when two
+            // orders for the same product were paid within milliseconds of
+            // each other, since both requests would read the same stale
+            // stock value before either write landed.
+            const { data: newStock, error: stockError } = await db.rpc("decrement_product_stock", { p_product_id: item.product_id, p_quantity: item.quantity });
             if (stockError) {
-              await logSystemError("Stock decrement FAILED — update rejected", { orderId: order.id, productId: item.product_id, oldStock: product.stock, newStock, error: stockError });
+              await logSystemError("Stock decrement FAILED — RPC rejected", { orderId: order.id, productId: item.product_id, quantity: item.quantity, error: stockError });
             } else {
-              console.log("Stock decremented:", JSON.stringify({ orderId: order.id, productId: item.product_id, oldStock: product.stock, newStock }));
+              console.log("Stock decremented:", JSON.stringify({ orderId: order.id, productId: item.product_id, newStock }));
             }
           }
 

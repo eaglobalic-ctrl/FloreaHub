@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { moderateAdContent } from "@/lib/moderation";
 import { getAppUrl } from "@/lib/url";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -95,6 +96,14 @@ export async function POST(req: NextRequest) {
       console.error("DB insert error:", dbError);
       // Don't block payment even if DB fails
     }
+
+    await notify({
+      userId: session.userId,
+      type: "payment",
+      title: `${planNames[adType] ?? "Ad"} campaign created`,
+      body: "Complete payment to activate your campaign.",
+      link: "/dashboard/ads",
+    });
 
     const paymentUrl = `${baseUrl}/${billCode}`;
     return NextResponse.json({ billCode, paymentUrl, adId });

@@ -862,7 +862,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mb-5">
-                  FloreaHub pays you directly via ToyyibPay Split Payment — your share of every sale routes straight to your own account. Orders can&apos;t pay out to you until this is set up.
+                  FloreaHub holds payment until the buyer confirms receipt, then pays out your share (98% of the sale, plus 100% of the delivery fee) via bank transfer or ToyyibPay. Adding your ToyyibPay username here gets you the fastest payout — without it, payouts still happen, just via manual bank transfer.
                 </p>
                 {!settingsForm.toyyibpay_username && (
                   <a href="https://toyyibpay.com/e/586756306506121794" target="_blank" rel="noopener noreferrer" className="text-sm underline font-medium mb-4 inline-block" style={{ color: "var(--primary)" }}>

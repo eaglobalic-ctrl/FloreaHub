@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
+import { notify } from "@/lib/notify";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rateLimit";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -34,6 +36,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+    if (!(await rateLimit(req, "review", 10, 300))) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
 
     const { floristId, productId, orderId, rating, comment } = await req.json();
     if (!floristId || !rating) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -70,6 +76,17 @@ export async function POST(req: NextRequest) {
     }).select().single();
 
     if (error) throw error;
+
+    const { data: floristOwner } = await db.from("florists").select("user_id, name").eq("id", floristId).maybeSingle();
+    if (floristOwner?.user_id) {
+      await notify({
+        userId: floristOwner.user_id,
+        type: "review",
+        title: `New ${rating}★ review`,
+        body: comment ? String(comment).slice(0, 120) : undefined,
+        link: "/dashboard/reviews",
+      });
+    }
 
     // Update florist rating average
     const { data: floristReviews } = await db.from("reviews").select("rating").eq("florist_id", floristId);

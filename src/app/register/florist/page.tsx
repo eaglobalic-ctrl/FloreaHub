@@ -279,7 +279,7 @@ export default function FloristRegisterPage() {
                 <h2 className="text-lg font-semibold">Payout Setup</h2>
               </div>
               <p className="text-sm text-gray-500 mb-5">
-                FloreaHub pays florists directly via ToyyibPay Split Payment — your share of every sale is routed straight to your own account (FloreaHub keeps a small commission automatically). This step is optional — you can set it up anytime later from your dashboard, but orders can only pay out once it's done.
+                FloreaHub holds payment until the buyer confirms receipt, then pays out your share (98% of the sale, plus 100% of the delivery fee) via bank transfer or ToyyibPay. This step is optional — adding your ToyyibPay username here just gets you the fastest payout option; you can still get paid via bank transfer without it.
               </p>
               <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 text-sm text-blue-900">
                 <p className="mb-2">1. Register a free ToyyibPay account (if you don't have one):</p>

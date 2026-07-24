@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { sendAdminFloristNotification } from "@/lib/email";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,6 +49,14 @@ export async function POST(req: NextRequest) {
     if (error) throw error;
 
     await sendAdminFloristNotification({ name: shopName, email: user.email, shopCity, shopPhone: shopPhone || user.phone });
+
+    await notify({
+      userId: session.userId,
+      type: "order",
+      title: "Application submitted",
+      body: "We've received your florist application and will review it shortly.",
+      link: "/dashboard",
+    });
 
     return NextResponse.json({ florist });
   } catch (err) {

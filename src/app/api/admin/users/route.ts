@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import { notify } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const session = getSession(req);
@@ -42,6 +43,14 @@ export async function PATCH(req: NextRequest) {
     const db = getSupabaseAdmin();
     const { data: user, error } = await db.from("users").update({ is_active }).eq("id", userId).select().single();
     if (error) throw error;
+
+    await notify({
+      userId,
+      type: "order",
+      title: is_active ? "Your account has been reinstated" : "Your account has been suspended",
+      body: is_active ? "You can use FloreaHub again." : "Contact support if you believe this is a mistake.",
+      link: "/",
+    });
 
     return NextResponse.json({ user });
   } catch (err) {

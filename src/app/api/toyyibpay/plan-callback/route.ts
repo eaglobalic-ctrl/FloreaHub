@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { notify } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,9 +39,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false }, { status: 404 });
       }
 
-      const { error: floristError } = await db.from("florists").update({ plan: sub.plan }).eq("id", sub.florist_id);
+      const { data: updatedFlorist, error: floristError } = await db.from("florists").update({ plan: sub.plan }).eq("id", sub.florist_id).select("user_id").maybeSingle();
       if (floristError) console.error("Plan callback: florist plan update error", floristError);
-      else console.log("Florist plan upgraded:", sub.florist_id, "->", sub.plan);
+      else {
+        console.log("Florist plan upgraded:", sub.florist_id, "->", sub.plan);
+        if (updatedFlorist?.user_id) {
+          await notify({
+            userId: updatedFlorist.user_id,
+            type: "payment",
+            title: `Plan upgraded to ${sub.plan}`,
+            body: "Your new plan is now active.",
+            link: "/dashboard/settings",
+          });
+        }
+      }
     }
 
     return NextResponse.json({ ok: true });

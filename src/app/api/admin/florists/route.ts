@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import { notify } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const session = getSession(req);
@@ -52,6 +53,16 @@ export async function PATCH(req: NextRequest) {
     const db = getSupabaseAdmin();
     const { data: florist, error } = await db.from("florists").update(update).eq("id", floristId).select().single();
     if (error) throw error;
+
+    if (typeof is_active === "boolean" && florist?.user_id) {
+      await notify({
+        userId: florist.user_id,
+        type: "order",
+        title: is_active ? "Your shop has been reinstated" : "Your shop has been suspended",
+        body: is_active ? "You can accept orders again." : "Contact support if you believe this is a mistake.",
+        link: "/dashboard",
+      });
+    }
 
     return NextResponse.json({ florist });
   } catch (err) {

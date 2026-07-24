@@ -3,9 +3,14 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { sendOrderStatusUpdateEmail, sendBuyerConfirmedReceiptEmail } from "@/lib/email";
 import { notify } from "@/lib/notify";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await rateLimit(req, "checkout", 20, 60))) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+
     const body = await req.json();
     const { orderId, items, subtotal, deliveryFee, total, recipientName, recipientPhone, deliveryAddress, notes, billCode } = body;
 

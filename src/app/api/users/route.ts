@@ -5,9 +5,14 @@ import { sendWelcomeEmail } from "@/lib/email";
 import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
 import { getSession } from "@/lib/session";
 import { verifyRecaptcha } from "@/lib/recaptcha";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
+    if (!(await rateLimit(req, "register", 5, 60))) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
+
     const { email, name, phone, role, password, recaptchaToken } = await req.json();
     if (!email || !name) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     if (!password || password.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });

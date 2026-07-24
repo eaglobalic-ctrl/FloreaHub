@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
+import { notify } from "@/lib/notify";
 
 export async function GET(req: NextRequest) {
   const session = getSession(req);
@@ -35,8 +36,18 @@ export async function DELETE(req: NextRequest) {
     if (!reviewId) return NextResponse.json({ error: "Missing reviewId" }, { status: 400 });
 
     const db = getSupabaseAdmin();
+    const { data: review } = await db.from("reviews").select("user_id").eq("id", reviewId).maybeSingle();
     const { error } = await db.from("reviews").delete().eq("id", reviewId);
     if (error) throw error;
+
+    if (review?.user_id) {
+      await notify({
+        userId: review.user_id,
+        type: "review",
+        title: "Your review was removed",
+        body: "An admin removed a review you submitted for violating our guidelines.",
+      });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

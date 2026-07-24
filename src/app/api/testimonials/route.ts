@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import { logSystemError } from "@/lib/systemLog";
+import { notify } from "@/lib/notify";
+import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rateLimit";
 
 // Public homepage feed — only ever returns admin-approved testimonials.
 export async function GET() {
@@ -24,6 +26,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = getSession(req);
     if (!session) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+    if (!(await rateLimit(req, "testimonial", 5, 300))) {
+      return NextResponse.json({ error: RATE_LIMIT_MESSAGE }, { status: 429 });
+    }
 
     const { rating, comment } = await req.json();
     if (!rating || !comment) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -66,6 +72,16 @@ export async function PATCH(req: NextRequest) {
     const db = getSupabaseAdmin();
     const { data, error } = await db.from("testimonials").update({ approved }).eq("id", testimonialId).select().single();
     if (error) throw error;
+
+    if (approved && data?.user_id) {
+      await notify({
+        userId: data.user_id,
+        type: "review",
+        title: "Your testimonial is now live",
+        body: "Thanks for sharing your FloreaHub experience — it's now featured on our homepage.",
+        link: "/",
+      });
+    }
 
     return NextResponse.json({ testimonial: data });
   } catch (err) {
